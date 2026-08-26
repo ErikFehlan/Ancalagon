@@ -3,24 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#07101c">
   <meta name="color-scheme" content="dark">
   <title>Ancalagon | Better Signals. Better Hires.</title>
-  <meta name="description" content="Ancalagon recruiting intelligence dashboard for candidate evaluation, manager calibration, interview outcomes, and pipeline tracking.">
+  <meta name="description" content="Ancalagon recruiting intelligence dashboard for jobs, candidates, manager feedback, interview outcomes, pipeline tracking, and fit analysis.">
   <style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      min-height: 100%;
-      background: #07101c;
-    }
-    body {
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    #rf-app {
-      min-height: 100vh !important;
-    }
+    html, body { margin:0; padding:0; min-height:100%; background:#07101c; }
+    body { min-height:100vh; overflow-x:hidden; }
+    #rf-app { min-height:100vh !important; }
   </style>
 </head>
 <body>
@@ -120,7 +109,7 @@
         <div class="rf-sectiontitle"><div><h2>Benchmarks</h2><p>The reference profiles used to calibrate future candidate assessments.</p></div></div>
         <div class="rf-detail">
           <div class="rf-card"><div class="rf-candtop"><div><div class="rf-avatar" style="background:#18794e">GA</div><h3 style="margin-top:10px">Geri Arnold</h3><div class="rf-pill rf-green">Primary benchmark · 10/10</div></div><div class="rf-scorebox">10<span>/10</span></div></div><ul><li>Legacy modernization and custom internal software</li><li>Contextual research in users' work environment</li><li>Runs workshops and drives alignment</li><li>Strong systems thinking</li><li>Designs edge cases and error states</li><li>Shares knowledge and raises the team</li></ul></div>
-          <div class="rf-card"><div class="rf-candtop"><div><div class="rf-avatar" style="background:#2c6ee8">KW</div><h3 style="margin-top:10px">Kevin Wirth</h3><div class="rf-pill rf-blue">Secondary benchmark · 9.5/10</div></div><div class="rf-scorebox">9.5<span>/10</span></div></div><ul><li>Strong end-to-end enterprise product design</li><li>Self-directed leadership mentality</li><li>Previous management experience signals initiative</li><li>Portfolio shows opportunities for improvement and learnings</li><li>Embedded Product + Engineering collaboration</li><li>Clear, reasonable career narrative</li></ul></div>
+          <div class="rf-card"><div class="rf-candtop"><div><div class="rf-avatar" style="background:#6b7280">KW</div><h3 style="margin-top:10px">Kevin Wirth</h3><div class="rf-pill rf-red">Interview calibration · Pass</div></div><div class="rf-scorebox">5.8<span>/10 manager fit</span></div></div><ul><li>Interview suggested a more junior design level than required</li><li>Did not demonstrate enough ability to influence change or drive design</li><li>Came across as passive and not especially curious</li><li>Behind the team’s current adoption of AI</li><li>Described a handoff-oriented UX/UI and design-to-development workflow</li><li>Wireframe and handoff language felt dated relative to the team’s collaborative model</li></ul></div>
         </div>
       </section>
 
@@ -299,7 +288,7 @@
       function showPage(name){root.querySelectorAll('.rf-page').forEach(p=>p.classList.remove('active'));root.querySelector('#page-'+name)?.classList.add('active');root.querySelectorAll('.rf-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===name))}
       function openDetail(name){const c=candidates.find(x=>(x.name===name||x.short===name)&&x.jobId===activeJobId);if(!c)return;root.querySelector('#detailName').textContent=c.short;root.querySelector('#detailRole').textContent=c.role;root.querySelector('#detailRec').textContent=c.rec;root.querySelector('#detailRec').className='rf-pill '+recClass(c.rec);root.querySelector('#detailJDScore').innerHTML=`${c.jdScore.toFixed(1)}<span>/10</span>`;root.querySelector('#detailManagerScore').innerHTML=`${c.managerScore.toFixed(1)}<span>/10</span>`;root.querySelector('#detailConfidence').textContent='Calibration confidence: '+c.confidence;root.querySelector('#detailStage').value=c.stage;root.querySelector('#detailStage').onchange=()=>{c.stage=root.querySelector('#detailStage').value;c.updatedAt=Date.now();saveState();renderPipeline();renderInsights();renderJobContext()};root.querySelector('#detailStrengths').innerHTML=c.strengths.map(x=>`<li>${x}</li>`).join('');root.querySelector('#detailQuestions').innerHTML=(c.screeningQuestions||screeningQuestions(c)).map(x=>`<li>${x}</li>`).join('')||'<li>No major gaps identified from the current criteria.</li>';root.querySelector('#detailConcerns').innerHTML=c.concerns.map(x=>`<li>${x}</li>`).join('');const ko=knockoutRisks(c);root.querySelector('#detailKnockouts').innerHTML=ko.length?`<div class="rf-dangerbox"><strong>${ko.length} knockout risk${ko.length===1?'':'s'}:</strong> ${ko.join(' • ')}</div>`:'<div class="rf-note">No knockout risks detected from the current candidate data.</div>';root.querySelector('#detailSignal').textContent=c.signal;const events=[['Candidate added',c.createdAt],...feedback.filter(f=>f.candidate===c.short).map((f,i)=>['Manager feedback: '+f.type,c.createdAt+i+1]),...interviewOutcomes.filter(o=>o.jobId===activeJobId&&o.candidate===c.short).map((o,i)=>[o.stage+': '+o.decision,c.createdAt+100+i]),['Current stage: '+c.stage,c.updatedAt]].sort((a,b)=>a[1]-b[1]);root.querySelector('#detailTimeline').innerHTML=events.map(e=>`<div class="rf-timeitem"><strong>${e[0]}</strong></div>`).join('');showPage('detail')}
       function exportCSV(){const lines=[['Rank','Candidate','JD Fit','Manager Fit','Confidence','Recommendation','Primary Signal'],...ranked().map((c,i)=>[i+1,c.short,c.jdScore,c.managerScore,c.confidence,c.rec,c.signal])];const csv=lines.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');downloadBlob(csv,'resume-fit-rankings.csv','text/csv')}
-      function exportReport(){const text=['Ancalagon Report','',...ranked().map((c,i)=>`${i+1}. ${c.short} — ${c.score}/10 — ${c.rec}\n   ${c.signal}`),'','Benchmarks: Geri Arnold (work-type benchmark), Kevin Wirth (mindset/approach benchmark)'].join('\n');downloadBlob(text,'ancalagon-report.txt','text/plain')}
+      function exportReport(){const text=['Ancalagon Report','',...ranked().map((c,i)=>`${i+1}. ${c.short} — ${c.score}/10 — ${c.rec}\n   ${c.signal}`),'','Benchmark: Geri Arnold (work-type benchmark). Kevin Wirth is retained as an interview-calibration lesson, not a positive benchmark.'].join('\n');downloadBlob(text,'ancalagon-report.txt','text/plain')}
       function downloadBlob(content,name,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
       function backendTemplates(){
         const model=root.querySelector('#backendModel')?.value||'gpt-5.6-sol';
