@@ -32,23 +32,30 @@
     .rf-nav{display:grid;gap:8px}.rf-nav button{border:0;background:transparent;color:#d0d8e5;text-align:left;padding:14px 16px;border-radius:8px;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:13px}.rf-nav button:hover,.rf-nav button.active{background:linear-gradient(90deg,#1d3154,#1d355d);color:#fff}.rf-nav button span:first-child{width:22px;text-align:center;color:#a7b7cf;font-size:16px}
     .rf-bench{margin-top:auto;padding-top:18px;border-top:1px solid rgba(255,255,255,.12)}
     .rf-bench h4{margin:0 0 12px;font-size:12px;color:#aeb4ba;text-transform:uppercase;letter-spacing:.08em}.rf-mini{display:flex;align-items:center;gap:10px;padding:9px 0}.rf-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:white;flex:0 0 auto}.rf-mini small{display:block;color:#b7bdc3;margin-top:2px}
-    .rf-main{padding:28px 28px 34px;min-width:0;position:relative}  
-    .rf-main:before{
+.rf-main{
+  padding:28px 28px 34px;
+  min-width:0;
+  position:relative;
+  isolation:isolate;
+}
+    
+.rf-main:before{
   content:"";
-  position:fixed;
+  position:absolute;
   right:3%;
-  top:8%;
+  top:3%;
   width:500px;
   height:500px;
   background-image:url("./assets/ancalagon.png");
   background-repeat:no-repeat;
   background-position:center;
   background-size:contain;
-  opacity:0.04;
+  opacity:0.06;
   pointer-events:none;
   z-index:0;
 }
-    .rf-main > *{
+    
+.rf-main > *{
   position:relative;
   z-index:1;
 }
