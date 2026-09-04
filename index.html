@@ -391,7 +391,7 @@
   style="margin-top:12px;background:#4a1820;border-color:#8f3340;color:#ffb4bd;">
   Delete Candidate
 </button>
-</article>`)});if(!wrap.children.length)wrap.innerHTML='<div class="rf-card"><h3>No candidates yet</h3><p class="rf-sub">Add the first candidate for '+activeJob().title+'.</p></div>';root.querySelectorAll('.rf-candidate').forEach(card=>{const go=()=>openDetail(card.dataset.name);card.addEventListener('click',go);card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})})root.querySelectorAll('[data-delete-candidate]').forEach(b=>{
+</article>`)});if(!wrap.children.length)wrap.innerHTML='<div class="rf-card"><h3>No candidates yet</h3><p class="rf-sub">Add the first candidate for '+activeJob().title+'.</p></div>';root.querySelectorAll('.rf-candidate').forEach(card=>{const go=()=>openDetail(card.dataset.name);card.addEventListener('click',go);card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})});root.querySelectorAll('[data-delete-candidate]').forEach(b=>{
   b.addEventListener('click',e=>{
     e.stopPropagation();
     deleteCandidate(b.dataset.deleteCandidate);
