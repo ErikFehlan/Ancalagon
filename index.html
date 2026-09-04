@@ -330,6 +330,50 @@
   // Reload the app using the newly saved state
   location.reload();
 }
+      function deleteCandidate(candidateName) {
+  const candidateIndex = candidates.findIndex(
+    c => c.name === candidateName || c.short === candidateName
+  );
+
+  if (candidateIndex === -1) return;
+
+  const candidate = candidates[candidateIndex];
+  const displayName = candidate.short || candidate.name;
+
+  const confirmed = confirm(
+    `Delete "${displayName}"?\n\n` +
+    `This will also permanently delete their feedback and interview outcomes.\n\n` +
+    `This cannot be undone.`
+  );
+
+  if (!confirmed) return;
+
+  // Remove candidate
+  candidates.splice(candidateIndex, 1);
+
+  // Remove feedback tied to candidate
+  for (let i = feedback.length - 1; i >= 0; i--) {
+    if (
+      feedback[i].candidate === candidate.name ||
+      feedback[i].candidate === candidate.short
+    ) {
+      feedback.splice(i, 1);
+    }
+  }
+
+  // Remove interview outcomes tied to candidate
+  for (let i = interviewOutcomes.length - 1; i >= 0; i--) {
+    if (
+      interviewOutcomes[i].candidate === candidate.name ||
+      interviewOutcomes[i].candidate === candidate.short
+    ) {
+      interviewOutcomes.splice(i, 1);
+    }
+  }
+
+  saveState();
+  location.reload();
+}
       function activeCandidates(){return candidates.filter(c=>c.jobId===activeJobId)}
       function ranked(){return [...activeCandidates()].sort((a,b)=>b.managerScore-a.managerScore)}
       function deriveJobWeights(job){const criteria=(job.criteria||[]).filter(Boolean);if(job.id==='igs-product-design')return JSON.parse(JSON.stringify(defaultWeights));if(!criteria.length)return [['Overall job-description fit',100]];const base=Math.floor(100/criteria.length);let remainder=100-base*criteria.length;return criteria.map((criterion,i)=>[criterion,base+(i<remainder?1:0)])}
@@ -339,7 +383,20 @@
       function screeningQuestions(c){const q=[];(activeJob().criteria||[]).forEach(raw=>{const text=raw.replace(/^\s*(Must Have|Preferred|Bonus)\s*\|\s*/i,'');const key=text.toLowerCase().split(/[,;/]/)[0];const hay=(c.strengths.concat(c.tags,[c.signal]).join(' ')).toLowerCase();if(key.length>3&&!hay.includes(key.slice(0,Math.min(18,key.length))))q.push('Your resume does not clearly prove "'+text+'". Can you walk me through your direct experience with it?')});(c.concerns||[]).slice(0,2).forEach(x=>q.push('Can you clarify this concern: '+x+'?'));return q.slice(0,5)}
       function renderJobContext(){const job=activeJob();const priorities=root.querySelector('#managerPriorities');const priorityItems=(job.criteria||[]).length?job.criteria:(job.managerFeedback?job.managerFeedback.split(/[.;\n]+/).map(x=>x.trim()).filter(Boolean):[]);priorities.innerHTML=priorityItems.slice(0,8).map(x=>`<div class="rf-priority"><span class="rf-check">✓</span><span>${x}</span></div>`).join('')||'<div class="rf-note">Add key screening criteria or manager feedback for this job to populate this section.</div>';const bench=root.querySelector('#dashboardBenchmarks');const benchmarks=ranked().filter(c=>c.benchmark||c.rec==='Interview'||c.rec==='Strong Consideration').slice(0,2);bench.innerHTML=benchmarks.map((c,i)=>`<div class="rf-bmark"><div class="rf-bmarktop"><div class="rf-name"><div class="rf-avatar" style="background:${avatarColor(i)}">${c.initials}</div>${c.short}</div><span class="rf-pill ${recClass(c.rec)}">${c.managerScore.toFixed(1)} / 10</span></div><p>${c.signal}</p></div>`).join('')||'<div class="rf-note">No benchmarks yet for this job. Strong candidates and interview recommendations will appear here.</div>';const recent=root.querySelector('#recentCandidates');const recentList=activeCandidates().slice(-3).reverse();recent.innerHTML=recentList.map((c,i)=>`<div class="rf-recent"><div class="rf-name"><div class="rf-avatar" style="background:${avatarColor(i+4)}">${c.initials}</div><div>${c.short}<small>${c.rec}</small></div></div><span class="rf-pill ${recClass(c.rec)}">${c.managerScore.toFixed(1)}</span></div>`).join('')||'<div class="rf-note">No candidates added for this job yet.</div>';const sidebar=root.querySelector('.rf-bench');sidebar.innerHTML='<h4>Active benchmarks</h4>'+benchmarks.map((c,i)=>`<div class="rf-mini"><div class="rf-avatar" style="background:${avatarColor(i)}">${c.initials}</div><div><strong>${c.short}</strong><small>${c.rec} · ${c.managerScore.toFixed(1)}/10</small></div></div>`).join('')+(benchmarks.length?'':'<div class="rf-note">No benchmarks yet</div>')}
       function renderRankings(){const list=ranked();const dash=root.querySelector('#dashRanking');const full=root.querySelector('#fullRanking');dash.innerHTML='';full.innerHTML='';list.slice(0,8).forEach((c,i)=>{dash.insertAdjacentHTML('beforeend',`<tr class="rf-row" data-name="${c.name.replace(/"/g,'&quot;')}"><td class="rf-rank">${i+1}</td><td><div class="rf-name"><div class="rf-avatar" style="background:${avatarColor(i)}">${c.initials}</div>${c.short}</div></td><td class="rf-score">${c.jdScore.toFixed(1)}</td><td class="rf-score">${c.managerScore.toFixed(1)}</td><td><span class="rf-pill ${recClass(c.rec)}">${c.rec}</span></td></tr>`)});list.forEach((c,i)=>{full.insertAdjacentHTML('beforeend',`<tr class="rf-row" data-name="${c.name.replace(/"/g,'&quot;')}"><td class="rf-rank">${i+1}</td><td><div class="rf-name"><div class="rf-avatar" style="background:${avatarColor(i)}">${c.initials}</div>${c.short}</div></td><td class="rf-score">${c.jdScore.toFixed(1)}</td><td class="rf-score">${c.managerScore.toFixed(1)}</td><td>${c.confidence}</td><td><span class="rf-pill ${recClass(c.rec)}">${c.rec}</span></td><td>${c.signal}</td></tr>`)});root.querySelectorAll('.rf-row').forEach(r=>r.addEventListener('click',()=>openDetail(r.dataset.name)))}
-      function renderCandidates(filter=''){const wrap=root.querySelector('#candidateCards');wrap.innerHTML='';ranked().filter(c=>c.name.toLowerCase().includes(filter.toLowerCase())||c.tags.join(' ').toLowerCase().includes(filter.toLowerCase())).forEach((c,i)=>{wrap.insertAdjacentHTML('beforeend',`<article class="rf-card rf-candidate" tabindex="0" data-name="${c.name.replace(/"/g,'&quot;')}"><div class="rf-candtop"><div class="rf-avatar" style="background:${avatarColor(i)}">${c.initials}</div><span class="rf-pill ${recClass(c.rec)}">${c.score.toFixed(c.score%1?1:0)}/10</span></div><h4>${c.short}</h4><div class="role">${c.role}</div><p>${c.signal}</p><div class="rf-tags">${c.tags.map(t=>`<span class="rf-tag">${t}</span>`).join('')}</div></article>`)});if(!wrap.children.length)wrap.innerHTML='<div class="rf-card"><h3>No candidates yet</h3><p class="rf-sub">Add the first candidate for '+activeJob().title+'.</p></div>';root.querySelectorAll('.rf-candidate').forEach(card=>{const go=()=>openDetail(card.dataset.name);card.addEventListener('click',go);card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})})}
+      function renderCandidates(filter=''){const wrap=root.querySelector('#candidateCards');wrap.innerHTML='';ranked().filter(c=>c.name.toLowerCase().includes(filter.toLowerCase())||c.tags.join(' ').toLowerCase().includes(filter.toLowerCase())).forEach((c,i)=>{wrap.insertAdjacentHTML('beforeend',`<article class="rf-card rf-candidate" tabindex="0" data-name="${c.name.replace(/"/g,'&quot;')}"><div class="rf-candtop"><div class="rf-avatar" style="background:${avatarColor(i)}">${c.initials}</div><span class="rf-pill ${recClass(c.rec)}">${c.score.toFixed(c.score%1?1:0)}/10</span></div><h4>${c.short}</h4><div class="role">${c.role}</div><p>${c.signal}</p><div class="rf-tags">${c.tags.map(t=>`<span class="rf-tag">${t}</span>`).join('')}</div>
+<button
+  class="rf-btn"
+  type="button"
+  data-delete-candidate="${c.name.replace(/"/g,'&quot;')}"
+  style="margin-top:12px;background:#4a1820;border-color:#8f3340;color:#ffb4bd;">
+  Delete Candidate
+</button>
+</article>`)});if(!wrap.children.length)wrap.innerHTML='<div class="rf-card"><h3>No candidates yet</h3><p class="rf-sub">Add the first candidate for '+activeJob().title+'.</p></div>';root.querySelectorAll('.rf-candidate').forEach(card=>{const go=()=>openDetail(card.dataset.name);card.addEventListener('click',go);card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})})root.querySelectorAll('[data-delete-candidate]').forEach(b=>{
+  b.addEventListener('click',e=>{
+    e.stopPropagation();
+    deleteCandidate(b.dataset.deleteCandidate);
+  });
+});}
       function renderCriteria(){const dash=root.querySelector('#dashCriteria');const edit=root.querySelector('#criteriaEditor');dash.innerHTML='';edit.innerHTML='';weights.forEach((w,i)=>{dash.insertAdjacentHTML('beforeend',`<div class="rf-criterion"><span>${w[0]}</span><span class="rf-weight">${w[1]}%</span><span class="rf-bar"><i style="width:${Math.min(100,w[1]*3.2)}%"></i></span></div>`);edit.insertAdjacentHTML('beforeend',`<div class="rf-criterion"><span>${w[0]}</span><span class="rf-weight" id="weightValue${i}">${w[1]}%</span><input class="rf-range" type="range" min="0" max="100" step="1" value="${w[1]}" data-index="${i}" aria-label="Weight for ${w[0]}"></div>`)});edit.querySelectorAll('input[type=range]').forEach(inp=>inp.addEventListener('input',()=>{const i=Number(inp.dataset.index);weights[i][1]=Number(inp.value);activeJob().weights=JSON.parse(JSON.stringify(weights));saveState();root.querySelector(`#weightValue${i}`).textContent=inp.value+'%';const dashRows=root.querySelectorAll('#dashCriteria .rf-criterion');if(dashRows[i]){dashRows[i].querySelector('.rf-weight').textContent=inp.value+'%';dashRows[i].querySelector('.rf-bar i').style.width=Math.min(100,Number(inp.value)*3.2)+'%'}updateTotal()}));updateTotal()}
       function updateTotal(){const total=weights.reduce((s,w)=>s+w[1],0);const el=root.querySelector('#weightTotal');el.textContent='Total: '+total+'%';el.classList.toggle('bad',total!==100)}
       function renderMetrics(){const list=ranked();const job=activeJob();root.querySelector('.rf-brand span').textContent=job.title;root.querySelector('#page-dashboard .rf-top p').textContent='Active job: '+job.title+(job.client?' · '+job.client:'');if(list.length){root.querySelector('#topName').textContent=list[0].short;root.querySelector('#topScore').textContent=list[0].managerScore.toFixed(1)+'/10 manager fit · '+list[0].rec;root.querySelector('#avgScore').textContent=(list.reduce((s,c)=>s+c.managerScore,0)/list.length).toFixed(1)}else{root.querySelector('#topName').textContent='—';root.querySelector('#topScore').textContent='No candidates yet';root.querySelector('#avgScore').textContent='—'}root.querySelector('#candidateCount').textContent=list.length;root.querySelector('#interviewCount').textContent=list.filter(c=>c.rec==='Interview').length;renderDashboardPanels()}
