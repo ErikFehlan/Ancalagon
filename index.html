@@ -268,6 +268,68 @@
       function ensureScores(c){if(c.jdScore==null)c.jdScore=c.score;if(c.managerScore==null)c.managerScore=c.score;if(!c.confidence)c.confidence=(c.short==='Geri Arnold'||c.short==='Kevin Wirth')?'High':'Medium';c.benchmark=(c.short==='Geri Arnold');c.stage=c.stage||'Sourced';c.createdAt=c.createdAt||Date.now();c.updatedAt=c.updatedAt||c.createdAt;c.screeningQuestions=c.screeningQuestions||[];return c}
       candidates.forEach(c=>{c.jobId=c.jobId||'igs-product-design';ensureScores(c)});
       function activeJob(){return jobs.find(j=>j.id===activeJobId)||jobs[0]}
+      function deleteJob(jobId) {
+  const jobIndex = jobs.findIndex(j => j.id === jobId);
+  if (jobIndex === -1) return;
+
+  const job = jobs[jobIndex];
+
+  const jobCandidates = candidates.filter(c => c.jobId === jobId);
+  const candidateNames = new Set(
+    jobCandidates
+      .map(c => c.name || c.short)
+      .filter(Boolean)
+  );
+
+  const confirmed = confirm(
+    `Delete "${job.title}"?\n\n` +
+    `This will also permanently delete ${jobCandidates.length} candidate(s), ` +
+    `their feedback, and their interview outcomes.\n\n` +
+    `This cannot be undone.`
+  );
+
+  if (!confirmed) return;
+
+  // Delete candidates associated with this job
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    if (candidates[i].jobId === jobId) {
+      candidates.splice(i, 1);
+    }
+  }
+
+  // Delete feedback associated with this job or its candidates
+  for (let i = feedback.length - 1; i >= 0; i--) {
+    if (
+      feedback[i].jobId === jobId ||
+      candidateNames.has(feedback[i].candidate)
+    ) {
+      feedback.splice(i, 1);
+    }
+  }
+
+  // Delete interview outcomes associated with this job
+  for (let i = interviewOutcomes.length - 1; i >= 0; i--) {
+    if (
+      interviewOutcomes[i].jobId === jobId ||
+      candidateNames.has(interviewOutcomes[i].candidate)
+    ) {
+      interviewOutcomes.splice(i, 1);
+    }
+  }
+
+  // Delete the job
+  jobs.splice(jobIndex, 1);
+
+  // If the deleted job was active, switch to another job
+  if (activeJobId === jobId) {
+    activeJobId = jobs.length ? jobs[0].id : null;
+  }
+
+  saveState();
+
+  // Reload the app using the newly saved state
+  location.reload();
+}
       function activeCandidates(){return candidates.filter(c=>c.jobId===activeJobId)}
       function ranked(){return [...activeCandidates()].sort((a,b)=>b.managerScore-a.managerScore)}
       function deriveJobWeights(job){const criteria=(job.criteria||[]).filter(Boolean);if(job.id==='igs-product-design')return JSON.parse(JSON.stringify(defaultWeights));if(!criteria.length)return [['Overall job-description fit',100]];const base=Math.floor(100/criteria.length);let remainder=100-base*criteria.length;return criteria.map((criterion,i)=>[criterion,base+(i<remainder?1:0)])}
@@ -292,7 +354,70 @@
       function resetFeedbackForm(){root.querySelector('#feedbackForm').reset();root.querySelector('#feedbackEditIndex').value='';root.querySelector('#feedbackSubmitBtn').textContent='Save Feedback & Recalibrate';root.querySelector('#cancelFeedbackEdit').classList.add('rf-hidden')}
       function editOutcome(i){const o=interviewOutcomes[i];if(!o)return;root.querySelector('#outcomeEditIndex').value=String(i);root.querySelector('#outcomeCandidate').value=o.candidate;root.querySelector('#outcomeStage').value=o.stage;root.querySelector('#outcomeDecision').value=o.decision;root.querySelector('#outcomePositives').value=o.positives||'';root.querySelector('#outcomeConcerns').value=o.concerns||'';root.querySelector('#outcomeNotes').value=o.notes||'';root.querySelector('#outcomeSubmitBtn').textContent='Update Interview Outcome';root.querySelector('#cancelOutcomeEdit').classList.remove('rf-hidden')}
       function resetOutcomeForm(){root.querySelector('#outcomeForm').reset();root.querySelector('#outcomeEditIndex').value='';root.querySelector('#outcomeSubmitBtn').textContent='Save Interview Outcome';root.querySelector('#cancelOutcomeEdit').classList.add('rf-hidden')}
-      function renderJobs(){const list=root.querySelector('#jobList');list.innerHTML=jobs.map(j=>`<div class="rf-recent"><div><strong>${j.title}</strong><small>${j.client||'No client listed'} · ${candidates.filter(c=>c.jobId===j.id).length} candidates</small></div><div class="rf-actions"><button class="rf-btn ${j.id===activeJobId?'primary':''}" type="button" data-activate-job="${j.id}">${j.id===activeJobId?'Active':'Set Active'}</button><button class="rf-btn" type="button" data-edit-job="${j.id}">Edit</button></div></div>`).join('');list.querySelectorAll('[data-activate-job]').forEach(b=>b.addEventListener('click',()=>{activeJobId=b.dataset.activateJob;saveState();loadActiveJobWeights();renderJobs();recalibrateAll();renderFeedback();renderOutcomes();showPage('dashboard')}));list.querySelectorAll('[data-edit-job]').forEach(b=>b.addEventListener('click',()=>editJob(b.dataset.editJob)))}
+function renderJobs(){
+  const list=root.querySelector('#jobList');
+
+  list.innerHTML=jobs.map(j=>`
+    <div class="rf-recent">
+      <div>
+        <strong>${j.title}</strong>
+        <small>
+          ${j.client||'No client listed'} ·
+          ${candidates.filter(c=>c.jobId===j.id).length} candidates
+        </small>
+      </div>
+
+      <div class="rf-actions">
+        <button
+          class="rf-btn ${j.id===activeJobId?'primary':''}"
+          type="button"
+          data-activate-job="${j.id}">
+          ${j.id===activeJobId?'Active':'Set Active'}
+        </button>
+
+        <button
+          class="rf-btn"
+          type="button"
+          data-edit-job="${j.id}">
+          Edit
+        </button>
+
+        <button
+          class="rf-btn"
+          type="button"
+          data-delete-job="${j.id}"
+          style="background:#4a1820;border-color:#8f3340;color:#ffb4bd;">
+          Delete Job
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('[data-activate-job]').forEach(b=>
+    b.addEventListener('click',()=>{
+      activeJobId=b.dataset.activateJob;
+      saveState();
+      loadActiveJobWeights();
+      renderJobs();
+      recalibrateAll();
+      renderFeedback();
+      renderOutcomes();
+      showPage('dashboard');
+    })
+  );
+
+  list.querySelectorAll('[data-edit-job]').forEach(b=>
+    b.addEventListener('click',()=>
+      editJob(b.dataset.editJob)
+    )
+  );
+
+  list.querySelectorAll('[data-delete-job]').forEach(b=>
+    b.addEventListener('click',()=>
+      deleteJob(b.dataset.deleteJob)
+    )
+  );
+}
       function editJob(id){const j=jobs.find(x=>x.id===id);if(!j)return;root.querySelector('#jobId').value=j.id;root.querySelector('#jobTitle').value=j.title;root.querySelector('#jobClient').value=j.client||'';root.querySelector('#jobDescription').value=j.description||'';root.querySelector('#jobManagerFeedback').value=j.managerFeedback||'';root.querySelector('#jobCriteria').value=(j.criteria||[]).join('\n');root.querySelector('#jobKnockouts').value=(j.knockouts||[]).join('\n');root.querySelector('#jobFormTitle').textContent='Edit Job';root.querySelector('#cancelJobEdit').classList.remove('rf-hidden')}
       function resetJobForm(){root.querySelector('#jobForm').reset();root.querySelector('#jobId').value='';root.querySelector('#jobFormTitle').textContent='Add Job';root.querySelector('#cancelJobEdit').classList.add('rf-hidden')}
       function recalibrateCandidate(c){if(c.benchmark)return;const all=(c.strengths.concat(c.concerns,[c.signal],c.tags).join(' ')+' '+feedback.filter(f=>f.candidate===c.short).map(f=>f.text).join(' ')).toLowerCase();let delta=0;[['legacy',.18],['contextual',.14],['systems thinking',.12],['edge case',.10],['workshop',.10],['learn',.08],['management',.06],['cleveland',.03],['salesforce',-.12],['consultant',-.10],['consumer',-.08],['public-facing',-.08],['output',-.06]].forEach(([term,w])=>{if(all.includes(term))delta+=w});const notes=feedback.filter(f=>f.candidate===c.short);notes.forEach(f=>{const o=(f.outcome||'').toLowerCase();if(o.includes('interview')||o.includes('move forward'))delta+=.18;if(o.includes('pass'))delta-=.18});c.managerScore=Math.max(0,Math.min(10,Math.round((c.jdScore+delta)*10)/10));c.confidence=notes.length>=2?'High':notes.length===1?'Medium':'Low';if(c.managerScore>=9.2)c.rec='Interview';else if(c.managerScore>=8.3)c.rec='Strong Consideration';else if(c.managerScore>=7.2)c.rec='Consider';else if(c.managerScore>=6)c.rec='Screen First';else c.rec='Not Recommended'}
