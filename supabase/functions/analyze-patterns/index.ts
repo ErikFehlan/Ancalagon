@@ -106,7 +106,10 @@ SAFETY AND FAIRNESS
 - Never infer or use protected or sensitive traits, including race, ethnicity, sex, gender, age, disability, religion, pregnancy, genetic information, nationality, or family status.
 - Ignore names, addresses, graduation dates, and other demographic proxies when scoring.
 - Do not invent qualifications. Treat missing resume evidence as unknown, not as proof that the candidate lacks a skill.
-- Use job criteria, manager calibration, knockout rules, and anonymized benchmarks only as job-related context.
+- Use job criteria, manager calibration, knockout rules, anonymized benchmarks, and evaluation_reviews only as job-related context.
+- Treat evaluation_reviews as human corrections from prior candidates for this same job. Apply repeated lessons, but do not copy a prior candidate's score onto the current resume.
+- A correction note must be supported by current-resume evidence before it changes the score.
+- Prefer consistent corrections and recorded outcomes over a single review.
 
 SCORING
 - Score from 0 to 10 based on evidence in the resume.
