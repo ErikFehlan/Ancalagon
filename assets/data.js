@@ -22,14 +22,18 @@
 
     async function load() {
       const [jobRows, candidateRows, feedbackRows, outcomeRows, benchmarkRows, screeningRows, reviewRows] = await Promise.all([
-        query('jobs'), query('candidates'), query('manager_feedback'), query('interview_outcomes'),
-        query('candidate_benchmarks'), query('screening_insights'),
-        query('candidate_assessments').then(rows => rows.filter(row => row.assessment_type === 'manual_correction'))
+        query('jobs', 'id,title,client,description,manager_feedback,criteria,knockouts,weights,pattern_analysis,created_at,updated_at'),
+        query('candidates', 'id,job_id,name,role,stage,resume_jd_score,jd_score,original_manager_score,manager_score,confidence,recommendation,primary_signal,strengths,concerns,tags,screening_questions,created_at,updated_at'),
+        query('manager_feedback', 'id,job_id,candidate_id,feedback_type,outcome,feedback_text,created_at,updated_at'),
+        query('interview_outcomes', 'id,job_id,candidate_id,interview_stage,decision,positives,concerns,notes,previous_pipeline_stage,created_at,updated_at'),
+        query('candidate_benchmarks', 'candidate_id'),
+        query('screening_insights', 'candidate_id,can_do_job,culture_working_style_fit,notes,resulting_jd_score,resulting_manager_score,assessment_summary,assessment_source,created_at,previous_jd_score,previous_manager_score'),
+        query('candidate_assessments', 'candidate_id,assessment_type,evidence,created_at').then(rows => rows.filter(row => row.assessment_type === 'manual_correction'))
       ]);
       const benchmarkIds = new Set(benchmarkRows.map(row => row.candidate_id));
       const screeningByCandidate = new Map(screeningRows.sort((a, b) => epoch(a.created_at) - epoch(b.created_at)).map(row => [row.candidate_id, row]));
       const reviewByCandidate = new Map(reviewRows.sort((a, b) => epoch(a.created_at) - epoch(b.created_at)).map(row => [row.candidate_id, row]));
-      return {
+      const loadedState = {
         jobs: jobRows.map(row => ({
           id: row.id, title: row.title, client: row.client || '', description: row.description || '',
           managerFeedback: row.manager_feedback || '', criteria: row.criteria || [], knockouts: row.knockouts || [],
@@ -71,6 +75,8 @@
           createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at)
         }))
       };
+      lastFingerprint = JSON.stringify(loadedState);
+      return loadedState;
     }
 
     async function replaceChildren(table, rows) {

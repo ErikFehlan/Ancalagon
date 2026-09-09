@@ -296,6 +296,11 @@
 
   client.auth.onAuthStateChange(function (event, session) {
     if (event === 'PASSWORD_RECOVERY') resetPasswordModal.hidden = false;
+    if (event === 'TOKEN_REFRESHED' && session && window.ancalagonAuth?.workspace) {
+      appliedAccessToken = session.access_token;
+      window.ancalagonAuth = { ...window.ancalagonAuth, session };
+      return;
+    }
     window.setTimeout(function () { applySession(client, session); }, 0);
   });
 
