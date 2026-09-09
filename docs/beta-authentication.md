@@ -14,6 +14,8 @@ In Supabase, open **Authentication > URL Configuration**.
 
 Open Ancalagon, select **Create Account**, and enter a name, work email, and password. The app displays a welcome confirmation and opens the tester's private workspace immediately.
 
+The **Forgot email or password?** option explains that the account username is the tester's work email and sends a secure Supabase password-reset link. The link returns to Ancalagon, where the tester chooses a new password.
+
 The database trigger automatically creates a private workspace and makes that user its owner. No manual database row is required.
 
 ## Run locally
