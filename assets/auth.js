@@ -33,10 +33,10 @@
     document.getElementById('rf-app').setAttribute('aria-hidden', 'true');
   }
 
-  function showApplication(session, workspace) {
+  function showApplication(session, workspace, needsWorkspaceLoad) {
     body.classList.remove('rf-auth-pending', 'rf-auth-guest');
     body.classList.add('rf-authenticated');
-    body.classList.add('rf-data-loading');
+    body.classList.toggle('rf-data-loading', Boolean(needsWorkspaceLoad));
     gate.setAttribute('aria-hidden', 'true');
     document.getElementById('rf-app').removeAttribute('aria-hidden');
     userEmail.textContent = session.user.email || '';
@@ -79,10 +79,13 @@
 
     try {
       const workspace = await workspaceForUser(client);
+      const workspaceChanged = window.ancalagonAuth?.workspace?.id !== workspace.id;
       appliedAccessToken = session.access_token;
       window.ancalagonAuth = { client, session, workspace };
-      showApplication(session, workspace);
-      window.dispatchEvent(new CustomEvent('ancalagon:auth-ready', { detail: window.ancalagonAuth }));
+      showApplication(session, workspace, workspaceChanged);
+      if (workspaceChanged) {
+        window.dispatchEvent(new CustomEvent('ancalagon:auth-ready', { detail: window.ancalagonAuth }));
+      }
     } catch (error) {
       showGuest();
       showMessage(error.message || 'Your workspace could not be loaded.', 'error');
