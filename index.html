@@ -342,8 +342,8 @@
   <div class="rf-modalbackdrop" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle"><div class="rf-modal"><h3 id="confirmTitle">Confirm action</h3><p id="confirmMessage"></p><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="confirmCancel" type="button">Cancel</button><button class="rf-btn danger" id="confirmAccept" type="button">Delete</button></div></div></div>
   <div class="rf-modalbackdrop" id="screeningModal" role="dialog" aria-modal="true" aria-labelledby="screeningTitle"><div class="rf-modal rf-screen-modal"><form class="rf-form" id="screeningForm"><div><div class="rf-kicker">Screening insight</div><h3 id="screeningTitle">Add screening evidence</h3><p>Capture only what changes the assessment. Ancalagon will compare this evidence with the job, manager priorities, and current evaluation.</p></div><div class="rf-screen-context"><div>Current JD Fit<strong id="screenCurrentJD">—</strong></div><div>Current Manager Fit<strong id="screenCurrentManager">—</strong></div></div><div class="rf-formrow"><div><label for="screenAbility">Can they do the job?</label><select id="screenAbility" required><option value="">Select an assessment</option><option value="Yes">Yes — evidence supports it</option><option value="Maybe">Maybe — important gaps remain</option><option value="No">No — evidence shows a mismatch</option></select></div><div><label for="screenCulture">Culture / working-style fit</label><select id="screenCulture" required><option value="">Select an assessment</option><option value="Strong">Strong alignment</option><option value="Mixed">Mixed / uncertain</option><option value="Weak">Weak alignment</option></select></div></div><div><label for="screenNotes">What did you learn?</label><textarea id="screenNotes" required maxlength="4000" placeholder="Add concise, job-related evidence from the conversation—skills depth, ownership, communication, motivation, or working style."></textarea><div class="rf-sub" style="margin-top:5px">Do not include protected personal information. Notes are used as evidence, not as an automatic hiring decision.</div></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="screenCancel" type="button">Cancel</button><button class="rf-btn primary" id="screenSubmit" type="submit">✦ Reassess & Mark Screened</button></div></form></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="assets/auth.js?v=20260909-session-refresh"></script>
-  <script src="assets/data.js"></script>
+  <script src="assets/auth.js?v=20260909-performance"></script>
+  <script src="assets/data.js?v=20260909-performance"></script>
   <script>
     (()=>{
       const root=document.getElementById('rf-app');
@@ -711,7 +711,6 @@ function renderJobs(){
           }
           dataReady=true;
           renderInitialState();
-          saveState();
         }catch(error){
           console.error('Workspace initialization failed',error);
           jobs.splice(0);candidates.splice(0);feedback.splice(0);interviewOutcomes.splice(0);activeJobId=null;
@@ -722,7 +721,7 @@ function renderJobs(){
           window.dispatchEvent(new CustomEvent('ancalagon:data-ready'));
         }
       }
-      window.addEventListener('beforeunload',saveState);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveState()});setInterval(saveState,1000);
+      window.addEventListener('beforeunload',saveState);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveState()});
       root.querySelector('#mobileNavToggle').addEventListener('click',()=>root.querySelector('.rf-sidebar').classList.toggle('open'));
       root.querySelector('#globalJobSelect').addEventListener('change',e=>{activeJobId=e.target.value;loadActiveJobWeights();saveState();renderJobs();recalibrateAll();renderFeedback();renderOutcomes();showToast('Switched to '+activeJob().title+'.')});
       root.querySelector('#patternFunctionUrl').value=hybridState.settings?.url||'';
