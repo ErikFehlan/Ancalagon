@@ -1,3 +1,4 @@
+// Deployed as analyze-patterns-v2, matching the dashboard's configured endpoint.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -81,6 +82,20 @@ const resumeSchema = {
   },
 };
 
+const screeningSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["jd_score", "manager_score", "confidence", "summary", "jd_reason", "manager_reason"],
+  properties: {
+    jd_score: { type: "number", minimum: 0, maximum: 10 },
+    manager_score: { type: "number", minimum: 0, maximum: 10 },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
+    summary: { type: "string" },
+    jd_reason: { type: "string" },
+    manager_reason: { type: "string" },
+  },
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -94,8 +109,12 @@ Deno.serve(async (request) => {
     if (encoded.length > 180_000) return json({ error: "Evidence payload is too large" }, 413);
     if (!evidence?.job?.title) return json({ error: "A job is required" }, 400);
     const isResumeAnalysis = evidence?.analysis_type === "resume";
+    const isScreeningAnalysis = evidence?.analysis_type === "screening";
     if (isResumeAnalysis && !evidence?.resume_text?.trim()) {
       return json({ error: "Resume text is required" }, 400);
+    }
+    if (isScreeningAnalysis && !evidence?.screening?.notes?.trim()) {
+      return json({ error: "Screening notes are required" }, 400);
     }
 
     const instructions = isResumeAnalysis ? `You evaluate a resume against one specific job using only the supplied job-related evidence.
@@ -118,7 +137,23 @@ SCORING
 - Concerns must identify missing or unclear evidence, not personal judgments.
 - Screening questions should resolve the most important uncertainties.
 - Extract the candidate name and current/recent professional role from the resume when clearly stated; otherwise use "Candidate" and the target job title.
-- Tags should be short, job-related skills or domains.` : `You are the interpretation layer in a hybrid recruiting calibration system.
+- Tags should be short, job-related skills or domains.` : isScreeningAnalysis ? `You reassess one candidate after a recruiter screening conversation.
+Use the supplied screening notes only as new job-related evidence and preserve the resume assessment as the baseline.
+
+SAFETY AND FAIRNESS
+- Never make a final hiring decision.
+- Ignore and do not infer protected or sensitive traits or demographic proxies.
+- Do not use personal similarity or vague affinity as culture fit.
+- Interpret culture/working-style fit only through job-related communication, collaboration, motivation, ownership, and documented work preferences.
+- Do not invent qualifications. Treat unsupported or missing information as unknown.
+
+SCORING
+- Adjust JD Fit only when the notes confirm, weaken, or contradict job qualifications.
+- Adjust Manager Fit only when notes address documented manager priorities or relevant working style.
+- Keep changes proportional. The selector answers are context, not evidence by themselves.
+- If notes do not support a change, keep that score unchanged.
+- Explain each score concisely and state uncertainty.
+- Confidence reflects the specificity of the screening evidence, not confidence in a hiring decision.` : `You are the interpretation layer in a hybrid recruiting calibration system.
 The application's deterministic rules and recorded outcomes are the source of truth. Interpret only the supplied evidence.
 
 SAFETY AND FAIRNESS
@@ -149,13 +184,13 @@ ANALYSIS RULES
       body: JSON.stringify({
         model: Deno.env.get("OPENAI_MODEL") || "gpt-4.1-mini",
         instructions,
-        input: (isResumeAnalysis ? "Evaluate this resume and job evidence:\n" : "Analyze this anonymized recruiting evidence:\n") + encoded,
+        input: (isResumeAnalysis ? "Evaluate this resume and job evidence:\n" : isScreeningAnalysis ? "Reassess this candidate using the screening evidence:\n" : "Analyze this anonymized recruiting evidence:\n") + encoded,
         text: {
           format: {
             type: "json_schema",
-            name: isResumeAnalysis ? "resume_evaluation" : "hiring_pattern_analysis",
+            name: isResumeAnalysis ? "resume_evaluation" : isScreeningAnalysis ? "screening_reassessment" : "hiring_pattern_analysis",
             strict: true,
-            schema: isResumeAnalysis ? resumeSchema : schema,
+            schema: isResumeAnalysis ? resumeSchema : isScreeningAnalysis ? screeningSchema : schema,
           },
         },
       }),

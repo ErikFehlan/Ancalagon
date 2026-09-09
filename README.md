@@ -17,7 +17,7 @@ change weights automatically; each proposed change requires explicit approval in
 3. Configure secrets:
    `supabase secrets set OPENAI_API_KEY=YOUR_KEY OPENAI_MODEL=gpt-4.1-mini`
 4. Deploy:
-   `supabase functions deploy analyze-patterns`
+   `supabase functions deploy analyze-patterns-v2`
 5. In Ancalagon Settings, enter:
    - `https://YOUR_PROJECT_REF.supabase.co/functions/v1/analyze-patterns`
    - The project's public anon/publishable key
