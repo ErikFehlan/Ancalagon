@@ -2,16 +2,11 @@
 
 The beta branch stores each account's recruiting data in its authenticated Supabase workspace. Row-level security prevents members of one workspace from reading or changing another workspace.
 
-## First owner login
+## Account initialization
 
-If the browser contains the earlier local Ancalagon dataset and the workspace is empty, Ancalagon offers a one-time import. Confirming the prompt:
+Every newly created account starts with an empty Supabase workspace. Ancalagon never imports browser data into a new account, preventing records from one tester or an older prototype from being attached to another tester's workspace.
 
-1. creates database-safe record IDs;
-2. imports jobs and candidates;
-3. imports benchmarks, manager feedback, interview outcomes, screening evidence, and evaluation corrections;
-4. removes the old shared browser record after a successful remote write.
-
-Do not clear browser storage until the import is confirmed in Supabase.
+The original owner's previously migrated recruiting data remains in the original Supabase workspace.
 
 ## Deploy the authenticated beta AI function
 
@@ -27,7 +22,7 @@ The beta endpoint verifies the signed-in user's workspace membership before invo
 
 Use two invited email accounts.
 
-1. Sign in as the owner and accept the legacy import.
+1. Sign in as the owner and confirm the existing jobs and candidates load from Supabase.
 2. Refresh and confirm that the same jobs and candidates return.
 3. Add a temporary job, candidate, feedback item, benchmark, and interview outcome; refresh after each save.
 4. Upload a test resume and confirm a private object appears in the `resumes` storage bucket.
