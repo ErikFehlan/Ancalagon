@@ -8,6 +8,7 @@
   const gate = document.getElementById('authGate');
   const form = document.getElementById('authForm');
   const emailInput = document.getElementById('authEmail');
+  const passwordInput = document.getElementById('authPassword');
   const submitButton = document.getElementById('authSubmit');
   const message = document.getElementById('authMessage');
   const signOutButton = document.getElementById('authSignOut');
@@ -98,27 +99,57 @@
   form.addEventListener('submit', async function (event) {
     event.preventDefault();
     const email = emailInput.value.trim().toLowerCase();
-    if (!email) return;
+    const password = passwordInput.value;
+    if (!email || !password) return;
 
     submitButton.disabled = true;
-    submitButton.textContent = 'Sending secure link…';
-    showMessage('Requesting access…');
+    submitButton.textContent = 'Signing in…';
+    showMessage('Signing in securely…');
 
-    const redirectTo = window.location.origin + window.location.pathname;
-    const { error } = await client.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false, emailRedirectTo: redirectTo }
-    });
+    const { error } = await client.auth.signInWithPassword({ email, password });
 
     submitButton.disabled = false;
-    submitButton.textContent = 'Email me a secure sign-in link';
+    submitButton.textContent = 'Sign in';
 
     if (error) {
-      showMessage(error.message || 'The sign-in link could not be sent.', 'error');
+      showMessage('The email or password is incorrect.', 'error');
       return;
     }
 
-    showMessage('Check your email for the secure Ancalagon sign-in link.', 'success');
+    passwordInput.value = '';
+    showMessage('Signed in successfully.', 'success');
+  });
+
+  document.getElementById('passwordForm')?.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const password = document.getElementById('newPassword').value;
+    const confirmation = document.getElementById('confirmPassword').value;
+    const button = document.getElementById('passwordSubmit');
+    const status = document.getElementById('passwordMessage');
+
+    if (password.length < 8) {
+      status.textContent = 'Use at least 8 characters.';
+      return;
+    }
+    if (password !== confirmation) {
+      status.textContent = 'The passwords do not match.';
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    status.textContent = 'Updating your account…';
+    const { error } = await client.auth.updateUser({ password });
+    button.disabled = false;
+    button.textContent = 'Set Password';
+
+    if (error) {
+      status.textContent = error.message || 'Your password could not be updated.';
+      return;
+    }
+
+    event.currentTarget.reset();
+    status.textContent = 'Password saved. Use it the next time you sign in.';
   });
 
   signOutButton.addEventListener('click', async function () {
