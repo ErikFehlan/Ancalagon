@@ -342,7 +342,7 @@
   <div class="rf-modalbackdrop" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle"><div class="rf-modal"><h3 id="confirmTitle">Confirm action</h3><p id="confirmMessage"></p><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="confirmCancel" type="button">Cancel</button><button class="rf-btn danger" id="confirmAccept" type="button">Delete</button></div></div></div>
   <div class="rf-modalbackdrop" id="screeningModal" role="dialog" aria-modal="true" aria-labelledby="screeningTitle"><div class="rf-modal rf-screen-modal"><form class="rf-form" id="screeningForm"><div><div class="rf-kicker">Screening insight</div><h3 id="screeningTitle">Add screening evidence</h3><p>Capture only what changes the assessment. Ancalagon will compare this evidence with the job, manager priorities, and current evaluation.</p></div><div class="rf-screen-context"><div>Current JD Fit<strong id="screenCurrentJD">—</strong></div><div>Current Manager Fit<strong id="screenCurrentManager">—</strong></div></div><div class="rf-formrow"><div><label for="screenAbility">Can they do the job?</label><select id="screenAbility" required><option value="">Select an assessment</option><option value="Yes">Yes — evidence supports it</option><option value="Maybe">Maybe — important gaps remain</option><option value="No">No — evidence shows a mismatch</option></select></div><div><label for="screenCulture">Culture / working-style fit</label><select id="screenCulture" required><option value="">Select an assessment</option><option value="Strong">Strong alignment</option><option value="Mixed">Mixed / uncertain</option><option value="Weak">Weak alignment</option></select></div></div><div><label for="screenNotes">What did you learn?</label><textarea id="screenNotes" required maxlength="4000" placeholder="Add concise, job-related evidence from the conversation—skills depth, ownership, communication, motivation, or working style."></textarea><div class="rf-sub" style="margin-top:5px">Do not include protected personal information. Notes are used as evidence, not as an automatic hiring decision.</div></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="screenCancel" type="button">Cancel</button><button class="rf-btn primary" id="screenSubmit" type="submit">✦ Reassess & Mark Screened</button></div></form></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="assets/auth.js?v=20260909-recovery"></script>
+  <script src="assets/auth.js?v=20260909-account-isolation"></script>
   <script src="assets/data.js"></script>
   <script>
     (()=>{
@@ -708,19 +708,6 @@ function renderJobs(){
           if(remote.jobs.length){
             hydrateState({...remote,activeJobId:remote.jobs[0].id});
             hybridState.analyses=Object.fromEntries(remote.jobs.filter(job=>job.patternAnalysis).map(job=>[job.id,job.patternAnalysis]));
-          }else{
-            const raw=localStorage.getItem(STORAGE_KEY);
-            if(raw){
-              const legacy=JSON.parse(raw),jobCount=legacy.jobs?.length||0,candidateCount=legacy.candidates?.length||0;
-              const approved=window.confirm(`Existing Ancalagon data was found in this browser. Import ${jobCount} job${jobCount===1?'':'s'} and ${candidateCount} candidate${candidateCount===1?'':'s'} into ${auth.workspace.name}?`);
-              if(approved){
-                const migrated=legacyStateForImport(raw);
-                hydrateState(migrated);
-                await dataService.flush(stateSnapshot());
-                localStorage.removeItem(STORAGE_KEY);
-                showToast('Existing data imported into '+auth.workspace.name+'.');
-              }
-            }
           }
           dataReady=true;
           renderInitialState();
