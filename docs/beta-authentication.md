@@ -12,7 +12,7 @@ In Supabase, open **Authentication > URL Configuration**.
 
 ## Create a tester profile
 
-Open Ancalagon, select **Create Account**, and enter a name, work email, and password. If email confirmation is enabled in Supabase, the tester must confirm the address once before signing in.
+Open Ancalagon, select **Create Account**, and enter a name, work email, and password. The app displays a welcome confirmation and opens the tester's private workspace immediately.
 
 The database trigger automatically creates a private workspace and makes that user its owner. No manual database row is required.
 
