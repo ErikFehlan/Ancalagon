@@ -16,6 +16,8 @@
   const signOutButton = document.getElementById('authSignOut');
   const userEmail = document.getElementById('authUserEmail');
   const workspaceName = document.getElementById('authWorkspaceName');
+  const welcomeModal = document.getElementById('welcomeModal');
+  const welcomeMessage = document.getElementById('welcomeMessage');
   let appliedAccessToken = null;
   let authMode = 'signin';
 
@@ -99,6 +101,16 @@
 
   window.ancalagonSupabase = client;
 
+  function showWelcome(text, buttonText) {
+    welcomeMessage.textContent = text;
+    document.getElementById('welcomeContinue').textContent = buttonText || 'Enter Ancalagon';
+    welcomeModal.hidden = false;
+  }
+
+  document.getElementById('welcomeContinue').addEventListener('click', function () {
+    welcomeModal.hidden = true;
+  });
+
   function setAuthMode(mode) {
     authMode = mode;
     const creating = mode === 'create';
@@ -155,8 +167,11 @@
       form.reset();
       if (data.session) {
         showMessage('Account created. Opening your workspace…', 'success');
+        showWelcome('Your account and private workspace have been created successfully.');
       } else {
         showMessage('Account created. Check your email once to confirm it, then sign in with your password.', 'success');
+        showWelcome('Your account was created. Confirm the email from Ancalagon once, then return here and sign in with your password.', 'Return to sign in');
+        setAuthMode('signin');
       }
       return;
     }
