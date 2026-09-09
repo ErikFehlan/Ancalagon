@@ -1,2 +1,5 @@
 [functions.analyze-patterns-v2]
 verify_jwt = true
+
+[functions.analyze-patterns-beta]
+verify_jwt = true

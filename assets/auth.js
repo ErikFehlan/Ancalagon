@@ -30,6 +30,7 @@
   function showApplication(session, workspace) {
     body.classList.remove('rf-auth-pending', 'rf-auth-guest');
     body.classList.add('rf-authenticated');
+    body.classList.add('rf-data-loading');
     gate.setAttribute('aria-hidden', 'true');
     document.getElementById('rf-app').removeAttribute('aria-hidden');
     userEmail.textContent = session.user.email || '';
@@ -122,6 +123,7 @@
 
   signOutButton.addEventListener('click', async function () {
     signOutButton.disabled = true;
+    try { await window.ancalagonFlush?.(); } catch (error) { console.warn('Final workspace sync failed', error); }
     await client.auth.signOut();
     signOutButton.disabled = false;
     showMessage('Signed out successfully.');

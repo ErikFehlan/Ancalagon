@@ -96,7 +96,7 @@ const screeningSchema = {
   },
 };
 
-Deno.serve(async (request) => {
+export async function handleAnalysis(request: Request) {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
@@ -213,4 +213,6 @@ ANALYSIS RULES
     console.error("analyze-patterns failed", error);
     return json({ error: error instanceof Error ? error.message : "Analysis failed" }, 500);
   }
-});
+}
+
+if (import.meta.main) Deno.serve(handleAnalysis);
