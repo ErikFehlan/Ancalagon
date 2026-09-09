@@ -1,6 +1,6 @@
 # Beta authentication
 
-Ancalagon's beta uses Supabase email-and-password authentication. Accounts must be invited or created by an administrator; the sign-in form does not create new users and normal sign-in sends no email.
+Ancalagon's beta uses Supabase email-and-password authentication. A tester can create a profile from the access screen; Supabase automatically creates an isolated workspace for that account. Normal sign-in sends no email.
 
 ## Configure a test URL
 
@@ -10,9 +10,9 @@ In Supabase, open **Authentication > URL Configuration**.
 - Add every allowed test address under **Redirect URLs**.
 - For local testing, add `http://localhost:4173/**`.
 
-## Create the first tester
+## Create a tester profile
 
-In Supabase, open **Authentication > Users**, select **Add user**, and create the tester with an email and temporary password. Keep automatic public signup disabled.
+Open Ancalagon, select **Create Account**, and enter a name, work email, and password. If email confirmation is enabled in Supabase, the tester must confirm the address once before signing in.
 
 The database trigger automatically creates a private workspace and makes that user its owner. No manual database row is required.
 
@@ -30,8 +30,8 @@ An existing tester who previously used magic links can open their latest valid l
 
 ## Expected checks
 
-1. An unrecognized email cannot register through the app.
-2. An invited tester can sign in with an email and password.
+1. A tester can create an account with a name, work email, and password.
+2. The new account receives its own private workspace.
 3. Refreshing restores the tester's session.
 4. The header shows the tester's email and private workspace.
 5. Signing out returns to the access screen.
