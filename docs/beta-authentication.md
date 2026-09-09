@@ -1,6 +1,6 @@
 # Beta authentication
 
-Ancalagon's beta uses Supabase passwordless email links. Accounts must be invited or created by an administrator; the sign-in form does not create new users.
+Ancalagon's beta uses Supabase email-and-password authentication. Accounts must be invited or created by an administrator; the sign-in form does not create new users and normal sign-in sends no email.
 
 ## Configure a test URL
 
@@ -12,7 +12,7 @@ In Supabase, open **Authentication > URL Configuration**.
 
 ## Create the first tester
 
-In Supabase, open **Authentication > Users**, select **Add user**, and choose **Send invitation**. Enter the tester's email address.
+In Supabase, open **Authentication > Users**, select **Add user**, and create the tester with an email and temporary password. Keep automatic public signup disabled.
 
 The database trigger automatically creates a private workspace and makes that user its owner. No manual database row is required.
 
@@ -24,14 +24,16 @@ From the repository folder:
 npx.cmd serve . -l 4173
 ```
 
-Open `http://localhost:4173`, enter the invited address, and use the secure link delivered by email. Keep the local server running while opening the link.
+Open `http://localhost:4173`, then enter the tester's email and password.
+
+An existing tester who previously used magic links can open their latest valid link one final time, go to **Settings > Account Security**, and set a password. Future sign-ins will not require an email.
 
 ## Expected checks
 
 1. An unrecognized email cannot register through the app.
-2. An invited tester can request a link and enter the app.
+2. An invited tester can sign in with an email and password.
 3. Refreshing restores the tester's session.
 4. The header shows the tester's email and private workspace.
 5. Signing out returns to the access screen.
 
-Jobs and candidates remain in browser storage during this authentication slice. Moving them into the workspace-scoped Supabase tables is the next implementation phase.
+Jobs, candidates, evaluations, and Pattern Engine results are stored in workspace-scoped Supabase tables. Browser storage is used only for the authenticated session, theme, connection settings, and one-time legacy-data migration.
