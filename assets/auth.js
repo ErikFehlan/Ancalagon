@@ -9,12 +9,15 @@
   const form = document.getElementById('authForm');
   const emailInput = document.getElementById('authEmail');
   const passwordInput = document.getElementById('authPassword');
+  const confirmPasswordInput = document.getElementById('authConfirmPassword');
+  const nameInput = document.getElementById('authName');
   const submitButton = document.getElementById('authSubmit');
   const message = document.getElementById('authMessage');
   const signOutButton = document.getElementById('authSignOut');
   const userEmail = document.getElementById('authUserEmail');
   const workspaceName = document.getElementById('authWorkspaceName');
   let appliedAccessToken = null;
+  let authMode = 'signin';
 
   function showMessage(text, type) {
     message.textContent = text;
@@ -96,11 +99,67 @@
 
   window.ancalagonSupabase = client;
 
+  function setAuthMode(mode) {
+    authMode = mode;
+    const creating = mode === 'create';
+    document.getElementById('signInTab').classList.toggle('active', !creating);
+    document.getElementById('createAccountTab').classList.toggle('active', creating);
+    document.getElementById('signInTab').setAttribute('aria-selected', String(!creating));
+    document.getElementById('createAccountTab').setAttribute('aria-selected', String(creating));
+    document.getElementById('authNameField').hidden = !creating;
+    document.getElementById('authConfirmField').hidden = !creating;
+    nameInput.required = creating;
+    confirmPasswordInput.required = creating;
+    passwordInput.autocomplete = creating ? 'new-password' : 'current-password';
+    submitButton.textContent = creating ? 'Create account' : 'Sign in';
+    form.reset();
+    showMessage(creating
+      ? 'Create a private workspace with your name, work email, and password.'
+      : 'Enter your existing account details.');
+  }
+
+  document.getElementById('signInTab').addEventListener('click', function () { setAuthMode('signin'); });
+  document.getElementById('createAccountTab').addEventListener('click', function () { setAuthMode('create'); });
+
   form.addEventListener('submit', async function (event) {
     event.preventDefault();
     const email = emailInput.value.trim().toLowerCase();
     const password = passwordInput.value;
     if (!email || !password) return;
+
+    if (authMode === 'create') {
+      const displayName = nameInput.value.trim();
+      if (!displayName) return;
+      if (password !== confirmPasswordInput.value) {
+        showMessage('The passwords do not match.', 'error');
+        return;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = 'Creating account…';
+      showMessage('Creating your private workspace…');
+      const redirectTo = window.location.origin + window.location.pathname;
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: { data: { display_name: displayName }, emailRedirectTo: redirectTo }
+      });
+      submitButton.disabled = false;
+      submitButton.textContent = 'Create account';
+
+      if (error) {
+        showMessage(error.message || 'Your account could not be created.', 'error');
+        return;
+      }
+
+      form.reset();
+      if (data.session) {
+        showMessage('Account created. Opening your workspace…', 'success');
+      } else {
+        showMessage('Account created. Check your email once to confirm it, then sign in with your password.', 'success');
+      }
+      return;
+    }
 
     submitButton.disabled = true;
     submitButton.textContent = 'Signing in…';
