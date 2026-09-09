@@ -9,8 +9,7 @@ If the browser contains the earlier local Ancalagon dataset and the workspace is
 1. creates database-safe record IDs;
 2. imports jobs and candidates;
 3. imports benchmarks, manager feedback, interview outcomes, screening evidence, and evaluation corrections;
-4. saves a workspace-specific local backup; and
-5. removes the old shared browser record after a successful remote write.
+4. removes the old shared browser record after a successful remote write.
 
 Do not clear browser storage until the import is confirmed in Supabase.
 
@@ -37,4 +36,4 @@ Use two invited email accounts.
 7. Confirm that the second tester starts with an empty workspace and cannot see the owner's records.
 8. Create a record as the second tester, then return to the owner account and confirm it is absent.
 
-The local workspace cache is a recovery aid only. Supabase is the source of truth after authentication.
+Supabase is the sole source of truth after authentication. Recruiting records and Pattern Engine results are not cached in browser storage. The browser retains only the Supabase login session and the user's visual theme preference.
