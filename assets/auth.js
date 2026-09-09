@@ -40,7 +40,11 @@
     gate.setAttribute('aria-hidden', 'true');
     document.getElementById('rf-app').removeAttribute('aria-hidden');
     userEmail.textContent = session.user.email || '';
-    workspaceName.textContent = workspace?.name || 'Private workspace';
+    const displayName = session.user.user_metadata?.display_name?.trim();
+    const resolvedWorkspaceName = workspace?.name || 'Private workspace';
+    workspaceName.textContent = displayName
+      ? displayName + ' · ' + resolvedWorkspaceName
+      : resolvedWorkspaceName;
   }
 
   async function workspaceForUser(client) {
@@ -284,8 +288,7 @@
     signOutButton.disabled = true;
     try { await window.ancalagonFlush?.(); } catch (error) { console.warn('Final workspace sync failed', error); }
     await client.auth.signOut();
-    signOutButton.disabled = false;
-    showMessage('Signed out successfully.');
+    window.location.reload();
   });
 
   client.auth.onAuthStateChange(function (event, session) {
