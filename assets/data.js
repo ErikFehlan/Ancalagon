@@ -33,7 +33,8 @@
         jobs: jobRows.map(row => ({
           id: row.id, title: row.title, client: row.client || '', description: row.description || '',
           managerFeedback: row.manager_feedback || '', criteria: row.criteria || [], knockouts: row.knockouts || [],
-          weights: row.weights || [], createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at)
+          weights: row.weights || [], patternAnalysis: row.pattern_analysis || null,
+          createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at)
         })),
         candidates: candidateRows.map(row => {
           const screening = screeningByCandidate.get(row.id);
@@ -94,6 +95,7 @@
       const jobRows = state.jobs.map(job => ({
         id: job.id, workspace_id: workspaceId, title: job.title, client: compact(job.client), description: job.description || '',
         manager_feedback: job.managerFeedback || '', criteria: job.criteria || [], knockouts: job.knockouts || [], weights: job.weights || [],
+        pattern_analysis: job.patternAnalysis || null,
         created_by: userId, created_at: iso(job.createdAt), updated_at: iso(job.updatedAt)
       }));
       if (jobRows.length) {
