@@ -111,6 +111,60 @@
     welcomeModal.hidden = true;
   });
 
+  const recoveryModal = document.getElementById('recoveryModal');
+  const resetPasswordModal = document.getElementById('resetPasswordModal');
+
+  document.getElementById('forgotAccess').addEventListener('click', function () {
+    document.getElementById('recoveryEmail').value = emailInput.value.trim();
+    document.getElementById('recoveryMessage').textContent = '';
+    recoveryModal.hidden = false;
+  });
+
+  document.getElementById('recoveryCancel').addEventListener('click', function () {
+    recoveryModal.hidden = true;
+  });
+
+  document.getElementById('recoveryForm').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const email = document.getElementById('recoveryEmail').value.trim().toLowerCase();
+    const button = document.getElementById('recoverySubmit');
+    const status = document.getElementById('recoveryMessage');
+    button.disabled = true;
+    button.textContent = 'Sending…';
+    const redirectTo = window.location.origin + window.location.pathname;
+    const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+    button.disabled = false;
+    button.textContent = 'Send reset link';
+    status.className = 'rf-auth-message ' + (error ? 'error' : 'success');
+    status.textContent = error
+      ? (error.message || 'The reset link could not be sent.')
+      : 'If an account exists for that email, a password-reset link has been sent.';
+  });
+
+  document.getElementById('resetPasswordForm').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const password = document.getElementById('recoveryNewPassword').value;
+    const confirmation = document.getElementById('recoveryConfirmPassword').value;
+    const button = document.getElementById('resetPasswordSubmit');
+    const status = document.getElementById('resetPasswordMessage');
+    if (password !== confirmation) {
+      status.className = 'rf-auth-message error';
+      status.textContent = 'The passwords do not match.';
+      return;
+    }
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    const { error } = await client.auth.updateUser({ password });
+    button.disabled = false;
+    button.textContent = 'Save new password';
+    status.className = 'rf-auth-message ' + (error ? 'error' : 'success');
+    status.textContent = error ? (error.message || 'Your password could not be updated.') : 'Password updated successfully.';
+    if (!error) {
+      event.currentTarget.reset();
+      window.setTimeout(function () { resetPasswordModal.hidden = true; }, 900);
+    }
+  });
+
   function setAuthMode(mode) {
     authMode = mode;
     const creating = mode === 'create';
@@ -234,7 +288,8 @@
     showMessage('Signed out successfully.');
   });
 
-  client.auth.onAuthStateChange(function (_event, session) {
+  client.auth.onAuthStateChange(function (event, session) {
+    if (event === 'PASSWORD_RECOVERY') resetPasswordModal.hidden = false;
     window.setTimeout(function () { applySession(client, session); }, 0);
   });
 
