@@ -10,7 +10,9 @@ test('production shell references modular application assets', () => {
   assert.match(html, /href="assets\/app\.css\?v=[^"]+"/);
   assert.match(html, /src="assets\/auth\.js\?v=[^"]+"/);
   assert.match(html, /src="assets\/data\.js\?v=[^"]+"/);
+  assert.match(html, /src="assets\/select\.js\?v=[^"]+"/);
   assert.match(html, /src="assets\/app\.js\?v=[^"]+"/);
+  assert.match(html, /id="managerPreferenceProfile"/);
   assert.doesNotMatch(html, /<style(?:\s|>)/i);
   assert.doesNotMatch(html, /<script>\s*[\s\S]+?<\/script>/i);
 });
@@ -23,4 +25,3 @@ test('all locally referenced application assets exist', () => {
     assert.ok(fs.existsSync(path.join(root, asset)), `${asset} is missing`);
   }
 });
-

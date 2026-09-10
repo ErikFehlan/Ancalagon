@@ -28,11 +28,12 @@
         query('interview_outcomes', 'id,job_id,candidate_id,interview_stage,decision,positives,concerns,notes,previous_pipeline_stage,created_at,updated_at'),
         query('candidate_benchmarks', 'candidate_id'),
         query('screening_insights', 'candidate_id,can_do_job,culture_working_style_fit,notes,resulting_jd_score,resulting_manager_score,assessment_summary,assessment_source,created_at,previous_jd_score,previous_manager_score'),
-        query('candidate_assessments', 'candidate_id,assessment_type,evidence,created_at').then(rows => rows.filter(row => row.assessment_type === 'manual_correction'))
+        query('candidate_assessments', 'candidate_id,assessment_type,evidence,created_at')
       ]);
       const benchmarkIds = new Set(benchmarkRows.map(row => row.candidate_id));
       const screeningByCandidate = new Map(screeningRows.sort((a, b) => epoch(a.created_at) - epoch(b.created_at)).map(row => [row.candidate_id, row]));
-      const reviewByCandidate = new Map(reviewRows.sort((a, b) => epoch(a.created_at) - epoch(b.created_at)).map(row => [row.candidate_id, row]));
+      const reviewByCandidate = new Map(reviewRows.filter(row => row.assessment_type === 'manual_correction').sort((a, b) => epoch(a.created_at) - epoch(b.created_at)).map(row => [row.candidate_id, row]));
+      const preferenceByFeedback = new Map(reviewRows.filter(row => row.assessment_type === 'manager_feedback' && row.evidence?.feedback_id).map(row => [row.evidence.feedback_id, row.evidence]));
       const loadedState = {
         jobs: jobRows.map(row => ({
           id: row.id, title: row.title, client: row.client || '', description: row.description || '',
@@ -67,6 +68,11 @@
           id: row.id, jobId: row.job_id, candidateId: row.candidate_id,
           candidate: candidateRows.find(candidate => candidate.id === row.candidate_id)?.name || 'Candidate',
           type: row.feedback_type, outcome: row.outcome || '', text: row.feedback_text,
+          learningScope: preferenceByFeedback.get(row.id)?.learning_scope || 'candidate',
+          signalLabel: preferenceByFeedback.get(row.id)?.signal_label || '',
+          signalDirection: preferenceByFeedback.get(row.id)?.signal_direction || 'neutral',
+          signalStatus: preferenceByFeedback.get(row.id)?.signal_status || 'candidate_only',
+          signalConfidence: Number(preferenceByFeedback.get(row.id)?.signal_confidence || 0),
           createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at)
         })),
         interviewOutcomes: outcomeRows.map(row => ({
@@ -154,12 +160,21 @@
           model: item.assessment?.model || null, created_by: userId, created_at: iso(item.createdAt)
         };
       }));
-      await replaceChildren('candidate_assessments', state.candidates.filter(x => x.aiReview).map(candidate => ({
+      const reviewAssessments = state.candidates.filter(x => x.aiReview).map(candidate => ({
         workspace_id: workspaceId, job_id: candidate.jobId, candidate_id: candidate.id, assessment_type: 'manual_correction',
         jd_score: candidate.jdScore, manager_score: candidate.managerScore, recommendation: candidate.rec,
         summary: candidate.aiReview.notes || '', evidence: { review: candidate.aiReview }, created_by: userId,
         created_at: iso(candidate.aiReview.createdAt)
-      })));
+      }));
+      const preferenceAssessments = state.feedback.filter(item => item.candidateId && item.learningScope === 'job').map(item => {
+        const candidate = state.candidates.find(candidate => candidate.id === item.candidateId);
+        return { workspace_id: workspaceId, job_id: item.jobId, candidate_id: item.candidateId, assessment_type: 'manager_feedback',
+          jd_score: candidate?.jdScore ?? null, manager_score: candidate?.managerScore ?? null, recommendation: candidate?.rec || null,
+          summary: item.signalLabel || '', evidence: { feedback_id: item.id, learning_scope: item.learningScope,
+            signal_label: item.signalLabel, signal_direction: item.signalDirection, signal_status: item.signalStatus,
+            signal_confidence: Number(item.signalConfidence || 0) }, created_by: userId, created_at: iso(item.updatedAt || item.createdAt) };
+      });
+      await replaceChildren('candidate_assessments', reviewAssessments.concat(preferenceAssessments));
       lastFingerprint = JSON.stringify(state);
     }
 

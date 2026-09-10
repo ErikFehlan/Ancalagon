@@ -10,7 +10,7 @@ const calls = [];
 const rows = {
   jobs: [{ id: jobId, workspace_id: workspaceId, title: 'QA Analyst', criteria: [], knockouts: [], weights: [], pattern_analysis: { summary: 'Remote result' }, status: 'closed', close_reason: 'Filled Internally', closed_at: '2026-09-10T00:00:00Z', hired_candidate_id: null, created_at: '2026-09-09T00:00:00Z', updated_at: '2026-09-09T00:00:00Z' }],
   candidates: [{ id: candidateId, workspace_id: workspaceId, job_id: jobId, name: 'Test Candidate', stage: 'Sourced', jd_score: 8, manager_score: 7.5, strengths: [], concerns: [], tags: [], screening_questions: [], created_at: '2026-09-09T00:00:00Z', updated_at: '2026-09-09T00:00:00Z' }],
-  manager_feedback: [], interview_outcomes: [], candidate_benchmarks: [], screening_insights: [], candidate_assessments: []
+  manager_feedback: [{ id: '55555555-5555-4555-8555-555555555555', workspace_id: workspaceId, job_id: jobId, candidate_id: candidateId, feedback_type: 'Positive signal', outcome: 'Positive / move forward', feedback_text: 'Shows strong stakeholder influence', created_at: '2026-09-10T00:00:00Z', updated_at: '2026-09-10T00:00:00Z' }], interview_outcomes: [], candidate_benchmarks: [], screening_insights: [], candidate_assessments: [{ candidate_id: candidateId, assessment_type: 'manager_feedback', evidence: { feedback_id: '55555555-5555-4555-8555-555555555555', learning_scope: 'job', signal_label: 'Stakeholder influence', signal_direction: 'positive', signal_status: 'approved', signal_confidence: 0.65 }, created_at: '2026-09-10T00:00:00Z' }]
 };
 
 function table(name) {
@@ -43,13 +43,18 @@ vm.runInNewContext(fs.readFileSync('assets/data.js', 'utf8'), context);
   assert.equal(loaded.jobs[0].patternAnalysis.summary, 'Remote result');
   assert.equal(loaded.jobs[0].status, 'closed');
   assert.equal(loaded.jobs[0].closeReason, 'Filled Internally');
+  assert.equal(loaded.feedback[0].learningScope, 'job');
+  assert.equal(loaded.feedback[0].signalStatus, 'approved');
   assert.ok(calls.filter(call => call[0] === 'select-eq').every(call => call[3] === workspaceId));
 
-  await service.flush({ jobs: loaded.jobs, candidates: loaded.candidates, feedback: [], interviewOutcomes: [] });
+  await service.flush({ jobs: loaded.jobs, candidates: loaded.candidates, feedback: loaded.feedback, interviewOutcomes: [] });
   assert.ok(calls.some(call => call[0] === 'upsert' && call[1] === 'jobs'));
   assert.equal(calls.find(call => call[0] === 'upsert' && call[1] === 'jobs')[2][0].pattern_analysis.summary, 'Remote result');
   assert.equal(calls.find(call => call[0] === 'upsert' && call[1] === 'jobs')[2][0].status, 'closed');
   assert.ok(calls.some(call => call[0] === 'upsert' && call[1] === 'candidates'));
   assert.ok(calls.some(call => call[0] === 'delete-eq' && call[1] === 'candidate_benchmarks'));
+  const savedPreference = calls.find(call => call[0] === 'insert' && call[1] === 'candidate_assessments')[2][0];
+  assert.equal(savedPreference.evidence.signal_label, 'Stakeholder influence');
+  assert.equal(savedPreference.evidence.signal_status, 'approved');
   console.log('data service load and persistence checks passed');
 })().catch(error => { console.error(error); process.exitCode = 1; });
