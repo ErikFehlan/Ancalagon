@@ -27,6 +27,7 @@ jobs:
       - name: Validate JavaScript
         run: |
           node --check assets/app.js
+          node --check assets/select.js
           node --check assets/auth.js
           node --check assets/data.js
       - name: Run application tests
