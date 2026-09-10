@@ -22,7 +22,7 @@
 
     async function load() {
       const [jobRows, candidateRows, feedbackRows, outcomeRows, benchmarkRows, screeningRows, reviewRows] = await Promise.all([
-        query('jobs', 'id,title,client,description,manager_feedback,criteria,knockouts,weights,pattern_analysis,created_at,updated_at'),
+        query('jobs', 'id,title,client,description,manager_feedback,criteria,knockouts,weights,pattern_analysis,status,close_reason,closed_at,hired_candidate_id,created_at,updated_at'),
         query('candidates', 'id,job_id,name,role,stage,resume_jd_score,jd_score,original_manager_score,manager_score,confidence,recommendation,primary_signal,strengths,concerns,tags,screening_questions,created_at,updated_at'),
         query('manager_feedback', 'id,job_id,candidate_id,feedback_type,outcome,feedback_text,created_at,updated_at'),
         query('interview_outcomes', 'id,job_id,candidate_id,interview_stage,decision,positives,concerns,notes,previous_pipeline_stage,created_at,updated_at'),
@@ -38,6 +38,8 @@
           id: row.id, title: row.title, client: row.client || '', description: row.description || '',
           managerFeedback: row.manager_feedback || '', criteria: row.criteria || [], knockouts: row.knockouts || [],
           weights: row.weights || [], patternAnalysis: row.pattern_analysis || null,
+          status: row.status || 'active', closeReason: row.close_reason || '', closedAt: row.closed_at ? epoch(row.closed_at) : null,
+          hiredCandidateId: row.hired_candidate_id || null,
           createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at)
         })),
         candidates: candidateRows.map(row => {
@@ -101,7 +103,8 @@
       const jobRows = state.jobs.map(job => ({
         id: job.id, workspace_id: workspaceId, title: job.title, client: compact(job.client), description: job.description || '',
         manager_feedback: job.managerFeedback || '', criteria: job.criteria || [], knockouts: job.knockouts || [], weights: job.weights || [],
-        pattern_analysis: job.patternAnalysis || null,
+        pattern_analysis: job.patternAnalysis || null, status: job.status || 'active', close_reason: compact(job.closeReason),
+        closed_at: job.closedAt ? iso(job.closedAt) : null, hired_candidate_id: compact(job.hiredCandidateId),
         created_by: userId, created_at: iso(job.createdAt), updated_at: iso(job.updatedAt)
       }));
       if (jobRows.length) {
