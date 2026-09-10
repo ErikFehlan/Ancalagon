@@ -184,6 +184,21 @@
       if (error) console.warn('AI usage event was not recorded', error);
     }
 
+    async function trackEvent(eventType, options = {}) {
+      const { error } = await client.from('app_events').insert({
+        workspace_id: workspaceId, user_id: userId, job_id: options.jobId || null,
+        event_type: eventType, session_id: options.sessionId,
+        page_path: window.location.pathname, metadata: options.metadata || {}
+      });
+      if (error && error.code !== '42P01') console.warn('Product event was not recorded', error);
+    }
+
+    async function loadAdminAnalytics() {
+      const { data, error } = await client.rpc('get_admin_usage_summary');
+      if (error) throw error;
+      return data;
+    }
+
     async function uploadResume(candidate, file, extractedText) {
       const safeName = String(file.name || 'resume').replace(/[^a-zA-Z0-9._-]+/g, '-');
       const path = `${workspaceId}/${candidate.jobId}/${candidate.id}/${crypto.randomUUID()}-${safeName}`;
@@ -204,7 +219,7 @@
       return path;
     }
 
-    return { load, schedule, flush, logUsage, uploadResume, workspaceId };
+    return { load, schedule, flush, logUsage, trackEvent, loadAdminAnalytics, uploadResume, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };
