@@ -9,7 +9,7 @@
   <meta name="description" content="Ancalagon recruiting intelligence dashboard for jobs, candidates, manager feedback, interview outcomes, pipeline tracking, and fit analysis.">
   <link rel="icon" type="image/png" href="assets/ancalagon.png">
   <link rel="apple-touch-icon" href="assets/ancalagon.png">
-  <link rel="stylesheet" href="assets/app.css?v=20260910-score-breakdown">
+  <link rel="stylesheet" href="assets/app.css?v=20260910-guided-workflow">
 </head>
 <body class="rf-auth-pending">
 <div class="rf-auth-gate" id="authGate" aria-live="polite">
@@ -59,19 +59,19 @@
   </div>
 </div>
       <nav class="rf-nav" aria-label="Ancalagon navigation">
-        <div class="rf-navgroup-label">Evaluate</div>
+        <div class="rf-navgroup-label">Search</div>
         <button class="active" data-page="dashboard"><span>⌂</span><span>Dashboard</span></button>
         <button data-page="candidates"><span>◎</span><span>Candidates</span></button>
+        <button data-page="pipeline"><span>⇢</span><span>Pipeline</span></button>
+        <button data-page="outcomes"><span>✓</span><span>Interview Activity</span></button>
+        <div class="rf-navgroup-label">Intelligence</div>
         <button data-page="rankings"><span>≡</span><span>Rankings</span></button>
         <button data-page="compare"><span>⇄</span><span>Compare</span></button>
-        <div class="rf-navgroup-label">Calibrate</div>
         <button data-page="benchmarks"><span>★</span><span>Benchmarks</span></button>
-        <button data-page="criteria"><span>◫</span><span>Criteria & Weights</span></button>
-        <button data-page="feedback"><span>◌</span><span>Feedback</span></button>
-        <button data-page="outcomes"><span>✓</span><span>Interview Outcomes</span></button>
-        <button data-page="insights"><span>◈</span><span>Pattern Engine</span></button>
+        <button data-page="criteria"><span>◫</span><span>Evaluation Criteria</span></button>
+        <button data-page="feedback"><span>◌</span><span>Manager Feedback</span></button>
+        <button data-page="insights"><span>◈</span><span>Hiring Insights</span></button>
         <div class="rf-navgroup-label">Manage</div>
-        <button data-page="pipeline"><span>⇢</span><span>Pipeline</span></button>
         <button data-page="jobs"><span>▣</span><span>Jobs</span></button>
         <button class="rf-hidden" id="adminUsageNav" data-page="admin-usage"><span>◉</span><span>Usage Analytics</span></button>
       </nav>
@@ -97,6 +97,7 @@
       </section>
       <section class="rf-page active" id="page-dashboard">
         <div class="rf-top"><div><h1>Ancalagon Dashboard</h1><p>Evaluate candidates against what this hiring manager actually responds to.</p></div><div class="rf-actions"><button class="rf-btn primary" id="addCandidateBtn">+ Add Candidate</button><button class="rf-btn" id="exportBtn">Export Report</button></div></div>
+        <div class="rf-card rf-job-guide" id="jobGuide"><div class="rf-cardhead"><div><div class="rf-kicker">Search setup</div><h3>Build stronger recommendations step by step</h3><p class="rf-sub">Complete these steps as your search develops. Ancalagon will keep track for you.</p></div><span class="rf-pill rf-blue" id="jobGuideProgress">0 of 6 complete</span></div><div class="rf-guide-steps" id="jobGuideSteps"></div></div>
         <div class="rf-grid rf-metrics">
           <div class="rf-card rf-metric"><div class="rf-icon">★</div><div><div class="rf-kicker">Top Candidate</div><div class="rf-value" id="topName">—</div><div class="rf-sub" id="topScore">Loading active candidates…</div></div></div>
           <div class="rf-card rf-metric"><div class="rf-icon">↗</div><div><div class="rf-kicker">Average Fit Score</div><div class="rf-value" id="avgScore">—</div><div class="rf-sub">Across active candidates</div></div></div>
@@ -171,9 +172,10 @@
       </section>
 
       <section class="rf-page" id="page-insights">
-        <div class="rf-sectiontitle"><div><h2>Hiring Manager Pattern Engine</h2><p>Rules calculate the evidence. An external model interprets it without making hiring decisions or silently changing your rubric.</p></div><div class="rf-actions"><button class="rf-btn" id="reevaluateCandidates" type="button">↻ Re-evaluate Candidates</button><button class="rf-btn primary" id="runHybridAnalysis" type="button">✦ Run Hybrid Analysis</button></div></div>
-        <div class="rf-card rf-card-primary" style="margin-bottom:16px"><div class="rf-hybrid-head"><div><h3>Hybrid Intelligence</h3><p class="rf-sub">Deterministic counts remain the source of truth; model findings are advisory and evidence-linked.</p><div class="rf-hybrid-source"><span class="rf-pill rf-blue">Rules engine</span><span class="rf-pill rf-green">External interpretation</span><span class="rf-pill rf-gray">Human approval</span></div></div><div class="rf-ai-status" id="hybridStatus"><i></i><span>Not analyzed</span></div></div><div id="hybridResults" style="margin-top:16px"><div class="rf-note">Run an analysis after recording manager feedback and interview outcomes. Configure the Supabase function under Settings first.</div></div></div>
-        <div class="rf-card rf-reevaluation-card" id="reevaluationCard"><div class="rf-cardhead"><div><h3>Candidate Re-evaluation</h3><p class="rf-sub">Proposed changes use the latest analyzed patterns and current approved evidence. Scores remain unchanged until you apply them.</p></div><button class="rf-btn primary rf-hidden" id="applyAllReevaluations" type="button">Apply All</button></div><div id="reevaluationResults"><div class="rf-note">Run Hybrid Analysis, then select Re-evaluate Candidates to create score proposals.</div></div></div>
+        <div class="rf-sectiontitle"><div><h2>Hiring Insights</h2><p>Learn what the manager values, then decide whether those insights should update candidate evaluations.</p></div></div>
+        <div class="rf-analysis-flow"><div class="rf-analysis-step" id="analysisStepOne"><span class="rf-step-number">1</span><div><strong>Analyze hiring patterns</strong><p>Review criteria, approved manager preferences, and interview decisions.</p></div><button class="rf-btn primary" id="runHybridAnalysis" type="button">✦ Analyze Hiring Patterns</button></div><div class="rf-analysis-connector">→</div><div class="rf-analysis-step" id="analysisStepTwo"><span class="rf-step-number">2</span><div><strong>Update candidate evaluations</strong><p>Create reviewable score proposals using the latest analyzed evidence.</p></div><button class="rf-btn" id="reevaluateCandidates" type="button" disabled title="Analyze hiring patterns first">↻ Update Candidate Evaluations</button></div></div>
+        <div class="rf-card rf-card-primary" style="margin-bottom:16px"><div class="rf-hybrid-head"><div><h3>Hiring Evidence Analysis</h3><p class="rf-sub">Ancalagon checks the evidence and explains what it suggests. You approve every change.</p><div class="rf-hybrid-source"><span class="rf-pill rf-blue">Evidence checks</span><span class="rf-pill rf-green">AI interpretation</span><span class="rf-pill rf-gray">Your approval</span></div></div><div class="rf-ai-status" id="hybridStatus"><i></i><span>Not analyzed</span></div></div><div id="hybridResults" style="margin-top:16px"><div class="rf-note">Add manager feedback or interview activity, then select Analyze Hiring Patterns above.</div></div></div>
+        <div class="rf-card rf-reevaluation-card" id="reevaluationCard"><div class="rf-cardhead"><div><h3>Candidate Evaluation Updates</h3><p class="rf-sub">Proposed changes use the latest analyzed patterns and current approved evidence. Scores remain unchanged until you apply them.</p></div><button class="rf-btn primary rf-hidden" id="applyAllReevaluations" type="button">Apply All</button></div><div id="reevaluationResults"><div class="rf-note">Complete Step 1 above, then update candidate evaluations to create score proposals.</div></div></div>
         <div class="rf-card"><div class="rf-cardhead"><h3>What This Manager Actually Hires</h3><span class="rf-pill rf-blue" id="patternEvidenceBadge">Learning</span></div><div class="rf-tablewrap"><table class="rf-table"><thead><tr><th>Criterion / signal</th><th>JD priority</th><th>Positive outcomes</th><th>Passes</th><th>Observed importance</th></tr></thead><tbody id="hiringPatternMatrix"></tbody></table></div></div>
         <div class="rf-grid rf-two" style="margin-top:16px">
           <div class="rf-card"><h3>Recurring Decision Patterns</h3><div id="feedbackTrends"></div></div>
@@ -240,7 +242,7 @@
   <script src="assets/auth.js?v=20260910-login-fix"></script>
   <script src="assets/data.js?v=20260910-manager-learning"></script>
   <script src="assets/select.js?v=20260910-dark-dropdowns"></script>
-  <script src="assets/app.js?v=20260910-score-breakdown"></script>
+  <script src="assets/app.js?v=20260910-guided-workflow"></script>
 </div>
 </body>
 </html>
