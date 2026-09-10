@@ -13,6 +13,8 @@ test('production shell references modular application assets', () => {
   assert.match(html, /src="assets\/select\.js\?v=[^"]+"/);
   assert.match(html, /src="assets\/app\.js\?v=[^"]+"/);
   assert.match(html, /id="managerPreferenceProfile"/);
+  assert.match(html, /id="reevaluateCandidates"/);
+  assert.match(html, /id="reevaluationResults"/);
   assert.doesNotMatch(html, /<style(?:\s|>)/i);
   assert.doesNotMatch(html, /<script>\s*[\s\S]+?<\/script>/i);
 });
