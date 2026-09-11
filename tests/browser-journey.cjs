@@ -12,7 +12,7 @@ await page.route('**/functions/v1/**',async route=>{const payload=route.request(
 await page.goto(`http://127.0.0.1:${server.address().port}/`);
 await page.locator('#learnWelcome [data-goto="learn"]').click();
 await page.locator('#page-learn.active').waitFor();
-assert.equal(await page.locator('#page-learn details').count(),5);
+assert.equal(await page.locator('#page-learn .rf-learn-guides details').count(),5);
 assert.equal(await page.evaluate(()=>window.testSaved?.candidates?.length||0),0);
 await page.locator('#page-learn details').nth(1).locator('summary').click();
 await page.locator('#page-learn [data-learn-page="candidates"]').click();
