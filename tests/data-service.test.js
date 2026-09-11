@@ -53,3 +53,13 @@ test('candidate-only interpretation survives reload without promoting a shared p
  await f.service.flush(state);const restored=await f.service.load();
  assert.equal(restored.feedback[0].text,'ownership unclear');assert.equal(restored.feedback[0].interpretation.text,'Clarify personal ownership.');assert.equal(restored.feedback[0].signalStatus,'candidate_only');
 });
+test('unchanged scheduling stays saved and direct flush clears scheduled saving status',async()=>{
+ const f=fixture(),state=await f.service.load(),statuses=[];
+ f.service.schedule(state,()=>{},s=>statuses.push(s));
+ assert.deepEqual(statuses,['saved']);assert.equal(f.calls.length,0);
+ state.jobs[0].title='Direct flush';f.service.schedule(state,()=>{},s=>statuses.push(s));
+ assert.equal(statuses.at(-1),'saving');await f.service.flush(state);assert.equal(statuses.at(-1),'saved');
+ f.service.schedule(state,()=>{},s=>statuses.push(s));assert.equal(statuses.at(-1),'saved');
+ state.jobs[0].title='Fail';f.failNext();await assert.rejects(f.service.flush(state));assert.equal(statuses.at(-1),'error');
+ await f.service.flush(state);assert.equal(statuses.at(-1),'saved');
+});

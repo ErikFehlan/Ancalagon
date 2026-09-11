@@ -13,6 +13,8 @@
     let timer = null;
     let pendingState = null;
     let lastFingerprint = '';
+    let pendingWrites = 0, statusListener = null;
+    function reportStatus() { statusListener?.(pendingWrites || JSON.stringify(pendingState) !== lastFingerprint ? 'saving' : 'saved'); }
     const originals = new Map(), baselines = new Map(), insertIds = new Map();
     let seeding = false, loaded = false;
 
@@ -225,14 +227,15 @@
     }
 
     function schedule(state, onError, onStatus) {
-      pendingState = JSON.parse(JSON.stringify(state));
-      const fingerprint = JSON.stringify(pendingState);
-
-      onStatus?.('saving');
+      statusListener = onStatus || statusListener;
+      pendingState = copy(state);
       clearTimeout(timer);
+      if (!pendingWrites && JSON.stringify(pendingState) === lastFingerprint) { reportStatus(); return; }
+      statusListener?.('saving');
       timer = setTimeout(() => {
-        const next = pendingState;
-        queued = queued.then(() => sync(next)).then(() => onStatus?.(JSON.stringify(pendingState) === lastFingerprint ? 'saved' : 'saving')).catch(error => { onStatus?.('error'); onError?.(error); });
+        const next = copy(pendingState);
+        pendingWrites++;
+        queued = queued.then(() => sync(next)).then(() => { pendingWrites--; reportStatus(); }, error => { pendingWrites--; statusListener?.('error'); onError?.(error); });
       }, 450);
     }
 
@@ -240,9 +243,12 @@
       clearTimeout(timer);
       pendingState = copy(state);
       const next = copy(state);
+      pendingWrites++;
+      statusListener?.('saving');
       const operation = queued.then(() => sync(next));
       queued = operation.catch(() => {});
-      await operation;
+      try { await operation; pendingWrites--; reportStatus(); }
+      catch (error) { pendingWrites--; statusListener?.('error'); throw error; }
     }
 
     async function logUsage(operation, status, model) {

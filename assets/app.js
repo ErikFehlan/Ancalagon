@@ -516,7 +516,7 @@ function renderJobs(){
       root.querySelector('#retrySync').addEventListener('click',retrySync);
       window.addEventListener('offline',()=>setSyncStatus('offline'));
       window.addEventListener('online',retrySync);
-      window.addEventListener('beforeunload',event=>{if(root.querySelector('#syncStatus')?.dataset.state!=='saved'){event.preventDefault();event.returnValue=''}});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveState()});
+      window.addEventListener('beforeunload',event=>{if(root.querySelector('#syncStatus')?.dataset.state!=='saved'){event.preventDefault();event.returnValue=''}});
       root.querySelector('#mobileNavToggle').addEventListener('click',()=>root.querySelector('.rf-sidebar').classList.toggle('open'));
       root.querySelector('#globalJobSelect').addEventListener('change',e=>{activeJobId=e.target.value;loadActiveJobWeights();saveState();renderJobs();recalibrateAll();renderFeedback();renderOutcomes();showToast('Switched to '+activeJob().title+'.')});
       root.querySelector('#patternFunctionUrl').value=hybridState.settings?.url||'';
