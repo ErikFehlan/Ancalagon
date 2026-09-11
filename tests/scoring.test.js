@@ -5,7 +5,7 @@ const scoring = require('../assets/scoring.js');
 test('score ledger reconciles baseline, preferences, and final score', () => {
   const result = scoring.calculate({ evidenceBaseline: 8.5, preferenceAdjustment: 0.3 });
   assert.deepEqual(result, {
-    evidenceBaseline: 8.5, preferenceAdjustment: 0.3, calculatedScore: 8.8,
+    evidenceBaseline: 8.5, preferenceAdjustment: 0.3, feedbackAdjustment: 0, limitAdjustment: 0, calculatedScore: 8.8,
     overrideAdjustment: 0, finalScore: 8.8, recommendation: 'Strong Consideration'
   });
 });
@@ -24,4 +24,11 @@ test('recommendation thresholds have stable boundary behavior', () => {
   assert.equal(scoring.recommendation(7.2), 'Consider');
   assert.equal(scoring.recommendation(6), 'Screen First');
   assert.equal(scoring.recommendation(5.9), 'Not Recommended');
+});
+
+test('all displayed adjustments reconcile including range limits and feedback', () => {
+ for (const baseline of [0, 0.15, 8.55, 9.95, 10]) {
+  const r = scoring.calculate({evidenceBaseline:baseline,preferenceAdjustment:.25,feedbackAdjustment:.15,approvedOverride:null});
+  assert.equal(Math.round((r.evidenceBaseline+r.preferenceAdjustment+r.feedbackAdjustment+r.limitAdjustment+r.overrideAdjustment)*10)/10,r.finalScore);
+ }
 });

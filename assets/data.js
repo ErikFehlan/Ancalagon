@@ -13,10 +13,13 @@
     let timer = null;
     let pendingState = null;
     let lastFingerprint = '';
+    const originals = new Map(), baselines = new Map(), insertIds = new Map();
+    let seeding = false, loaded = false;
 
     async function query(table, columns = '*') {
       const { data, error } = await client.from(table).select(columns).eq('workspace_id', workspaceId);
       if (error) throw error;
+      originals.set(table, JSON.parse(JSON.stringify(data || [])));
       return data || [];
     }
 
@@ -26,9 +29,9 @@
         query('candidates', 'id,job_id,name,role,stage,resume_jd_score,jd_score,original_manager_score,manager_score,confidence,recommendation,primary_signal,strengths,concerns,tags,screening_questions,created_at,updated_at'),
         query('manager_feedback', 'id,job_id,candidate_id,feedback_type,outcome,feedback_text,created_at,updated_at'),
         query('interview_outcomes', 'id,job_id,candidate_id,interview_stage,decision,positives,concerns,notes,previous_pipeline_stage,created_at,updated_at'),
-        query('candidate_benchmarks', 'candidate_id'),
-        query('screening_insights', 'candidate_id,can_do_job,culture_working_style_fit,notes,resulting_jd_score,resulting_manager_score,assessment_summary,assessment_source,created_at,previous_jd_score,previous_manager_score'),
-        query('candidate_assessments', 'candidate_id,assessment_type,evidence,created_at')
+        query('candidate_benchmarks', 'job_id,candidate_id'),
+        query('screening_insights', 'id,candidate_id,can_do_job,culture_working_style_fit,notes,resulting_jd_score,resulting_manager_score,assessment_summary,assessment_source,created_at,previous_jd_score,previous_manager_score'),
+        query('candidate_assessments', 'id,candidate_id,assessment_type,evidence,created_at')
       ]);
       const benchmarkIds = new Set(benchmarkRows.map(row => row.candidate_id));
       const screeningByCandidate = new Map(screeningRows.sort((a, b) => epoch(a.created_at) - epoch(b.created_at)).map(row => [row.candidate_id, row]));
@@ -83,29 +86,80 @@
           createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at)
         }))
       };
+      seeding = true;
+      try { await sync(loadedState); } finally { seeding = false; }
       lastFingerprint = JSON.stringify(loadedState);
+      loaded = true;
       return loadedState;
     }
 
-    async function replaceChildren(table, rows) {
-      const { error: deleteError } = await client.from(table).delete().eq('workspace_id', workspaceId);
-      if (deleteError) throw deleteError;
-      if (!rows.length) return;
-      const { error } = await client.from(table).insert(rows);
-      if (error) throw error;
+    const rowKey = (table, row) => table === 'candidate_assessments'
+      ? `${row.candidate_id}:${row.assessment_type}:${row.evidence?.feedback_id || ''}`
+      : ['screening_insights', 'candidate_benchmarks'].includes(table) ? row.candidate_id : row.id;
+    const copy = value => JSON.parse(JSON.stringify(value));
+
+    function guard(request, original) {
+      request = request.eq('workspace_id', workspaceId);
+      // Match the version read by this tab in the mutation itself, avoiding a read/write race.
+      const version = original.updated_at ? {id:original.id, updated_at:original.updated_at} : original;
+      for (const [key, value] of Object.entries(version)) {
+        if (value === null) request = request.is(key, null);
+        else request = request.eq(key, typeof value === 'object' ? JSON.stringify(value) : value);
+      }
+      return request;
     }
 
-    async function reconcile(table, localIds) {
-      const { data, error } = await client.from(table).select('id').eq('workspace_id', workspaceId);
-      if (error) throw error;
-      const keep = new Set(localIds);
-      const removed = (data || []).map(row => row.id).filter(id => !keep.has(id));
-      if (!removed.length) return;
-      const { error: deleteError } = await client.from(table).delete().in('id', removed);
-      if (deleteError) throw deleteError;
+    async function replaceChildren(table, rows) {
+      if (seeding) { baselines.set(table, new Map(rows.map(row => [rowKey(table, row), copy(row)]))); return; }
+      const baseline = baselines.get(table) || new Map();
+      baselines.set(table, baseline);
+      const remote = (originals.get(table) || []).sort((a,b) => epoch(a.created_at)-epoch(b.created_at));
+      originals.set(table, remote);
+      const desired = new Map(rows.map(row => [rowKey(table, row), row]));
+      for (const [key, row] of desired) {
+        if (JSON.stringify(baseline.get(key)) === JSON.stringify(row)) continue;
+        const index = remote.findLastIndex(item => rowKey(table, item) === key);
+        const old = remote[index];
+        const payload = {...row};
+        if (old) { delete payload.created_by; delete payload.created_at; }
+        const insertKey = `${table}:${key}`;
+        if (!insertIds.has(insertKey)) insertIds.set(insertKey, payload.id || crypto.randomUUID());
+        const request = old ? guard(client.from(table).update(payload), old) : client.from(table).insert({...payload, ...(table === 'candidate_benchmarks' ? {} : {id: insertIds.get(insertKey)})});
+        const {data, error} = await request.select();
+        if (error) throw error;
+        if (!data?.length) throw Object.assign(new Error('This record changed in another tab. Copy your pending changes before reloading.'), {code:'SAVE_CONFLICT'});
+        if (old) remote[index] = copy(data[0]); else remote.push(copy(data[0]));
+        baseline.set(key, copy(row));
+      }
+      // Delete only records explicitly removed locally, never records added by another tab.
+      for (const [key] of baseline) {
+        if (desired.has(key)) continue;
+        const index = remote.findLastIndex(item => rowKey(table, item) === key);
+        if (index >= 0) {
+          const {data, error} = await guard(client.from(table).delete(), remote[index]).select();
+          if (error) throw error;
+          if (!data?.length) throw Object.assign(new Error('A removed record changed in another tab. Copy pending changes before reloading.'), {code:'SAVE_CONFLICT'});
+          const removed = remote[index];
+          if (table === 'jobs' || table === 'candidates') {
+            const field = table === 'jobs' ? 'job_id' : 'candidate_id';
+            for (const [childTable, childRows] of originals) {
+              if (childTable === table) continue;
+              for (let i = childRows.length - 1; i >= 0; i--) {
+                if (childRows[i][field] === removed.id) {
+                  baselines.get(childTable)?.delete(rowKey(childTable, childRows[i]));
+                  childRows.splice(i, 1);
+                }
+              }
+            }
+          }
+          remote.splice(index, 1);
+        }
+        baseline.delete(key);
+      }
     }
 
     async function sync(state) {
+      if (!loaded && !seeding) throw new Error("Load the workspace successfully before saving.");
       const jobRows = state.jobs.map(job => ({
         id: job.id, workspace_id: workspaceId, title: job.title, client: compact(job.client), description: job.description || '',
         manager_feedback: job.managerFeedback || '', criteria: job.criteria || [], knockouts: job.knockouts || [], weights: job.weights || [],
@@ -113,10 +167,7 @@
         closed_at: job.closedAt ? iso(job.closedAt) : null, hired_candidate_id: compact(job.hiredCandidateId),
         created_by: userId, created_at: iso(job.createdAt), updated_at: iso(job.updatedAt)
       }));
-      if (jobRows.length) {
-        const { error } = await client.from('jobs').upsert(jobRows, { onConflict: 'id' });
-        if (error) throw error;
-      }
+      await replaceChildren('jobs', jobRows);
 
       const candidateRows = state.candidates.map(candidate => ({
         id: candidate.id, workspace_id: workspaceId, job_id: candidate.jobId, name: candidate.name || candidate.short,
@@ -127,13 +178,7 @@
         screening_questions: candidate.screeningQuestions || [], created_by: userId,
         created_at: iso(candidate.createdAt), updated_at: iso(candidate.updatedAt)
       }));
-      if (candidateRows.length) {
-        const { error } = await client.from('candidates').upsert(candidateRows, { onConflict: 'id' });
-        if (error) throw error;
-      }
-
-      await reconcile('candidates', state.candidates.map(x => x.id));
-      await reconcile('jobs', state.jobs.map(x => x.id));
+      await replaceChildren('candidates', candidateRows);
 
       await replaceChildren('candidate_benchmarks', state.candidates.filter(x => x.benchmark).map(candidate => ({
         workspace_id: workspaceId, job_id: candidate.jobId, candidate_id: candidate.id, created_by: userId
@@ -181,19 +226,22 @@
     function schedule(state, onError, onStatus) {
       pendingState = JSON.parse(JSON.stringify(state));
       const fingerprint = JSON.stringify(pendingState);
-      if (fingerprint === lastFingerprint) { onStatus?.('saved'); return; }
+
       onStatus?.('saving');
       clearTimeout(timer);
       timer = setTimeout(() => {
         const next = pendingState;
-        queued = queued.then(() => sync(next)).then(() => onStatus?.('saved')).catch(error => { onStatus?.('error'); onError?.(error); });
+        queued = queued.then(() => sync(next)).then(() => onStatus?.(JSON.stringify(pendingState) === lastFingerprint ? 'saved' : 'saving')).catch(error => { onStatus?.('error'); onError?.(error); });
       }, 450);
     }
 
     async function flush(state) {
       clearTimeout(timer);
-      await queued;
-      await sync(JSON.parse(JSON.stringify(state)));
+      pendingState = copy(state);
+      const next = copy(state);
+      const operation = queued.then(() => sync(next));
+      queued = operation.catch(() => {});
+      await operation;
     }
 
     async function logUsage(operation, status, model) {

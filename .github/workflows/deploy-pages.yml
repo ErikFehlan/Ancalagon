@@ -2,7 +2,7 @@ name: Validate and deploy GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, hardening/reliability]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -31,10 +31,18 @@ jobs:
           node --check assets/auth.js
           node --check assets/data.js
           node --check assets/scoring.js
+          node --check assets/evidence.js
       - name: Run application tests
         run: node --test tests/*.test.js
+      - name: Install browser test runtime
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Test recruiter browser journey
+        run: node tests/browser-journey.cjs
 
   deploy:
+    if: github.ref == 'refs/heads/main'
     needs: validate
     environment:
       name: github-pages

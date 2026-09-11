@@ -13,14 +13,19 @@
   }
 
   function calculate(input = {}) {
-    const evidenceBaseline = clamp(input.evidenceBaseline);
+    const evidenceBaseline = round(clamp(input.evidenceBaseline));
     const preferenceAdjustment = Math.max(-1.2, Math.min(1.2, Number(input.preferenceAdjustment) || 0));
-    const calculatedScore = round(clamp(evidenceBaseline + preferenceAdjustment));
-    const hasOverride = Number.isFinite(Number(input.approvedOverride));
+    const feedbackAdjustment = round(Number(input.feedbackAdjustment) || 0);
+    const appliedPreference = round(preferenceAdjustment);
+    const uncappedScore = round(evidenceBaseline + appliedPreference + feedbackAdjustment);
+    const calculatedScore = round(clamp(uncappedScore));
+    const hasOverride = input.approvedOverride != null && input.approvedOverride !== '' && Number.isFinite(Number(input.approvedOverride));
     const finalScore = hasOverride ? round(clamp(input.approvedOverride)) : calculatedScore;
     return {
       evidenceBaseline: round(evidenceBaseline),
-      preferenceAdjustment: round(preferenceAdjustment),
+      preferenceAdjustment: appliedPreference,
+      feedbackAdjustment,
+      limitAdjustment: round(calculatedScore - uncappedScore),
       calculatedScore,
       overrideAdjustment: round(finalScore - calculatedScore),
       finalScore,
