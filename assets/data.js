@@ -178,14 +178,15 @@
       lastFingerprint = JSON.stringify(state);
     }
 
-    function schedule(state, onError) {
+    function schedule(state, onError, onStatus) {
       pendingState = JSON.parse(JSON.stringify(state));
       const fingerprint = JSON.stringify(pendingState);
-      if (fingerprint === lastFingerprint) return;
+      if (fingerprint === lastFingerprint) { onStatus?.('saved'); return; }
+      onStatus?.('saving');
       clearTimeout(timer);
       timer = setTimeout(() => {
         const next = pendingState;
-        queued = queued.then(() => sync(next)).catch(error => { onError?.(error); });
+        queued = queued.then(() => sync(next)).then(() => onStatus?.('saved')).catch(error => { onStatus?.('error'); onError?.(error); });
       }, 450);
     }
 

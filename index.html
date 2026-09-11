@@ -82,6 +82,7 @@
       <div class="rf-globalbar">
         <button class="rf-btn rf-mobiletoggle" id="mobileNavToggle" type="button" aria-label="Open navigation">☰</button>
         <div class="rf-globaljob"><label for="globalJobSelect">Active job</label><select id="globalJobSelect" aria-label="Active job"></select></div>
+        <div class="rf-sync-status" id="syncStatus" data-state="saved" role="status" aria-live="polite"><i></i><span>Saved</span><button type="button" id="retrySync">Retry</button></div>
         <div class="rf-userbar"><div><strong id="authWorkspaceName">Private workspace</strong><span id="authUserEmail"></span></div><button class="rf-btn" id="authSignOut" type="button">Sign out</button></div>
         <button class="rf-btn rf-settingsbtn" type="button" data-goto="backend">⚙ <span>Settings</span></button>
       </div>
@@ -243,7 +244,8 @@
   <script src="assets/auth.js?v=20260910-login-fix"></script>
   <script src="assets/data.js?v=20260910-manager-learning"></script>
   <script src="assets/select.js?v=20260910-dark-dropdowns"></script>
-  <script src="assets/app.js?v=20260911-evidence-matrix"></script>
+  <script src="assets/scoring.js?v=20260911-hardening"></script>
+  <script src="assets/app.js?v=20260911-hardening"></script>
 </div>
 </body>
 </html>

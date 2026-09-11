@@ -11,6 +11,7 @@ test('production shell references modular application assets', () => {
   assert.match(html, /src="assets\/auth\.js\?v=[^"]+"/);
   assert.match(html, /src="assets\/data\.js\?v=[^"]+"/);
   assert.match(html, /src="assets\/select\.js\?v=[^"]+"/);
+  assert.match(html, /src="assets\/scoring\.js\?v=[^"]+"/);
   assert.match(html, /src="assets\/app\.js\?v=[^"]+"/);
   assert.match(html, /id="managerPreferenceProfile"/);
   assert.match(html, /id="reevaluateCandidates"/);
@@ -22,6 +23,7 @@ test('production shell references modular application assets', () => {
   assert.match(html, /id="submissionReadiness"/);
   assert.match(html, /id="requirementEvidenceRows"/);
   assert.match(html, /id="copySubmissionSummary"/);
+  assert.match(html, /id="syncStatus"/);
   assert.doesNotMatch(html, /<style(?:\s|>)/i);
   assert.doesNotMatch(html, /<script>\s*[\s\S]+?<\/script>/i);
 });
