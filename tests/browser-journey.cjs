@@ -55,7 +55,7 @@ await page.locator('#submissionDraft').fill('Recruiter edited summary: testing e
 await page.locator('#saveSubmissionDraft').click();
 assert.match(await page.evaluate(()=>window.testSaved.candidates[0].submissionDraft.text),/Recruiter edited/);
 await page.setViewportSize({width:390,height:844});
-assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
+assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true,JSON.stringify(await page.evaluate(()=>[...document.querySelectorAll('#rf-app *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&getComputedStyle(e).position!=='fixed').slice(0,12).map(e=>({tag:e.tagName,id:e.id,cls:e.className,width:e.getBoundingClientRect().width})))));
 await page.setViewportSize({width:1280,height:900});
 await page.locator('#detailStage').selectOption('Hired',{force:true});
 assert.equal(await page.evaluate(()=>window.testSaved.jobs[0].status),'closed');
