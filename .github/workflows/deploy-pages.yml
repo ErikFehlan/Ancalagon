@@ -35,6 +35,7 @@ jobs:
           node --check assets/context.js
           node --check assets/feedback.js
           node --check assets/candidate-workspace.js
+          node --check assets/criteria-automation.js
           node --check assets/quality.js
           node --check assets/quality-ui.js
       - name: Run application tests

@@ -255,6 +255,14 @@
       catch (error) { pendingWrites--; statusListener?.('error'); throw error; }
     }
 
+    async function loadCriteriaTask(jobId) {
+      const { data, error } = await client.from('job_criteria_tasks').select('job_id,revision,input,status,result,display_original,error_code,updated_at').eq('workspace_id',workspaceId).eq('job_id',jobId);
+      if(error)throw error;return data?.[0]||null;
+    }
+    async function toggleCriteriaOriginal(jobId,revision,original) {
+      const {data,error}=await client.rpc('use_original_job_criteria',{p_job:jobId,p_revision:revision,p_original:original});
+      if(error)throw error;return data;
+    }
     async function logUsage(operation, status, model) {
       const { error } = await client.from('ai_usage_events').insert({
         workspace_id: workspaceId, user_id: userId, operation, status, model: model || null
@@ -297,7 +305,7 @@
       return path;
     }
 
-    return { load, schedule, flush, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, workspaceId };
+    return { load, schedule, flush, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };
