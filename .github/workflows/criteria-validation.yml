@@ -1,0 +1,27 @@
+name: Validate criteria automation backend
+on:
+  push:
+    branches: [hardening/reliability, main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check worker types
+        run: deno check supabase/functions/refine-job-criteria/index.ts
+      - name: Test queue transactions and permissions
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -f tests/criteria-queue.sql

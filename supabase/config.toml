@@ -3,3 +3,6 @@ verify_jwt = true
 
 [functions.analyze-patterns-beta]
 verify_jwt = true
+
+[functions.refine-job-criteria]
+verify_jwt = false

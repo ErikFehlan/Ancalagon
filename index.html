@@ -146,7 +146,7 @@
         <div class="rf-cards" id="benchmarkList"></div>
       </section>
 
-      <section class="rf-page" id="page-criteria">
+      <section class="rf-page" id="page-criteria"><div class="rf-card" id="criteriaAutomation"><h3>Criteria and screening questions</h3><p>Save a job to prepare criteria automatically.</p></div>
         <div class="rf-sectiontitle"><div><h2>Evaluation Criteria</h2><p>Adjust weighting as new hiring-manager feedback comes in.</p></div><button class="rf-btn" id="resetWeights">Reset defaults</button></div>
         <div class="rf-card"><div class="rf-criteria" id="criteriaEditor"></div><div class="rf-total" id="weightTotal">Total: 100%</div></div>
       </section>
@@ -199,7 +199,7 @@
         <div class="rf-sectiontitle"><div><h2>Jobs</h2><p>Create multiple searches, store each job description and manager feedback, and switch the dashboard between them.</p></div><button class="rf-btn primary" id="newJobBtn">+ New Job</button></div>
         <div class="rf-grid rf-two">
           <div class="rf-card"><h3>Active Jobs</h3><div id="jobList" class="rf-list"></div></div>
-          <div class="rf-card"><div class="rf-cardhead"><h3 id="jobFormTitle">Add Job</h3><button class="rf-linkbtn rf-hidden" id="cancelJobEdit" type="button">Cancel edit</button></div><form class="rf-form" id="jobForm"><input type="hidden" id="jobId"><div class="rf-formrow"><div><label for="jobTitle">Job title</label><input id="jobTitle" required placeholder="e.g. Security Engineer"></div><div><label for="jobClient">Client / company</label><input id="jobClient" placeholder="Optional"></div></div><div><label for="jobDescription">Job description</label><textarea id="jobDescription" required placeholder="Paste the complete job description here…" style="min-height:180px"></textarea></div><div><label for="jobManagerFeedback">Manager feedback / calibration notes</label><textarea id="jobManagerFeedback" placeholder="What has the manager liked, disliked, rejected, or prioritized so far?" style="min-height:150px"></textarea></div><div><label for="jobCriteria">Key screening criteria</label><textarea id="jobCriteria" placeholder="Format each line like: Must Have | 5+ years WAF experience, Preferred | PCI, Bonus | eCommerce"></textarea></div><div><label for="jobKnockouts">Knockout rules</label><textarea id="jobKnockouts" placeholder="One rule per line, e.g. No sponsorship; Must be Ohio-based; Must have Palantir Foundry"></textarea></div><button class="rf-btn primary" type="submit">Save Job</button><div class="rf-note">Each job keeps its own description, manager calibration, criteria priority, knockout rules, and candidate pipeline.</div></form></div>
+          <div class="rf-card"><div class="rf-cardhead"><h3 id="jobFormTitle">Add Job</h3><button class="rf-linkbtn rf-hidden" id="cancelJobEdit" type="button">Cancel edit</button></div><form class="rf-form" id="jobForm"><input type="hidden" id="jobId"><div class="rf-formrow"><div><label for="jobTitle">Job title</label><input id="jobTitle" required placeholder="e.g. Security Engineer"></div><div><label for="jobClient">Client / company</label><input id="jobClient" placeholder="Optional"></div></div><div><label for="jobDescription">Job description</label><textarea id="jobDescription" required placeholder="Paste the complete job description here…" style="min-height:180px"></textarea></div><div><label for="jobManagerFeedback">Manager feedback / calibration notes</label><textarea id="jobManagerFeedback" placeholder="What has the manager liked, disliked, rejected, or prioritized so far?" style="min-height:150px"></textarea></div><div><label for="jobCriteria">Key screening criteria</label><textarea id="jobCriteria" aria-describedby="criteriaAutomationHint" placeholder="Write one criterion per line, e.g. 5+ years QA experience required; BDD preferred; Selenium is a plus."></textarea><p class="rf-sub" id="criteriaAutomationHint">Save your rough criteria as usual. Ancalagon will polish the wording and prepare screening questions automatically. Your originals are preserved.</p></div><div><label for="jobKnockouts">Knockout rules</label><textarea id="jobKnockouts" placeholder="One rule per line, e.g. No sponsorship; Must be Ohio-based; Must have Palantir Foundry"></textarea></div><button class="rf-btn primary" type="submit">Save Job</button><div class="rf-note">Each job keeps its own description, manager calibration, criteria priority, knockout rules, and candidate pipeline.</div></form></div>
         </div>
       </section>
 
@@ -270,7 +270,7 @@
   <div class="rf-modalbackdrop" id="screeningModal" role="dialog" aria-modal="true" aria-labelledby="screeningTitle"><div class="rf-modal rf-screen-modal"><form class="rf-form" id="screeningForm"><div><div class="rf-kicker">Screening insight</div><h3 id="screeningTitle">Add screening evidence</h3><p>Capture only what changes the assessment. Ancalagon will compare this evidence with the job, manager priorities, and current evaluation.</p></div><div class="rf-screen-context"><div>Current JD Fit<strong id="screenCurrentJD">—</strong></div><div>Current Manager Fit<strong id="screenCurrentManager">—</strong></div></div><div class="rf-formrow"><div><label for="screenAbility">Can they do the job?</label><select id="screenAbility" required><option value="">Select an assessment</option><option value="Yes">Yes — evidence supports it</option><option value="Maybe">Maybe — important gaps remain</option><option value="No">No — evidence shows a mismatch</option></select></div><div><label for="screenCulture">Culture / working-style fit</label><select id="screenCulture" required><option value="">Select an assessment</option><option value="Strong">Strong alignment</option><option value="Mixed">Mixed / uncertain</option><option value="Weak">Weak alignment</option></select></div></div><div><label for="screenNotes">What did you learn?</label><textarea id="screenNotes" required maxlength="4000" placeholder="Add concise, job-related evidence from the conversation—skills depth, ownership, communication, motivation, or working style."></textarea><div class="rf-sub" style="margin-top:5px">Do not include protected personal information. Notes are used as evidence, not as an automatic hiring decision.</div></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="screenCancel" type="button">Cancel</button><button class="rf-btn primary" id="screenSubmit" type="submit">✦ Reassess & Mark Screened</button></div></form></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script src="assets/auth.js?v=20260910-login-fix"></script>
-  <script src="assets/data.js?v=20260911-workflow"></script>
+  <script src="assets/data.js?v=20260911-automation"></script>
   <script src="assets/select.js?v=20260910-dark-dropdowns"></script>
   <script src="assets/evidence.js?v=20260911-quick-feedback"></script>
   <script src="assets/context.js?v=20260911-quick-feedback"></script>
@@ -278,8 +278,9 @@
   <script src="assets/quality.js?v=20260911-quick-feedback"></script>
   <script src="assets/quality-ui.js?v=20260911-quick-feedback"></script>
   <script src="assets/feedback.js?v=20260911-quick-feedback"></script>
-  <script src="assets/candidate-workspace.js?v=20260911-workflow"></script>
-  <script src="assets/app.js?v=20260911-workflow"></script>
+  <script src="assets/candidate-workspace.js?v=20260911-automation"></script>
+  <script src="assets/criteria-automation.js?v=20260911-automation"></script>
+  <script src="assets/app.js?v=20260911-automation"></script>
 </div>
 </body>
 </html>
