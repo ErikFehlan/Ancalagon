@@ -10,6 +10,13 @@ await page.addInitScript(()=>{window.testSaved=null;window.AncalagonData={create
 await page.route('**/assets/data.js*',r=>r.fulfill({contentType:'application/javascript',body:''}));
 await page.route('**/functions/v1/**',async route=>{const payload=route.request().postDataJSON();assert.ok(payload.evaluation_context);if(payload.analysis_type==='screening'){assert.ok(payload.evaluation_context.sources.some(s=>s.id.startsWith('feedback-')));await route.fulfill({json:{manager_score:9,jd_score:8.5,manager_reason:'Specific ownership example in candidate feedback supports manager priority.',jd_reason:'Qualification baseline unchanged.',summary:'Ownership evidence reviewed.',model:'test-model'}})}else await route.fulfill({json:{summary:'Pattern review',signals:[],resume_interview_gaps:[],recommended_weight_changes:[]}})});
 await page.goto(`http://127.0.0.1:${server.address().port}/`);
+await page.locator('#learnWelcome [data-goto="learn"]').click();
+await page.locator('#page-learn.active').waitFor();
+assert.equal(await page.locator('#page-learn details').count(),5);
+assert.equal(await page.evaluate(()=>window.testSaved?.candidates?.length||0),0);
+await page.locator('#page-learn details').nth(1).locator('summary').click();
+await page.locator('#page-learn [data-learn-page="candidates"]').click();
+await page.locator('#page-jobs.active').waitFor();
 await page.locator('#jobTitle').fill('Reliability test');await page.locator('#jobDescription').fill('Build and maintain Kubernetes infrastructure');await page.locator('#jobForm button[type=submit]').click();
 await page.locator('#page-dashboard.active').waitFor();assert.equal(await page.evaluate(()=>window.testSaved.jobs[0].title),'Reliability test');
 await page.locator('#addCandidateBtn').click();await page.locator('#candidateName').fill('Test Candidate');await page.locator('#candidateRole').fill('Engineer');await page.locator('#candidateScore').fill('8.5');await page.locator('#candidateSignal').fill('Infrastructure engineer');await page.locator('#candidateStrengths').fill('Built production Kubernetes clusters');await page.locator('#candidateForm button[type=submit]').click();
