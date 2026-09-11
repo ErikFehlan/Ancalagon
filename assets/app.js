@@ -451,6 +451,7 @@ function renderJobs(){
       root.querySelector('#reevaluateCandidates').addEventListener('click',runCandidateReevaluation);
       root.querySelector('#applyAllReevaluations').addEventListener('click',applyAllReevaluations);
       root.querySelector('[data-page="insights"]')?.addEventListener('click',()=>setTimeout(()=>{renderReevaluationResults();renderAnalysisFlow()}));
+      new MutationObserver(()=>{const guide=root.querySelector('#jobGuide'),progress=root.querySelector('#jobGuideProgress');if(progress?.textContent.startsWith('6 of 6')&&!guide.dataset.autoCollapsed){guide.open=false;guide.dataset.autoCollapsed='true'}}).observe(root.querySelector('#jobGuideProgress'),{childList:true,characterData:true,subtree:true});
       root.querySelector('#refreshAdminUsage').addEventListener('click',loadAdminUsage);
       root.querySelector('#screeningForm').addEventListener('submit',submitScreeningInsight);
       root.querySelector('#closeJobForm').addEventListener('submit',event=>{event.preventDefault();if(closingJobId)closeJob(closingJobId,root.querySelector('#closeJobReason').value);dismissCloseJob()});

@@ -9,7 +9,7 @@
   <meta name="description" content="Ancalagon recruiting intelligence dashboard for jobs, candidates, manager feedback, interview outcomes, pipeline tracking, and fit analysis.">
   <link rel="icon" type="image/png" href="assets/ancalagon.png">
   <link rel="apple-touch-icon" href="assets/ancalagon.png">
-  <link rel="stylesheet" href="assets/app.css?v=20260910-guided-workflow">
+  <link rel="stylesheet" href="assets/app.css?v=20260911-focused-dashboard">
 </head>
 <body class="rf-auth-pending">
 <div class="rf-auth-gate" id="authGate" aria-live="polite">
@@ -97,7 +97,7 @@
       </section>
       <section class="rf-page active" id="page-dashboard">
         <div class="rf-top"><div><h1>Ancalagon Dashboard</h1><p>Evaluate candidates against what this hiring manager actually responds to.</p></div><div class="rf-actions"><button class="rf-btn primary" id="addCandidateBtn">+ Add Candidate</button><button class="rf-btn" id="exportBtn">Export Report</button></div></div>
-        <div class="rf-card rf-job-guide" id="jobGuide"><div class="rf-cardhead"><div><div class="rf-kicker">Search setup</div><h3>Build stronger recommendations step by step</h3><p class="rf-sub">Complete these steps as your search develops. Ancalagon will keep track for you.</p></div><span class="rf-pill rf-blue" id="jobGuideProgress">0 of 6 complete</span></div><div class="rf-guide-steps" id="jobGuideSteps"></div></div>
+        <details class="rf-card rf-job-guide" id="jobGuide" open><summary><div><div class="rf-kicker">Search setup</div><h3>Build stronger recommendations step by step</h3></div><span class="rf-pill rf-blue" id="jobGuideProgress">0 of 6 complete</span><span class="rf-guide-toggle">⌄</span></summary><div class="rf-guide-body"><p class="rf-sub">Complete these steps as your search develops. Ancalagon will keep track for you.</p><div class="rf-guide-steps" id="jobGuideSteps"></div></div></details>
         <div class="rf-grid rf-metrics">
           <div class="rf-card rf-metric"><div class="rf-icon">★</div><div><div class="rf-kicker">Top Candidate</div><div class="rf-value" id="topName">—</div><div class="rf-sub" id="topScore">Loading active candidates…</div></div></div>
           <div class="rf-card rf-metric"><div class="rf-icon">↗</div><div><div class="rf-kicker">Average Fit Score</div><div class="rf-value" id="avgScore">—</div><div class="rf-sub">Across active candidates</div></div></div>
@@ -105,22 +105,22 @@
           <div class="rf-card rf-metric"><div class="rf-icon">✓</div><div><div class="rf-kicker">Interview Recommendations</div><div class="rf-value" id="interviewCount">0</div><div class="rf-sub" id="interviewNames">No interview recommendations yet</div></div></div>
         </div>
 
-        <div class="rf-grid rf-two">
+        <div class="rf-grid rf-two rf-dashboard-duplicate">
           <div class="rf-card"><div class="rf-cardhead"><h3>Candidate Rankings</h3><button class="rf-linkbtn" data-goto="rankings">View all →</button></div><div class="rf-tablewrap"><table class="rf-table"><thead><tr><th>Rank</th><th>Candidate</th><th>JD Fit</th><th>Manager Fit</th><th>Recommendation</th></tr></thead><tbody id="dashRanking"></tbody></table></div></div>
           <div class="rf-card"><div class="rf-cardhead"><h3>Evaluation Criteria Weighting</h3><button class="rf-linkbtn" data-goto="criteria">Edit weights</button></div><div class="rf-criteria" id="dashCriteria"></div></div>
         </div>
 
-        <div class="rf-grid rf-three">
+        <div class="rf-grid rf-three rf-dashboard-context">
           <div class="rf-card"><h3>What the Hiring Manager Values Most</h3><div class="rf-priorities" id="managerPriorities"></div></div>
           <div class="rf-card"><div class="rf-cardhead"><h3>Benchmark Comparison</h3><button class="rf-linkbtn" data-goto="benchmarks">View all →</button></div><div id="dashboardBenchmarks"></div></div>
           <div class="rf-card"><h3>Recently Added / Updated</h3><div class="rf-list" id="recentCandidates"></div></div>
         </div>
-        <div class="rf-dash-overview">
+        <div class="rf-dash-overview rf-dashboard-overview">
           <div class="rf-card"><div class="rf-panel-title"><h3>Pipeline Overview</h3><span class="rf-panel-meta">Active search</span></div><div id="dashboardPipelineOverview"></div></div>
           <div class="rf-card"><div class="rf-panel-title"><h3>Fit Score Distribution</h3><span class="rf-panel-meta">Manager fit</span></div><div id="dashboardFitDistribution"></div></div>
           <div class="rf-card"><div class="rf-panel-title"><h3>Recent Activity</h3><button class="rf-linkbtn" data-goto="outcomes">View all activity →</button></div><div id="dashboardActivity"></div></div>
         </div>
-        <div class="rf-dash-bottom">
+        <div class="rf-dash-bottom rf-dashboard-bottom">
           <div class="rf-card"><div class="rf-panel-title"><h3>Top Candidates <span class="rf-panel-meta">(by Fit Score)</span></h3><button class="rf-linkbtn" data-goto="candidates">View all candidates →</button></div><div id="dashboardTopCandidates"></div></div>
           <div class="rf-card"><div class="rf-panel-title"><h3>Search Summary</h3><button class="rf-linkbtn" data-goto="jobs">View active job →</button></div><div id="dashboardSearchSummary"></div></div>
         </div>
