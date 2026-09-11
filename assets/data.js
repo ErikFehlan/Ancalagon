@@ -76,6 +76,7 @@
           signalDirection: preferenceByFeedback.get(row.id)?.signal_direction || 'neutral',
           signalStatus: preferenceByFeedback.get(row.id)?.signal_status || 'candidate_only',
           signalConfidence: Number(preferenceByFeedback.get(row.id)?.signal_confidence || 0),
+          interpretation: preferenceByFeedback.get(row.id)?.interpretation || null,
           createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at)
         })),
         interviewOutcomes: outcomeRows.map(row => ({
@@ -211,13 +212,13 @@
         summary: candidate.aiReview.notes || '', evidence: { review: candidate.aiReview }, created_by: userId,
         created_at: iso(candidate.aiReview.createdAt)
       }));
-      const preferenceAssessments = state.feedback.filter(item => item.candidateId && item.learningScope === 'job').map(item => {
+      const preferenceAssessments = state.feedback.filter(item => item.candidateId && (item.learningScope === 'job' || item.interpretation)).map(item => {
         const candidate = state.candidates.find(candidate => candidate.id === item.candidateId);
         return { workspace_id: workspaceId, job_id: item.jobId, candidate_id: item.candidateId, assessment_type: 'manager_feedback',
           jd_score: candidate?.jdScore ?? null, manager_score: candidate?.managerScore ?? null, recommendation: candidate?.rec || null,
           summary: item.signalLabel || '', evidence: { feedback_id: item.id, learning_scope: item.learningScope,
             signal_label: item.signalLabel, signal_direction: item.signalDirection, signal_status: item.signalStatus,
-            signal_confidence: Number(item.signalConfidence || 0) }, created_by: userId, created_at: iso(item.updatedAt || item.createdAt) };
+            interpretation: item.interpretation || null, signal_confidence: Number(item.signalConfidence || 0) }, created_by: userId, created_at: iso(item.updatedAt || item.createdAt) };
       });
       await replaceChildren('candidate_assessments', reviewAssessments.concat(preferenceAssessments));
       lastFingerprint = JSON.stringify(state);

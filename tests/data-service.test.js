@@ -46,3 +46,10 @@ test('removal deletes only the job loaded and removed in this tab',async()=>{
  const f=fixture(),state=await f.service.load();f.rows.jobs.push({id:'new',workspace_id:'workspace',title:'New elsewhere'});
  state.jobs=[];await f.service.flush(state);assert.deepEqual(f.rows.jobs.map(x=>x.id),['new']);
 });
+test('candidate-only interpretation survives reload without promoting a shared preference',async()=>{
+ const f=fixture(),state=await f.service.load();
+ state.candidates.push({id:'c',jobId:'job',name:'Test',short:'Test',strengths:[],concerns:[],tags:[],jdScore:7,managerScore:7});
+ state.feedback.push({id:'f',jobId:'job',candidateId:'c',candidate:'Test',type:'General note',outcome:'Neutral / no signal',text:'ownership unclear',learningScope:'candidate',signalStatus:'candidate_only',interpretation:{text:'Clarify personal ownership.',source:'ai'},createdAt:1,updatedAt:1});
+ await f.service.flush(state);const restored=await f.service.load();
+ assert.equal(restored.feedback[0].text,'ownership unclear');assert.equal(restored.feedback[0].interpretation.text,'Clarify personal ownership.');assert.equal(restored.feedback[0].signalStatus,'candidate_only');
+});

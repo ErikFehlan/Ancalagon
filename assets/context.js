@@ -10,6 +10,7 @@
     for(const f of list(feedback).filter(f=>f.jobId===job.id)){
       const approved=f.learningScope==='job'&&f.signalStatus==='approved';
       if(approved)add(`preference-${f.id}`,'approved preference',`${f.signalDirection}: ${f.signalLabel}. Supporting observation: ${f.text}`,f.updatedAt||f.createdAt,'job');
+      if(candidate&&f.candidateId===candidate.id&&f.interpretation?.source==='recruiter')add(`feedback-correction-${f.id}`,'recruiter clarification',f.interpretation.text,f.interpretation.updatedAt,'candidate');
       if(candidate&&f.candidateId===candidate.id)add(`feedback-${f.id}`,'candidate feedback',`${f.type}; outcome: ${f.outcome||'unspecified'}. ${f.text}`,f.updatedAt||f.createdAt,'candidate');
     }
     if(candidate){
