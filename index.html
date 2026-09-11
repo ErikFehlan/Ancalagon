@@ -9,7 +9,7 @@
   <meta name="description" content="Ancalagon recruiting intelligence dashboard for jobs, candidates, manager feedback, interview outcomes, pipeline tracking, and fit analysis.">
   <link rel="icon" type="image/png" href="assets/ancalagon.png">
   <link rel="apple-touch-icon" href="assets/ancalagon.png">
-  <link rel="stylesheet" href="assets/app.css?v=20260911-context">
+  <link rel="stylesheet" href="assets/app.css?v=20260911-quality">
 </head>
 <body class="rf-auth-pending">
 <div class="rf-auth-gate" id="authGate" aria-live="polite">
@@ -225,6 +225,16 @@
         </div>
         <div class="rf-card" style="margin-bottom:18px"><div class="rf-cardhead"><h3>Tester Activity</h3><span class="rf-pill rf-blue">Admin only</span></div><div class="rf-tablewrap"><table class="rf-table rf-admin-table"><thead><tr><th>Tester</th><th>Last activity</th><th>Sessions</th><th>Events</th><th>Jobs</th><th>Candidates</th><th>Analyses</th><th>Feedback</th><th>Outcomes</th></tr></thead><tbody id="adminUserRows"><tr><td colspan="9">Loading usage…</td></tr></tbody></table></div></div>
         <div class="rf-card"><h3>Feature Activity · Last 30 Days</h3><div class="rf-admin-breakdown" id="adminEventBreakdown"></div></div>
+        <div class="rf-card rf-quality-lab rf-hidden" id="qualityLab">
+          <div class="rf-cardhead"><div><div class="rf-kicker">AI quality review</div><h3>Recruiting scenario benchmark</h3></div><span class="rf-pill rf-blue">Synthetic scenarios</span></div>
+          <p>Test how the AI responds when new evidence arrives. Four scenarios make eight AI requests using your existing connection and incur normal analysis usage. No live jobs or candidates are changed.</p>
+          <p>Expectations are provisional: a decrease of at least 0.3 for weaker ownership evidence, an increase of at least 0.3 for stronger discovery evidence, and a change within ±0.5 when no new capability evidence exists. Your review determines whether the reasoning is sound.</p>
+          <div class="rf-actions"><button class="rf-btn primary" id="runQualitySuite" type="button">Run AI quality check</button><button class="rf-btn" id="stopQualitySuite" type="button" disabled>Stop</button><button class="rf-btn" id="exportQualityReport" type="button" disabled>Export report</button></div>
+          <label class="rf-quality-upload" for="qualityBaseline">Compare with an earlier report <input id="qualityBaseline" type="file" accept=".json,application/json"></label>
+          <p class="rf-sub">Reports and review notes stay in this tab until exported. Export before refreshing or starting another run. Synthetic cases are inspired by recruiting patterns, not reproductions of historical candidate records.</p>
+          <p id="qualityStatus" role="status" aria-live="polite">Ready. Review criteria alongside each result.</p>
+          <div id="qualityComparison"></div><div id="qualityResults"></div>
+        </div>
       </section>
 
       <section class="rf-page" id="page-detail">
@@ -242,12 +252,14 @@
   <div class="rf-modalbackdrop" id="screeningModal" role="dialog" aria-modal="true" aria-labelledby="screeningTitle"><div class="rf-modal rf-screen-modal"><form class="rf-form" id="screeningForm"><div><div class="rf-kicker">Screening insight</div><h3 id="screeningTitle">Add screening evidence</h3><p>Capture only what changes the assessment. Ancalagon will compare this evidence with the job, manager priorities, and current evaluation.</p></div><div class="rf-screen-context"><div>Current JD Fit<strong id="screenCurrentJD">—</strong></div><div>Current Manager Fit<strong id="screenCurrentManager">—</strong></div></div><div class="rf-formrow"><div><label for="screenAbility">Can they do the job?</label><select id="screenAbility" required><option value="">Select an assessment</option><option value="Yes">Yes — evidence supports it</option><option value="Maybe">Maybe — important gaps remain</option><option value="No">No — evidence shows a mismatch</option></select></div><div><label for="screenCulture">Culture / working-style fit</label><select id="screenCulture" required><option value="">Select an assessment</option><option value="Strong">Strong alignment</option><option value="Mixed">Mixed / uncertain</option><option value="Weak">Weak alignment</option></select></div></div><div><label for="screenNotes">What did you learn?</label><textarea id="screenNotes" required maxlength="4000" placeholder="Add concise, job-related evidence from the conversation—skills depth, ownership, communication, motivation, or working style."></textarea><div class="rf-sub" style="margin-top:5px">Do not include protected personal information. Notes are used as evidence, not as an automatic hiring decision.</div></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="screenCancel" type="button">Cancel</button><button class="rf-btn primary" id="screenSubmit" type="submit">✦ Reassess & Mark Screened</button></div></form></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script src="assets/auth.js?v=20260910-login-fix"></script>
-  <script src="assets/data.js?v=20260911-context"></script>
+  <script src="assets/data.js?v=20260911-quality"></script>
   <script src="assets/select.js?v=20260910-dark-dropdowns"></script>
-  <script src="assets/evidence.js?v=20260911-context"></script>
-  <script src="assets/context.js?v=20260911-context"></script>
-  <script src="assets/scoring.js?v=20260911-context"></script>
-  <script src="assets/app.js?v=20260911-context"></script>
+  <script src="assets/evidence.js?v=20260911-quality"></script>
+  <script src="assets/context.js?v=20260911-quality"></script>
+  <script src="assets/scoring.js?v=20260911-quality"></script>
+  <script src="assets/quality.js?v=20260911-quality"></script>
+  <script src="assets/quality-ui.js?v=20260911-quality"></script>
+  <script src="assets/app.js?v=20260911-quality"></script>
 </div>
 </body>
 </html>

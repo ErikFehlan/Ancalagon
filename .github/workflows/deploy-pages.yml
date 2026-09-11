@@ -33,6 +33,8 @@ jobs:
           node --check assets/scoring.js
           node --check assets/evidence.js
           node --check assets/context.js
+          node --check assets/quality.js
+          node --check assets/quality-ui.js
       - name: Run application tests
         run: node --test tests/*.test.js
       - name: Install browser test runtime

@@ -24,6 +24,9 @@ test('production shell references modular application assets', () => {
   assert.match(html, /id="requirementEvidenceRows"/);
   assert.match(html, /id="copySubmissionSummary"/);
   assert.match(html, /id="syncStatus"/);
+  assert.match(html, /id="qualityLab"/);
+  assert.match(html, /src="assets\/quality\.js/);
+  assert.match(html, /src="assets\/quality-ui\.js/);
   assert.doesNotMatch(html, /<style(?:\s|>)/i);
   assert.doesNotMatch(html, /<script>\s*[\s\S]+?<\/script>/i);
 });
