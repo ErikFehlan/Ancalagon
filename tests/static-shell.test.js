@@ -19,6 +19,9 @@ test('production shell references modular application assets', () => {
   assert.match(html, /<details class="rf-card rf-job-guide"/);
   assert.match(html, /Analyze Hiring Patterns/);
   assert.match(html, /Update Candidate Evaluations/);
+  assert.match(html, /id="submissionReadiness"/);
+  assert.match(html, /id="requirementEvidenceRows"/);
+  assert.match(html, /id="copySubmissionSummary"/);
   assert.doesNotMatch(html, /<style(?:\s|>)/i);
   assert.doesNotMatch(html, /<script>\s*[\s\S]+?<\/script>/i);
 });
