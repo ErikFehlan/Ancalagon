@@ -1,0 +1,32 @@
+name: Activate criteria automation backend
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: criteria-backend-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: criteria-backend
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: e9366e9f75e8ca95bed17c70721eed3a74b2005e
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Install queue and scheduler credential
+        run: node scripts/criteria-backend.mjs prepare
+      - name: Deploy criteria worker
+        run: supabase functions deploy refine-job-criteria --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Activate durable scheduler
+        run: node scripts/criteria-backend.mjs activate
