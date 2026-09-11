@@ -63,3 +63,11 @@ test('unchanged scheduling stays saved and direct flush clears scheduled saving 
  state.jobs[0].title='Fail';f.failNext();await assert.rejects(f.service.flush(state));assert.equal(statuses.at(-1),'error');
  await f.service.flush(state);assert.equal(statuses.at(-1),'saved');
 });
+test('reload protection tracks pending writes, not connection labels, and summaries round-trip',async()=>{
+ const f=fixture();assert.equal(f.service.hasPendingChanges(),false);const state=await f.service.load();assert.equal(f.service.hasPendingChanges(),false);
+ state.jobs[0].title='Offline edit';f.service.markPending(state);assert.equal(f.service.hasPendingChanges(),true);
+ await f.service.flush(state);assert.equal(f.service.hasPendingChanges(),false);
+ state.candidates.push({id:'c',jobId:'job',name:'Test',short:'Test',strengths:[],concerns:[],tags:[],jdScore:7,managerScore:7,submissionDraft:{text:'An editable, evidence-based summary.',updatedAt:1}});
+ await f.service.flush(state);const restored=await f.service.load();assert.equal(restored.candidates[0].submissionDraft.text,'An editable, evidence-based summary.');assert.equal(restored.candidates[0].aiReview,null);
+ assert.equal(f.service.hasPendingChanges(),false);
+});

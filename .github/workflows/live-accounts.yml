@@ -1,0 +1,31 @@
+name: Live account integration checks
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: live-account-checks
+  cancel-in-progress: false
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser runtime
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Test dedicated accounts against the real backend
+        env:
+          LIVE_APP_URL: ${{ vars.LIVE_APP_URL }}
+          LIVE_SUPABASE_URL: ${{ vars.LIVE_SUPABASE_URL }}
+          LIVE_SUPABASE_ANON_KEY: ${{ secrets.LIVE_SUPABASE_ANON_KEY }}
+          LIVE_USER_A_EMAIL: ${{ secrets.LIVE_USER_A_EMAIL }}
+          LIVE_USER_A_PASSWORD: ${{ secrets.LIVE_USER_A_PASSWORD }}
+          LIVE_USER_B_EMAIL: ${{ secrets.LIVE_USER_B_EMAIL }}
+          LIVE_USER_B_PASSWORD: ${{ secrets.LIVE_USER_B_PASSWORD }}
+        run: node tests/live-accounts.cjs

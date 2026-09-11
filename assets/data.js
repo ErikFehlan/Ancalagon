@@ -14,6 +14,8 @@
     let pendingState = null;
     let lastFingerprint = '';
     let pendingWrites = 0, statusListener = null;
+    function hasPendingChanges() { return loaded && (pendingWrites > 0 || (pendingState !== null && JSON.stringify(pendingState) !== lastFingerprint)); }
+    function markPending(state) { pendingState = copy(state); }
     function reportStatus() { statusListener?.(pendingWrites || JSON.stringify(pendingState) !== lastFingerprint ? 'saving' : 'saved'); }
     const originals = new Map(), baselines = new Map(), insertIds = new Map();
     let seeding = false, loaded = false;
@@ -61,6 +63,7 @@
             screeningQuestions: row.screening_questions || [], benchmark: benchmarkIds.has(row.id),
             createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at),
             aiReview: review ? review.evidence?.review || null : null,
+            submissionDraft: review?.evidence?.submission_draft || null,
             screeningInsight: screening ? {
               canDoJob: screening.can_do_job, cultureFit: screening.culture_working_style_fit, notes: screening.notes,
               assessment: { jd_score: Number(screening.resulting_jd_score), manager_score: Number(screening.resulting_manager_score), summary: screening.assessment_summary },
@@ -92,6 +95,7 @@
       seeding = true;
       try { await sync(loadedState); } finally { seeding = false; }
       lastFingerprint = JSON.stringify(loadedState);
+      pendingState = null;
       loaded = true;
       return loadedState;
     }
@@ -208,11 +212,11 @@
           model: item.assessment?.model || null, created_by: userId, created_at: iso(item.createdAt)
         };
       }));
-      const reviewAssessments = state.candidates.filter(x => x.aiReview).map(candidate => ({
+      const reviewAssessments = state.candidates.filter(x => x.aiReview || x.submissionDraft).map(candidate => ({
         workspace_id: workspaceId, job_id: candidate.jobId, candidate_id: candidate.id, assessment_type: 'manual_correction',
         jd_score: candidate.jdScore, manager_score: candidate.managerScore, recommendation: candidate.rec,
-        summary: candidate.aiReview.notes || '', evidence: { review: candidate.aiReview }, created_by: userId,
-        created_at: iso(candidate.aiReview.createdAt)
+        summary: candidate.aiReview?.notes || '', evidence: { review: candidate.aiReview || null, submission_draft: candidate.submissionDraft || null }, created_by: userId,
+        created_at: iso(candidate.aiReview?.createdAt || candidate.submissionDraft?.updatedAt)
       }));
       const preferenceAssessments = state.feedback.filter(item => item.candidateId && (item.learningScope === 'job' || item.interpretation)).map(item => {
         const candidate = state.candidates.find(candidate => candidate.id === item.candidateId);
@@ -293,7 +297,7 @@
       return path;
     }
 
-    return { load, schedule, flush, logUsage, trackEvent, loadAdminAnalytics, uploadResume, workspaceId };
+    return { load, schedule, flush, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };

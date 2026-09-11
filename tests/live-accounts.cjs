@@ -1,0 +1,24 @@
+// Opt-in integration test. Only synthetic rows created by this run are modified or removed.
+const assert=require('node:assert/strict'),{randomUUID}=require('node:crypto');
+const {chromium}=require('playwright');
+(async()=>{
+ const required=['LIVE_APP_URL','LIVE_SUPABASE_URL','LIVE_SUPABASE_ANON_KEY','LIVE_USER_A_EMAIL','LIVE_USER_A_PASSWORD','LIVE_USER_B_EMAIL','LIVE_USER_B_PASSWORD'];
+ const missing=required.filter(k=>!process.env[k]);if(missing.length)throw Error('Live checks not run. Configure dedicated test-account secrets: '+missing.join(', '));
+ const env=process.env,base=env.LIVE_SUPABASE_URL.replace(/\/$/,''),app=env.LIVE_APP_URL;
+ assert.equal(new URL(base).protocol,'https:');assert.equal(new URL(app).protocol,'https:');
+ async function request(path,token,method='GET',body){const r=await fetch(base+path,{method,headers:{apikey:env.LIVE_SUPABASE_ANON_KEY,Authorization:'Bearer '+(token||env.LIVE_SUPABASE_ANON_KEY),'Content-Type':'application/json',Prefer:'return=representation'},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(30000)});const data=await r.json().catch(()=>null);if(!r.ok)throw Error('Live backend request failed ('+r.status+')');return data;}
+ const users=[];let browser;const created=[];
+ try{
+  for(const key of ['A','B']){const login=await request('/auth/v1/token?grant_type=password',null,'POST',{email:env[`LIVE_USER_${key}_EMAIL`],password:env[`LIVE_USER_${key}_PASSWORD`]});const memberships=await request('/rest/v1/workspace_members?select=workspace_id&user_id=eq.'+login.user.id,login.access_token);assert.equal(memberships.length,1,'Use dedicated users with one private workspace each');users.push({key,token:login.access_token,id:login.user.id,workspace:memberships[0].workspace_id});}
+  assert.notEqual(users[0].workspace,users[1].workspace,'Test accounts must own separate workspaces');
+  for(const owner of users){const id=randomUUID(),candidateId=randomUUID();created.push({id,owner});const row={id,workspace_id:owner.workspace,title:'Synthetic integration '+id,description:'Synthetic QA test only',created_by:owner.id};await request('/rest/v1/jobs',owner.token,'POST',row);await request('/rest/v1/candidates',owner.token,'POST',{id:candidateId,job_id:id,workspace_id:owner.workspace,name:'Synthetic Candidate',role:'QA',created_by:owner.id});await request('/rest/v1/manager_feedback',owner.token,'POST',{id:randomUUID(),job_id:id,candidate_id:candidateId,workspace_id:owner.workspace,feedback_type:'General note',outcome:'Neutral / no signal',feedback_text:'Synthetic persistence observation',created_by:owner.id});
+   const other=users.find(u=>u!==owner);for(const table of ['jobs','candidates','manager_feedback']){const filter=table==='jobs'?'id':'job_id';assert.deepEqual(await request(`/rest/v1/${table}?${filter}=eq.${id}&select=id`,other.token),[],'Cross-account read must return no rows');}
+   assert.deepEqual(await request('/rest/v1/jobs?id=eq.'+id,other.token,'PATCH',{title:'Forbidden edit'}),[],'Cross-account update must affect zero rows');
+   assert.deepEqual(await request('/rest/v1/jobs?id=eq.'+id,other.token,'DELETE'),[],'Cross-account delete must affect zero rows');
+   assert.equal((await request('/rest/v1/jobs?id=eq.'+id,owner.token))[0].title,row.title);
+  }
+  browser=await chromium.launch({headless:true});
+  for(const owner of users){const context=await browser.newContext(),page=await context.newPage();await page.goto(app);await page.locator('#authEmail').fill(env[`LIVE_USER_${owner.key}_EMAIL`]);await page.locator('#authPassword').fill(env[`LIVE_USER_${owner.key}_PASSWORD`]);await page.locator('#authSubmit').click();await page.locator('#page-job-picker.active').waitFor({timeout:60000});const own=created.find(x=>x.owner===owner),other=created.find(x=>x.owner!==owner);assert.ok((await page.locator('#jobPickerGrid').textContent()).includes(own.id));assert.ok(!(await page.locator('#jobPickerGrid').textContent()).includes(other.id));let dialogs=0;page.on('dialog',async d=>{dialogs++;await d.dismiss()});await page.reload();await page.locator('#page-job-picker.active').waitFor();assert.equal(dialogs,0,'Clean workspace refresh must not warn');assert.ok((await page.locator('#jobPickerGrid').textContent()).includes(own.id));await page.locator('#authSignOut').click();await page.locator('#authSubmit').waitFor({state:'visible'});await context.close();}
+  console.log('PASS: live password login, synthetic data persistence, clean refresh, sign-out, two-account read/update/delete isolation.');
+ }finally{if(browser)await browser.close();let failed=false;for(const {id,owner} of created){try{await request('/rest/v1/jobs?id=eq.'+id,owner.token,'DELETE');}catch{failed=true;}}if(failed)throw Error('Synthetic job cleanup failed; remove Synthetic integration jobs in the dedicated test accounts.');}
+})().catch(error=>{console.error(error.message);process.exitCode=1});

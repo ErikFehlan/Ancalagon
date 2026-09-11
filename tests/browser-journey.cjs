@@ -47,6 +47,16 @@ assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].managerScore
 await page.locator('.rf-nav [data-page="candidates"]').click();
 await page.locator('[data-candidate-id]').first().click();
 assert.match(await page.locator('#detailScreenEvidence').textContent(),/Evaluation matches current context/);
+await page.locator('#workspaceNote').fill('Concrete testing examples; ask about automation ownership.');
+await page.locator('#workspaceNoteForm button').click();
+await page.waitForFunction(()=>window.testSaved.feedback.length===3&&window.testSaved.feedback[2].interpretation);
+assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].managerScore),9);
+await page.locator('#submissionDraft').fill('Recruiter edited summary: testing evidence recorded; automation ownership needs confirmation.');
+await page.locator('#saveSubmissionDraft').click();
+assert.match(await page.evaluate(()=>window.testSaved.candidates[0].submissionDraft.text),/Recruiter edited/);
+await page.setViewportSize({width:390,height:844});
+assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
+await page.setViewportSize({width:1280,height:900});
 await page.locator('#detailStage').selectOption('Hired',{force:true});
 assert.equal(await page.evaluate(()=>window.testSaved.jobs[0].status),'closed');
 const saved=await page.evaluate(()=>window.testSaved);
