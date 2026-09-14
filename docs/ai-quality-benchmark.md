@@ -1,6 +1,6 @@
 # Recruiting AI quality benchmark
 
-Open **Usage Analytics → Recruiting scenario benchmark** as an authorized analytics admin. Select **Run AI quality check** to send four synthetic scenarios, each in two stages, to the existing authenticated analysis service. A complete run makes eight paid AI requests. No recruiting records are created or changed; the existing backend records normal AI usage.
+Open **Usage Analytics → Recruiting scenario benchmark** as an authorized analytics admin. Select **Run AI quality check** to send 20 synthetic scenarios, each in two stages, to the existing authenticated analysis service. A complete run makes 40 paid AI requests. No recruiting records are created or changed; the existing backend records normal AI usage.
 
 These are synthetic composite scenarios inspired by recruiting patterns. They are not reproductions of historical candidate records and contain no actual candidate identities. Review the provisional rubrics before treating the suite as an accepted quality standard.
 
@@ -37,4 +37,6 @@ Change the suite version whenever scenario content, scoring thresholds or review
 
 ## Validation boundaries
 
-`node --test tests/*.test.js` validates the runner, holdout separation, scoring checks, cancellation and failures with simulated responses. The GitHub browser test covers admin visibility, running eight simulated requests, reviewing a result, export and baseline import. These tests do not measure real model reasoning quality. Establish the first live baseline from the signed-in admin screen.
+`node --test tests/*.test.js` validates the runner, holdout separation, scoring checks, cancellation and failures with simulated responses. The GitHub browser test covers admin visibility, running 40 simulated requests, reviewing a result, export and baseline import. These tests do not measure real model reasoning quality. Establish the first live baseline from the signed-in admin screen.
+
+The core suite adds ownership, equivalent methods, contradictory observations, corrected notes, personal-affinity bias, availability, prompt injection, and fabricated-quotation scenarios. All 20 remain synthetic and require recruiter review. Passing structural or directional checks does not certify hiring accuracy.

@@ -16,7 +16,7 @@
     let pendingWrites = 0, statusListener = null;
     function hasPendingChanges() { return loaded && (pendingWrites > 0 || (pendingState !== null && JSON.stringify(pendingState) !== lastFingerprint)); }
     function markPending(state) { pendingState = copy(state); }
-    function reportStatus() { statusListener?.(pendingWrites || JSON.stringify(pendingState) !== lastFingerprint ? 'saving' : 'saved'); }
+    function reportStatus() { statusListener?.(pendingWrites || (pendingState !== null && JSON.stringify(pendingState) !== lastFingerprint) ? 'saving' : 'saved'); }
     const originals = new Map(), baselines = new Map(), insertIds = new Map(), approvals = new Map();
     let seeding = false, loaded = false;
 
@@ -134,7 +134,16 @@
         const insertKey = `${table}:${key}`;
         if (!insertIds.has(insertKey)) insertIds.set(insertKey, payload.id || crypto.randomUUID());
         const request = old ? guard(client.from(table).update(payload), old) : client.from(table).insert({...payload, ...(table === 'candidate_benchmarks' ? {} : {id: insertIds.get(insertKey)})});
-        const {data, error} = await request.select();
+        let {data, error} = await request.select();
+        // A response can be lost after an insert commits. Reuse its stable ID,
+        // and accept it only if every intended field matches the stored record.
+        if(error?.code==='23505'&&!old){
+          let lookup=client.from(table).select().eq('workspace_id',workspaceId);
+          lookup=table==='candidate_benchmarks'?lookup.eq('candidate_id',payload.candidate_id).eq('job_id',payload.job_id):lookup.eq('id',insertIds.get(insertKey));
+          const found=await lookup;
+          const same=found.data?.find(item=>Object.entries(payload).every(([k,v])=>k==='updated_at'||k==='created_at'||JSON.stringify(item[k])===JSON.stringify(v)));
+          if(!found.error&&same){data=[same];error=null;}
+        }
         if (error) throw error;
         if (!data?.length) throw Object.assign(new Error('This record changed in another tab. Copy your pending changes before reloading.'), {code:'SAVE_CONFLICT'});
         if (old) remote[index] = copy(data[0]); else remote.push(copy(data[0]));
@@ -266,7 +275,7 @@
         // Rebase saves queued while the RPC was in flight. Preserve a newer
         // explicit recruiter correction instead of overwriting that intent.
         if(JSON.stringify(c.aiReview)!==JSON.stringify(change.before.aiReview))continue;
-        for(const key of ['managerScore','jdScore','rec','aiReview','updatedAt']) {
+        for(const key of ['name','short','role','signal','strengths','concerns','tags','screeningQuestions','resumeJDScore','originalManagerScore','resumeIntake','managerScore','jdScore','rec','aiReview','updatedAt']) {
           if(JSON.stringify(c[key])===JSON.stringify(change.before[key]))c[key]=copy(change.after[key]);
         }
       }
@@ -298,13 +307,13 @@
       const {error}=await client.rpc('request_candidate_reassessment',{p_candidate:candidateId});
       if(error)throw error;
     }
-    async function reviewJobReassessment(candidateId,revision,decision,state) {
+    async function reviewJobReassessment(candidateId,revision,decision,state,rpcName='review_job_reassessment') {
       clearTimeout(timer);pendingWrites++;statusListener?.('saving');
       const operation=queued.then(async()=>{
         const previousPending=pendingState;
         await sync(copy(state));
         const candidate=state.candidates.find(c=>c.id===candidateId),before=candidate?copy(candidate):null;
-        const {data,error}=await client.rpc('review_job_reassessment',{p_candidate:candidateId,p_revision:revision,p_decision:decision});
+        const {data,error}=await client.rpc(rpcName,{p_candidate:candidateId,p_revision:revision,p_decision:decision});
         if(error)throw error;
         if(data.status==='approved'&&candidate){
           const row=data.candidate,assessment=data.assessment;
@@ -363,6 +372,16 @@
       return data;
     }
 
+    async function requestResumeIntake(candidateId,retry=false) {
+      const {error}=await client.rpc('request_resume_intake',{p_candidate:candidateId,p_retry:retry});
+      if(error)throw error;
+    }
+    async function loadResumeIntake(candidateId) {
+      const {data,error}=await client.from('resume_intake_tasks').select('candidate_id,job_id,revision,status,result,error_code,updated_at')
+        .eq('workspace_id',workspaceId).eq('candidate_id',candidateId);
+      if(error)throw error;return data?.[0]||null;
+    }
+    function reviewResumeIntake(id,revision,state) {return reviewJobReassessment(id,revision,'approve',state,'review_resume_intake');}
     async function loadResumeText(candidate) {
       const {data,error}=await client.from('candidate_documents').select('extracted_text,created_at')
         .eq('workspace_id',workspaceId).eq('job_id',candidate.jobId).eq('candidate_id',candidate.id);
@@ -370,26 +389,33 @@
       return (data||[]).sort((a,b)=>epoch(b.created_at)-epoch(a.created_at))[0]?.extracted_text||'';
     }
     async function uploadResume(candidate, file, extractedText) {
-      const safeName = String(file.name || 'resume').replace(/[^a-zA-Z0-9._-]+/g, '-');
-      const path = `${workspaceId}/${candidate.jobId}/${candidate.id}/${crypto.randomUUID()}-${safeName}`;
-      const { error: uploadError } = await client.storage.from('resumes').upload(path, file, {
-        contentType: file.type || undefined,
-        upsert: false
-      });
-      if (uploadError) throw uploadError;
-      const { error: rowError } = await client.from('candidate_documents').insert({
-        workspace_id: workspaceId, job_id: candidate.jobId, candidate_id: candidate.id,
-        storage_path: path, file_name: file.name, mime_type: file.type || null,
-        file_size: file.size, extracted_text: extractedText || null, created_by: userId
-      });
-      if (rowError) {
-        await client.storage.from('resumes').remove([path]);
+      const extension=String(file.name||'').split('.').pop().toLowerCase();
+      const mime={pdf:'application/pdf',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',txt:'text/plain'}[extension];
+      if(!mime||!file.size||file.size>10485760||typeof extractedText!=='string'||extractedText.trim().length<40||extractedText.length>120000)throw Error('Choose a readable PDF, DOCX, or TXT resume up to 10 MB.');
+      const fingerprint=candidate.resumeIntake?.hash;
+      const name=/^[a-f0-9]{64}$/.test(fingerprint||'')?'source-'+fingerprint+'.'+extension:crypto.randomUUID()+'.'+extension;
+      const path=`${workspaceId}/${candidate.jobId}/${candidate.id}/${name}`;
+      const lookup=async()=>{
+        const {data,error}=await client.from('candidate_documents').select('id,storage_path,extracted_text').eq('workspace_id',workspaceId).eq('job_id',candidate.jobId).eq('candidate_id',candidate.id).eq('storage_path',path);
+        if(error)throw error;
+        if(data?.length&&data[0].extracted_text!==extractedText)throw Error('The saved resume differs. Refresh before replacing it.');
+        return !!data?.length;
+      };
+      if(await lookup())return path;
+      const {error:uploadError}=await client.storage.from('resumes').upload(path,file,{contentType:mime,upsert:false});
+      if(uploadError&&!['409','Duplicate'].includes(String(uploadError.statusCode||uploadError.error)))throw uploadError;
+      const {error:rowError}=await client.from('candidate_documents').insert({workspace_id:workspaceId,job_id:candidate.jobId,candidate_id:candidate.id,
+        storage_path:path,file_name:file.name,mime_type:mime,file_size:file.size,extracted_text:extractedText,created_by:userId});
+      if(rowError){
+        // Do not delete a blob after an ambiguous response: the row may already
+        // have committed. A retry safely finds the same path and document.
+        if(await lookup())return path;
         throw rowError;
       }
       return path;
     }
 
-    return { load, schedule, flush, loadHome, visitHome, saveHome, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
+    return { requestResumeIntake, loadResumeIntake, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };

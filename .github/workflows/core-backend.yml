@@ -1,0 +1,69 @@
+name: Validate and deploy dependable core
+on:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check core code and authenticated handlers
+        run: |
+          node --test tests/*.test.js
+          deno check supabase/functions/reassess-job/index.ts supabase/functions/analyze-patterns-beta/index.ts supabase/functions/analyze-patterns-v2/index.ts
+          deno test --allow-env tests/analysis-latency.test.ts tests/resume-intake-backend.test.ts tests/job-reassessment-worker.test.ts
+      - name: Check database transactions and permissions
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d postgres -f tests/criteria-queue.sql
+          createdb -h localhost -U postgres core_intake
+          psql -h localhost -U postgres -d core_intake -f tests/core-intake.sql
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: criteria-backend
+    concurrency:
+      group: criteria-backend-deploy
+      cancel-in-progress: false
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Prepare durable processing
+        run: |
+          node scripts/job-reassessment-backend.mjs prepare
+          node scripts/core-backend.mjs
+      - name: Deploy authenticated analysis and durable worker
+        run: |
+          supabase functions deploy analyze-patterns-v2 --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy analyze-patterns-beta --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy reassess-job --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Verify worker transport and activate scheduler
+        run: node scripts/job-reassessment-backend.mjs activate
+      - name: Verify live account and document isolation
+        run: node scripts/core-live-smoke.mjs

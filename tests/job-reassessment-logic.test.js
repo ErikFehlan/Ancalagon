@@ -9,11 +9,12 @@ test('worker uses the same evidence model, includes shared approvals, and isolat
 });
 test('worker rejects invented source references, invalid scores, and unbounded questions',async()=>{
  const {prepare,validate}=await logic,p=prepare(input());
- const result={manager_score:8,jd_score:7,confidence:'medium',summary:'Evidence reviewed',manager_reason:'Ownership supports manual testing',jd_reason:'Baseline unchanged',evidence_ids:['feedback-own'],questions:['Which releases did you own?']};
+ const result={manager_score:8,jd_score:7,confidence:'medium',summary:'Evidence reviewed',manager_reason:'Ownership supports manual testing',jd_reason:'Baseline unchanged',evidence_ids:['feedback-own'],evidence_support:[{source_id:'feedback-own',claim:'Ownership described',quote:'Explained hands-on ownership.'}],questions:['Which releases did you own?']};
  assert.equal(validate(result,p).context_signature,p.contextSignature);
  assert.throws(()=>validate({...result,evidence_ids:['invented']},p),/invalid_result/);
  assert.throws(()=>validate({...result,manager_score:11},p),/invalid_result/);
  assert.throws(()=>validate({...result,evidence_ids:[]},p),/invalid_result/);
+ assert.throws(()=>validate({...result,evidence_support:undefined},p),/invalid_result/);
  assert.throws(()=>validate({...result,questions:Array(4).fill('Question')},p),/invalid_result/);
 });
 test('AI interpretations are never recycled as candidate evidence and corrections remain candidate-scoped',async()=>{

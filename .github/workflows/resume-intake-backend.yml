@@ -1,14 +1,5 @@
 name: Deploy automatic resume intake
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'supabase/functions/analyze-patterns-v2/**'
-      - 'supabase/functions/analyze-patterns-beta/**'
-      - 'assets/resume-intake.js'
-      - 'supabase/migrations/20260914180000_resume_intake.sql'
-      - 'scripts/resume-intake-backend.mjs'
-      - '.github/workflows/resume-intake-backend.yml'
   workflow_dispatch:
 permissions:
   contents: read

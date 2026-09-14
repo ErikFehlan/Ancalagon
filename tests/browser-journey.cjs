@@ -122,8 +122,8 @@ await page.route('**/functions/v1/**',async route=>{
 });
 await page.locator('#runQualitySuite').click();
 await page.waitForFunction(()=>document.getElementById('qualityStatus').textContent.startsWith('Run complete'));
-assert.equal(qualityRequests,8);
-assert.equal(await page.locator('.rf-quality-case').count(),4);
+assert.equal(qualityRequests,40);
+assert.equal(await page.locator('.rf-quality-case').count(),20);
 await page.locator('.rf-quality-case').first().getByRole('button',{name:'Acceptable reasoning'}).click();
 await page.locator('#quality-notes-impression-vs-interview').fill('Human review recorded');
 const downloadPromise=page.waitForEvent('download');await page.locator('#exportQualityReport').click();const download=await downloadPromise;

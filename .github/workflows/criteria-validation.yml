@@ -1,5 +1,7 @@
 name: Validate criteria automation backend
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [hardening/reliability, main]
 permissions:
@@ -45,3 +47,10 @@ jobs:
         run: |
           createdb -h localhost -U postgres workspace_home_test
           psql -h localhost -U postgres -d workspace_home_test -f tests/workspace-home.sql
+
+      - name: Test durable intake, stale evidence, and document isolation
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres core_intake
+          psql -h localhost -U postgres -d core_intake -f tests/core-intake.sql
