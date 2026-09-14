@@ -85,3 +85,10 @@ test('re-uploading a saved resume after assessment failure retries the existing 
  const f=fixture();f.setAnalysis(async()=>{throw Error('Temporary model failure');});const c=await f.flow.upload(f.file);await until(()=>c.resumeIntake.phase==='error');
  f.setAnalysis(async()=>result);await f.flow.upload(f.file);await until(()=>c.resumeIntake.phase==='ready');assert.equal(f.candidates.length,1);assert.equal(f.calls.length,2);
 });
+
+test('approve and next runs only after a successful save and respects newer feedback',async()=>{
+ const f=fixture();let next=0;f.api.next=()=>next++;const c=await f.flow.upload(f.file);await until(()=>c.resumeIntake.phase==='ready');
+ f.api.beforeReview=async()=>false;await f.flow.approve(c,{next:true});assert.equal(next,0);assert.equal(intake.pending(c),true);
+ f.api.beforeReview=async()=>true;f.failSave();await f.flow.approve(c,{next:true});assert.equal(next,0);assert.equal(intake.pending(c),true);
+ await f.flow.approve(c,{next:true});assert.equal(next,1);assert.equal(intake.pending(c),false);assert.equal(c.managerScore,8.7);
+});

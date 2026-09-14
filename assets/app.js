@@ -325,6 +325,30 @@
         }catch(error){token.error=true;showToast('Your note is retained. '+(error.message||'Interpretation unavailable.'),'error');}
         finally{await saved;if(feedbackInterpretations.get(item.id)===token){feedbackInterpretations.set(item.id,{error:token.error});if(activeJobId===item.jobId)renderFeedback();}}
       }
+      async function saveQuickNote(candidate,text,id,previous){
+        if(!candidates.includes(candidate)||!jobs.some(j=>j.id===candidate.jobId))throw Error('This candidate is no longer available.');
+        const index=feedback.findIndex(f=>f.id===id),existing=feedback[index];
+        if(existing&&(existing.candidateId!==candidate.id||existing.jobId!==candidate.jobId||existing.learningScope!=='candidate'||(existing.text!==previous&&existing.text!==text)))throw Error('This note changed elsewhere. Start a new note or review its saved version.');
+        const now=Date.now(),item={id,jobId:candidate.jobId,candidateId:candidate.id,candidate:candidate.short,text,type:'General note',outcome:'Neutral / no signal',learningScope:'candidate',signalStatus:'candidate_only',signalDirection:'neutral',signalLabel:'',createdAt:existing?.createdAt||now,updatedAt:now};
+        if(index<0)feedback.push(item);else feedback[index]=item;
+        candidate.updatedAt=now;dataService.markPending?.(stateSnapshot());renderFeedback();
+        await dataService.flush(stateSnapshot());
+        if(!feedback.includes(item))throw Error('This note changed while saving. Check its saved version.');
+        if(!existing)trackProductEvent('feedback_saved');
+        void interpretFeedback(item);
+      }
+      async function prepareAssessmentReview(candidate){
+        if(!await window.AncalagonWorkspace.beforeReview(candidate))return false;
+        if([...feedbackInterpretations.values()].some(t=>t.item?.candidateId===candidate.id&&t.item?.jobId===candidate.jobId&&feedback.includes(t.item))){showToast('Feedback is still being interpreted. Review the updated assessment when it is ready.');return false;}
+        return true;
+      }
+      function advanceAfterReview(candidate){
+        if(activeJobId!==candidate.jobId||!root.querySelector('#page-detail').classList.contains('active')||root.querySelector('#reviewCandidateId').value!==candidate.id)return;
+        if(window.AncalagonWorkspace.hasPendingNotes(candidate.id))return;
+        const list=activeCandidates().filter(c=>c.id!==candidate.id&&activeJob()?.status!=='closed'&&(window.AncalagonIntake.pending(c)?c.resumeIntake.phase==='ready'&&c.resumeIntake.signature===window.AncalagonContext.signature(intakeContext(c)):jobReview.canReview(c)||candidateAutomation.canReview(c)));
+        if(list.length){openDetail(list[0].id);root.querySelector('#detailName').focus({preventScroll:true});}
+        else{showPage('candidates');showToast('No more ready assessments for this job.');}
+      }
       function intakeContext(c){
         const neutral={...c,role:'',signal:'',tags:[],strengths:[],concerns:[],resumeJDScore:0};
         return evaluationContext(neutral,jobs.find(j=>j.id===c.jobId));
@@ -343,7 +367,7 @@
         window.AncalagonWorkspace?.refreshIntake();
       }
       const intake=window.AncalagonIntake.create({
-        root,job:id=>id?jobs.find(j=>j.id===id):activeJob(),candidates:()=>candidates,
+        root,beforeReview:prepareAssessmentReview,next:advanceAfterReview,job:id=>id?jobs.find(j=>j.id===id):activeJob(),candidates:()=>candidates,
         workspace:()=>window.ancalagonAuth.workspace.id,extract:extractLocalResume,
         add:value=>{const c=ensureScores({...value,short:value.name,initials:initialsFor(value.name)});candidates.push(c);return c;},
         persist:()=>dataService.flush(stateSnapshot()),upload:(c,file,text)=>dataService.uploadResume(c,file,text),
@@ -359,7 +383,7 @@
       drop.addEventListener('dragleave',()=>drop.classList.remove('dragging'));
       drop.addEventListener('drop',event=>{event.preventDefault();drop.classList.remove('dragging');const file=event.dataTransfer.files?.[0];if(file)void intake.upload(file);});
       const jobReview=window.AncalagonJobReview.create({
-        root,job:activeJob,candidates:()=>candidates,renderIntake:(c,wrap)=>intake.renderCandidate(c,wrap),context:c=>evaluationContext(c,jobs.find(j=>j.id===c.jobId)),
+        root,beforeReview:prepareAssessmentReview,next:advanceAfterReview,job:activeJob,candidates:()=>candidates,renderIntake:(c,wrap)=>intake.renderCandidate(c,wrap),context:c=>evaluationContext(c,jobs.find(j=>j.id===c.jobId)),
         ready:()=>dataReady&&!!dataService?.loadJobReassessments,
         load:id=>dataService.loadJobReassessments(id),
         persist:()=>dataService.flush(stateSnapshot()),
@@ -384,20 +408,31 @@
         persist:()=>dataService.flush(stateSnapshot()),
         changed:()=>{saveState();window.AncalagonWorkspace?.refreshFeedback();}
       });
-      function reviewAutomaticEvaluation(candidate,action){
+      const localReviews=new Set();
+      async function reviewAutomaticEvaluation(candidate,action){
+        const next=action==='apply-next';if(next)action='apply';
+        if(localReviews.has(candidate.id))return;
+        if(action==='apply'&&!await prepareAssessmentReview(candidate))return;
+        if(localReviews.has(candidate.id))return;
         if(action==='retry'){candidateAutomation.request(candidate);return;}
         if(!candidateAutomation.canReview(candidate)){candidateAutomation.request(candidate);return;}
         const state=candidate.feedbackEvaluation,proposal=state.proposal;
+        const beforeReview=candidate.aiReview,beforeEvaluation=JSON.parse(JSON.stringify(state));let appliedReview;localReviews.add(candidate.id);
+        try{
         if(action==='apply'){
           if(!approveCandidateProposal(candidate,proposal))return;
           state.status='applied';showToast('Updated assessment approved.');
         }else{proposal.status='ignored';state.status='ignored';showToast('Kept the current assessment.');}
-        state.updatedAt=Date.now();saveState();recalibrateAll();window.AncalagonWorkspace.refreshFeedback();
+        appliedReview=candidate.aiReview;state.updatedAt=Date.now();saveState();recalibrateAll();window.AncalagonWorkspace.refreshFeedback();
         root.querySelector('#detailManagerScore').innerHTML=`${candidate.managerScore.toFixed(1)}<span>/10</span>`;
         root.querySelector('#detailRec').textContent=candidate.rec;root.querySelector('#detailRec').className='rf-pill '+recClass(candidate.rec);
         root.querySelector('#detailScreenEvidence').innerHTML=screeningEvidenceHTML(candidate);
         root.querySelector('[data-edit-screening]')?.addEventListener('click',()=>openScreeningInsight(candidate));
         loadEvaluationReview(candidate);
+        await dataService.flush(stateSnapshot());
+        if(next)advanceAfterReview(candidate);
+        }catch(error){if(candidate.aiReview===appliedReview)candidate.aiReview=beforeReview;if(candidate.feedbackEvaluation===state)candidate.feedbackEvaluation=beforeEvaluation;saveState();recalibrateAll();window.AncalagonWorkspace.refreshFeedback();showToast(error.message||'Approval could not be saved.','error');}
+        finally{localReviews.delete(candidate.id);}
       }
       function editFeedback(i){const f=feedback[i];if(!f)return;root.querySelector('#feedbackEditIndex').value=String(i);root.querySelector('#feedbackCandidate').value=f.candidateId||candidateForRef(f.candidate,f.jobId)?.id||'';root.querySelector('#feedbackType').value=f.type;root.querySelector('#feedbackOutcome').value=f.outcome||'Neutral / no signal';root.querySelector('#feedbackText').value=f.text;root.querySelector('#feedbackScope').value=f.learningScope||'candidate';root.querySelector('#feedbackSignal').value=f.signalLabel||'';root.querySelector('#feedbackDetails').open=true;root.querySelector('#feedbackSubmitBtn').textContent='Update note';root.querySelector('#cancelFeedbackEdit').classList.remove('rf-hidden');root.querySelector('#feedbackForm').scrollIntoView({behavior:'smooth',block:'start'})}
       function resetFeedbackForm(){const selected=root.querySelector('#feedbackCandidate').value;root.querySelector('#feedbackForm').reset();root.querySelector('#feedbackCandidate').value=selected;root.querySelector('#feedbackDetails').open=false;delete root.querySelector('#feedbackSignal').dataset.edited;root.querySelector('#feedbackEditIndex').value='';root.querySelector('#feedbackSignal').value='';root.querySelector('#feedbackSubmitBtn').textContent='Save note';root.querySelector('#cancelFeedbackEdit').classList.add('rf-hidden')}
@@ -556,7 +591,7 @@ function renderJobs(){
       function submissionReadinessFor(candidate){const rows=candidateEvidenceMatrix(candidate),knockouts=rows.filter(row=>row.statusClass==='knockout'),mustGaps=rows.filter(row=>row.priority==='Must Have'&&['screen','missing','partial'].includes(row.statusClass)),confirmed=rows.filter(row=>row.statusClass==='confirmed'),partial=rows.filter(row=>row.statusClass==='partial');let label,tone,icon;if(knockouts.length){label='Hold — knockout risk';tone='hold';icon='!'}else if(!rows.length||mustGaps.length||candidate.managerScore<7.2){label='Screen before submission';tone='screen';icon='?'}else{label='Ready to submit';tone='ready';icon='✓'}const proof=confirmed.slice(0,3).map(row=>row.requirement),questions=mustGaps.slice(0,3).map(row=>`Confirm ${row.requirement}`),summary=`${candidate.short} — ${label}\nManager Fit: ${Number(candidate.managerScore).toFixed(1)}/10\n${proof.length?'Strongest evidence: '+proof.join('; '):'No requirements are fully confirmed yet.'}${questions.length?'\nVerify before submission: '+questions.join('; '):''}${knockouts.length?'\nKnockout risks: '+knockouts.map(row=>row.requirement).join('; '):''}\nPrimary signal: ${candidate.signal||'No primary signal recorded.'}`;return{rows,label,tone,icon,confirmed,partial,mustGaps,knockouts,summary}}
       function renderSubmissionReadiness(candidate){if(!candidate)return;const result=submissionReadinessFor(candidate),hero=root.querySelector('#submissionReadiness'),table=root.querySelector('#requirementEvidenceRows');hero.innerHTML=`<div class="rf-readiness-status ${result.tone}"><span class="rf-readiness-icon">${result.icon}</span><div><strong>${escapeHTML(result.label)}</strong><small>${Number(candidate.managerScore).toFixed(1)}/10 Manager Fit</small></div></div><div class="rf-readiness-copy">${result.confirmed.length} confirmed requirement${result.confirmed.length===1?'':'s'} · ${result.partial.length} partially supported · ${result.mustGaps.length} must-have${result.mustGaps.length===1?'':'s'} still requiring evidence${result.knockouts.length?` · ${result.knockouts.length} knockout risk${result.knockouts.length===1?'':'s'}`:''}</div>`;table.innerHTML=result.rows.length?result.rows.map(row=>`<tr><td><strong>${escapeHTML(row.requirement)}</strong></td><td>${escapeHTML(row.priority)}</td><td><strong class="rf-evidence-status ${row.statusClass}">${escapeHTML(row.status)}</strong></td><td><div class="rf-evidence-text">${escapeHTML(row.evidence)}</div></td></tr>`).join(''):'<tr><td colspan="4"><div class="rf-note">Add evaluation criteria to this job to build an evidence matrix.</div></td></tr>'}
       async function copySubmissionSummary(){return window.AncalagonWorkspace.copy();}
-      function showPage(name){intake.render();if(name==='dashboard')void jobReview.refresh();root.querySelectorAll('.rf-page').forEach(p=>p.classList.remove('active'));root.querySelector('#page-'+name)?.classList.add('active');root.querySelectorAll('.rf-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));root.querySelector('.rf-sidebar').classList.remove('open');if(name==='detail'){const candidate=candidateForRef(root.querySelector('#reviewCandidateId').value);renderSubmissionReadiness(candidate);window.AncalagonWorkspace.render(candidate);}window.scrollTo({top:0,behavior:'smooth'})}
+      function showPage(name){if(name!=='detail')window.AncalagonWorkspace?.leave();intake.render();if(name==='dashboard')void jobReview.refresh();root.querySelectorAll('.rf-page').forEach(p=>p.classList.remove('active'));root.querySelector('#page-'+name)?.classList.add('active');root.querySelectorAll('.rf-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));root.querySelector('.rf-sidebar').classList.remove('open');if(name==='detail'){const candidate=candidateForRef(root.querySelector('#reviewCandidateId').value);renderSubmissionReadiness(candidate);window.AncalagonWorkspace.render(candidate);}window.scrollTo({top:0,behavior:'smooth'})}
       let screeningCandidateId=null;
       function openScreeningInsight(c){screeningCandidateId=c.id;root.querySelector('#screeningForm').reset();if(c.screeningInsight){root.querySelector('#screenAbility').value=c.screeningInsight.canDoJob||'';root.querySelector('#screenCulture').value=c.screeningInsight.cultureFit||'';root.querySelector('#screenNotes').value=c.screeningInsight.notes||''}root.querySelector('#screeningTitle').textContent='Screen '+c.short;root.querySelector('#screenCurrentJD').textContent=Number(c.jdScore).toFixed(1)+'/10';root.querySelector('#screenCurrentManager').textContent=Number(c.managerScore).toFixed(1)+'/10';root.querySelector('#screeningModal').classList.add('open');root.querySelector('#screenAbility').focus()}
       function closeScreeningInsight(){root.querySelector('#screeningModal').classList.remove('open');screeningCandidateId=null}
@@ -584,7 +619,7 @@ function renderJobs(){
         dataService=window.AncalagonData.create(auth);
         trackProductEvent('signed_in',null);
         loadAdminUsage();
-        window.ancalagonFlush=()=>dataService.flush(stateSnapshot());
+        window.ancalagonFlush=async()=>{try{await window.AncalagonWorkspace?.flushNotes();await dataService.flush(stateSnapshot());}catch(error){setSyncStatus('error');showToast('Your latest changes have not saved. Retry before signing out.','error');throw error;}};
         jobs.splice(0);candidates.splice(0);feedback.splice(0);interviewOutcomes.splice(0);activeJobId=null;
         try{
           const remote=await dataService.load();
@@ -609,7 +644,7 @@ function renderJobs(){
       window.addEventListener('online',retrySync);
       window.addEventListener('beforeunload',event=>{if(dataService?.hasPendingChanges?.()||window.AncalagonWorkspace?.hasDrafts()||intake.hasUnsavedFile()){event.preventDefault();event.returnValue=''}});
       root.querySelector('#mobileNavToggle').addEventListener('click',()=>root.querySelector('.rf-sidebar').classList.toggle('open'));
-      root.querySelector('#globalJobSelect').addEventListener('change',e=>{activeJobId=e.target.value;loadActiveJobWeights();saveState();renderJobs();recalibrateAll();renderFeedback();renderOutcomes();intake.render();void jobReview.refresh();showToast('Switched to '+activeJob().title+'.')});
+      root.querySelector('#globalJobSelect').addEventListener('change',e=>{window.AncalagonWorkspace?.leave();if(root.querySelector('#page-detail').classList.contains('active'))showPage('candidates');activeJobId=e.target.value;loadActiveJobWeights();saveState();renderJobs();recalibrateAll();renderFeedback();renderOutcomes();intake.render();void jobReview.refresh();showToast('Switched to '+activeJob().title+'.')});
       root.querySelector('#patternFunctionUrl').value=hybridState.settings?.url||'';
       root.querySelector('#patternAnonKey').value=hybridState.settings?.anonKey||'';
       applyTheme(localStorage.getItem(THEME_KEY)||'tech');
@@ -636,8 +671,8 @@ function renderJobs(){
       root.querySelector('#evaluationReviewForm').addEventListener('submit',e=>{e.preventDefault();const c=candidateForRef(root.querySelector('#reviewCandidateId').value);const verdict=e.currentTarget.dataset.verdict;if(!c||!verdict){showToast('Choose whether the evaluation was accurate first.','error');return}const correctedScore=Math.max(0,Math.min(10,Number(root.querySelector('#reviewCorrectedScore').value)));if(verdict==='Needs Adjustment'&&!Number.isFinite(correctedScore)){showToast('Enter a valid corrected score.','error');return}const reasons=[...root.querySelectorAll('[data-review-reason].active')].map(b=>b.dataset.reviewReason),notes=root.querySelector('#reviewNotes').value.trim();c.aiReview={verdict,correctedJDScore:c.aiReview?.correctedJDScore,correctedScore:verdict==='Accurate'?c.managerScore:correctedScore,reasons,notes,createdAt:Date.now()};c.updatedAt=Date.now();recalibrateAll();saveState();openDetail(c.id);showToast('Learning feedback saved and added to future AI context.')});
       root.querySelector('#benchmarkForm').addEventListener('submit',()=>setTimeout(()=>showToast('Benchmark added to the active job.'),0));
       window.AncalagonCriteria.init({root,ready:()=>dataReady,job:activeJob,fetch:jobId=>dataService.loadCriteriaTask(jobId),toggle:(jobId,revision,original)=>dataService.toggleCriteriaOriginal(jobId,revision,original),toast:showToast,updated:()=>{renderCriteria();if(root.querySelector('#page-detail').classList.contains('active'))window.AncalagonWorkspace.render(candidateForRef(root.querySelector('#reviewCandidateId').value));}});
-      window.AncalagonWorkspace.init({root,job:activeJob,candidate:candidateForRef,feedback:()=>feedback,readiness:submissionReadinessFor,context:evaluationContext,signature:window.AncalagonContext.signature,questions:screeningQuestions,toast:showToast,save:saveState,interpretationHTML:feedbackInterpretationHTML,bindInterpretations:bindFeedbackInterpretations,evaluationPhase:c=>candidateAutomation.phase(c),canReview:c=>candidateAutomation.canReview(c),reviewEvaluation:reviewAutomaticEvaluation,intakeBrief:(c,wrap)=>intake.renderCandidate(c,wrap),remoteEvaluation:(c,wrap)=>jobReview.renderCandidate(c,wrap),
-        saveNote:(candidate,text)=>{const now=Date.now(),item={id:makeId('feedback'),jobId:candidate.jobId,candidateId:candidate.id,candidate:candidate.short,text,type:'General note',outcome:'Neutral / no signal',learningScope:'candidate',signalStatus:'candidate_only',signalDirection:'neutral',signalLabel:'',createdAt:now,updatedAt:now};feedback.push(item);candidate.updatedAt=now;saveState();renderFeedback();trackProductEvent('feedback_saved');void interpretFeedback(item);},
+      window.AncalagonWorkspace.init({root,job:activeJob,candidate:candidateForRef,feedback:()=>feedback,readiness:submissionReadinessFor,context:evaluationContext,signature:window.AncalagonContext.signature,questions:screeningQuestions,reviewQuestions:c=>jobReview.questions(c),toast:showToast,save:saveState,interpretationHTML:feedbackInterpretationHTML,bindInterpretations:bindFeedbackInterpretations,evaluationPhase:c=>candidateAutomation.phase(c),canReview:c=>candidateAutomation.canReview(c),reviewEvaluation:reviewAutomaticEvaluation,intakeBrief:(c,wrap)=>intake.renderCandidate(c,wrap),remoteEvaluation:(c,wrap)=>jobReview.renderCandidate(c,wrap),
+        noteId:()=>makeId('feedback'),validCandidate:c=>candidates.includes(c)&&jobs.some(j=>j.id===c.jobId),saveNote:saveQuickNote,
         editPreference:index=>{showPage('feedback');editFeedback(index);root.querySelector('#feedbackScope').value='job';root.querySelector('#feedbackSignal').value=feedback[index].signalLabel||proposedSignal(feedback[index].text);root.querySelector('#feedbackSignal').focus();},insights:()=>{showPage('insights');renderReevaluationResults();}
       });
       jobReview.init();

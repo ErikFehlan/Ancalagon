@@ -25,7 +25,7 @@
       finally{if(requests.get(candidate.id)===token)requests.delete(candidate.id);plan(800);}
     }
     const taskFor=c=>(jobs.get(c.jobId)||[]).find(t=>t.candidate_id===c.id);
-    function body(task,c){
+    function body(task,c,inline=false){
       const result=task.result||{},working=['queued','processing'].includes(task.status),disabled=busy.has(c.id)||api.job()?.status==='closed';
       if(working)return '<p class="rf-sub">Updating assessment in the background. You can close Ancalagon and return later.</p>';
       if(task.status==='failed')return `<p class="rf-sub">Assessment could not finish (${escape(task.error_code||'processing_failed')}). Your current score is unchanged.</p><button type="button" class="rf-btn" data-job-review="retry" data-review-candidate="${escape(c.id)}" ${disabled?'disabled':''}>Try again</button>`;
@@ -34,7 +34,7 @@
       return `<p class="rf-reevaluation-score"><span>${Number(c.managerScore).toFixed(1)}</span><span>→</span><strong>${Number(result.manager_score).toFixed(1)} / 10</strong></p>
         <p><strong>JD Fit: ${Number(c.jdScore).toFixed(1)} → ${Number(result.jd_score).toFixed(1)} / 10</strong></p><p class="rf-sub">Manager Fit · ${escape(c.rec)} → ${escape(recommendation)} · ${escape(result.confidence||'unknown')} evidence confidence</p>
         <p>${escape(result.manager_reason||result.summary)}</p><details><summary>Evidence and questions</summary><p>${escape(result.jd_reason)}</p><ul>${(result.evidence_ids||[]).map(id=>{const source=api.context(c).sources.find(s=>s.id===id);return `<li>${source?`<strong>${escape(source.kind)}:</strong> ${escape(source.text.slice(0,800))}`:'Source changed; refresh before reviewing.'}</li>`;}).join('')}</ul>${result.questions?.length?`<ul>${result.questions.map(q=>`<li>${escape(q)}</li>`).join('')}</ul>`:'<p class="rf-sub">No additional questions proposed.</p>'}</details>
-        <div class="rf-actions"><button type="button" class="rf-btn primary" data-job-review="approve" data-review-candidate="${escape(c.id)}" ${disabled?'disabled':''}>Approve assessment</button><button type="button" class="rf-btn" data-job-review="ignore" data-review-candidate="${escape(c.id)}" ${disabled?'disabled':''}>Keep current assessment</button></div>`;
+        <div class="rf-actions">${inline?`<button type="button" class="rf-btn primary" data-job-review="approve-next" data-review-candidate="${escape(c.id)}" ${disabled?'disabled':''}>Approve &amp; next</button>`:''}<button type="button" class="rf-btn" data-job-review="approve" data-review-candidate="${escape(c.id)}" ${disabled?'disabled':''}>Approve assessment</button><button type="button" class="rf-btn" data-job-review="ignore" data-review-candidate="${escape(c.id)}" ${disabled?'disabled':''}>Keep current assessment</button></div>`;
     }
     function bind(wrap){
       wrap.querySelectorAll('[data-job-review]').forEach(b=>b.addEventListener('click',()=>void review(b.dataset.reviewCandidate,b.dataset.jobReview)));
@@ -81,26 +81,30 @@
     function renderCandidate(candidate,wrap){
       if(global.AncalagonIntake?.pending(candidate)){wrap.hidden=true;return true;}
       const task=taskFor(candidate),pending=requests.has(candidate.id);
-      if(!task&&!pending)return false;
+      if((!task||['approved','ignored','cancelled'].includes(task.status))&&!pending){wrap.hidden=true;return false;}
       wrap.hidden=false;
-      updateContent(wrap,`<span class="rf-kicker">Automatic assessment</span><h3>${pending?'Saving feedback for assessment…':task?.status==='ready'?'Updated candidate assessment':'Assessment update'}</h3>${pending?'<p class="rf-sub">Preparing the latest evidence for background processing.</p>':body(task,candidate)}`);
+      updateContent(wrap,`<span class="rf-kicker">Automatic assessment</span><h3>${pending?'Saving feedback for assessment…':task?.status==='ready'?'Updated candidate assessment':'Assessment update'}</h3>${pending?'<p class="rf-sub">Preparing the latest evidence for background processing.</p>':body(task,candidate,true)}`);
       return true;
     }
     async function review(id,decision){
+      const next=decision==='approve-next';if(next)decision='approve';
       if(busy.has(id))return;
       const candidate=api.candidates().find(c=>c.id===id&&c.jobId===api.job()?.id),task=candidate&&taskFor(candidate);
       if(!task)return;
-      busy.add(id);render();api.candidateChanged();
+      let approved=false;busy.add(id);render();api.candidateChanged();
       try{
+        if(decision==='approve'&&api.beforeReview&&!await api.beforeReview(candidate))return;
         await api.review(id,task.revision,decision);
+        approved=decision==='approve';
         api.approved(candidate);
         api.toast(decision==='approve'?'Assessment approved and saved.':decision==='ignore'?'Current assessment kept.':'Assessment queued for another try.');
       }catch(e){api.toast(e.message||'Unable to save this decision.','error');}
       finally{busy.delete(id);await refresh();}
+      if(approved&&next)api.next?.(candidate);
     }
     function dispose(){disposed=true;clearTimeout(timer);}
     function init(){plan(300);global.document?.addEventListener('visibilitychange',()=>{if(!document.hidden)plan(300);});}
-    return {init,refresh,request,render,renderCandidate,dispose};
+    return {init,refresh,request,render,renderCandidate,dispose,questions:c=>taskFor(c)?.status==='ready'?taskFor(c).result?.questions||[]:[],canReview:c=>taskFor(c)?.status==='ready'&&!busy.has(c.id)&&!requests.has(c.id)};
   }
   const api={create};if(typeof module!=='undefined')module.exports=api;global.AncalagonJobReview=api;
 })(typeof window==='undefined'?globalThis:window);

@@ -59,10 +59,14 @@ await page.locator('[data-candidate-id]').first().click();
 assert.match(await page.locator('#detailScreenEvidence').textContent(),/Evaluation matches current context/);
 await page.evaluate(()=>{window.testFailNextFlush=true});
 await page.locator('#workspaceNote').fill('Concrete testing examples; ask about automation ownership.');
-await page.locator('#workspaceNoteForm button').click();
-await page.waitForFunction(()=>document.getElementById('feedbackList').textContent.includes('Interpretation could not be saved'));
+
+await page.locator('#retryQuickNote').waitFor();
+assert.match(await page.locator('#workspaceNoteStatus').textContent(),/Not saved/);
+await page.locator('#retryQuickNote').click();
+await page.waitForFunction(()=>window.testSaved.feedback[2]?.interpretation);
 assert.match(await page.locator('#feedbackList').textContent(),/Ownership evidence reviewed/);
 assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].managerScore),9);
+await page.locator('#workspaceSubmission > summary').click();
 await page.locator('#submissionDraft').fill('Recruiter edited summary: testing evidence recorded; automation ownership needs confirmation.');
 await page.locator('#saveSubmissionDraft').click();
 assert.match(await page.evaluate(()=>window.testSaved.candidates[0].submissionDraft.text),/Recruiter edited/);
@@ -91,7 +95,7 @@ assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].feedbackEval
 // Changing active jobs while AI runs must not redirect or mix the saved assessment.
 holdNextAssessment=true;
 await page.locator('#workspaceNote').fill('Owned the nightly regression suite; verify the scope.');
-await page.locator('#workspaceNoteForm button').click();
+
 for(let i=0;i<100&&!heldAssessment;i++)await page.waitForTimeout(50);
 assert.ok(heldAssessment,'automatic screening request started');
 await page.locator('.rf-nav [data-page="jobs"]').click();
