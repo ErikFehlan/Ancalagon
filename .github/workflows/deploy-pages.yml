@@ -34,6 +34,7 @@ jobs:
           node --check assets/evidence.js
           node --check assets/context.js
           node --check assets/feedback.js
+          node --check assets/candidate-automation.js
           node --check assets/candidate-workspace.js
           node --check assets/criteria-automation.js
           node --check assets/quality.js

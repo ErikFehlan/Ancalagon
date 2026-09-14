@@ -71,3 +71,15 @@ test('reload protection tracks pending writes, not connection labels, and summar
  await f.service.flush(state);const restored=await f.service.load();assert.equal(restored.candidates[0].submissionDraft.text,'An editable, evidence-based summary.');assert.equal(restored.candidates[0].aiReview,null);
  assert.equal(f.service.hasPendingChanges(),false);
 });
+
+test('automatic evaluation queue and proposal persist without a manual correction or submission draft',async()=>{
+ const f=fixture(),state=await f.service.load();
+ state.candidates.push({id:'c',jobId:'job',name:'Test',short:'Test',strengths:[],concerns:[],tags:[],jdScore:7,managerScore:7,feedbackEvaluation:{status:'queued',updatedAt:1}});
+ await f.service.flush(state);let restored=await f.service.load();
+ assert.equal(restored.candidates[0].feedbackEvaluation.status,'queued');assert.equal(restored.candidates[0].aiReview,null);
+ const proposal={status:'pending',currentScore:7,proposedScore:8,contextSignature:'latest',reasons:['Recorded ownership evidence.']};
+ restored.candidates[0].feedbackEvaluation={status:'pending',proposal,updatedAt:2};
+ await f.service.flush(restored);restored=await f.service.load();
+ assert.deepEqual(clone(restored.candidates[0].feedbackEvaluation.proposal),proposal);
+ assert.equal(restored.candidates[0].managerScore,7);assert.equal(restored.candidates[0].aiReview,null);
+});
