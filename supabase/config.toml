@@ -6,3 +6,6 @@ verify_jwt = true
 
 [functions.refine-job-criteria]
 verify_jwt = false
+
+[functions.reassess-job]
+verify_jwt = false
