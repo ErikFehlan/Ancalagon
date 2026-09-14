@@ -24,6 +24,12 @@
   function refreshFeedback(){
     if(!api||!current)return;const candidate=api.candidate(current),wrap=api.root.querySelector('#workspaceFeedback');if(!candidate||!wrap)return;
     renderEvaluation(candidate);
+    const overview=api.root.querySelector('.rf-workspace-overview > div'),readiness=api.readiness(candidate);
+    const stale=candidate.aiReview?.contextSignature&&candidate.aiReview.contextSignature!==api.signature(api.context(candidate));
+    if(overview){
+      overview.querySelector('h3').textContent=stale?'Review an outdated evaluation':readiness.label;
+      overview.querySelector('p').textContent=stale?'The recorded context has changed since the last approved evaluation. Review a new proposal before relying on the score.':'Resolve the key uncertainty below, then review the evidence before submitting.';
+    }
     const all=api.feedback(),items=all.map((f,i)=>({f,i})).filter(x=>x.f.candidateId===current&&x.f.jobId===candidate.jobId).slice(-3).reverse();
     const outdated=candidate.aiReview?.contextSignature&&candidate.aiReview.contextSignature!==api.signature(api.context(candidate));
     wrap.innerHTML='<h4>What your feedback is teaching us</h4>'+(outdated?'<p class="rf-note">New context since the last approved evaluation. Review a fresh proposal; the score has not automatically changed.</p>':'')+ (items.map(({f,i})=>`<div class="rf-workspace-note"><p><strong>Original note:</strong> ${escape(f.text)}</p>${api.interpretationHTML(f,i)}<p class="rf-sub">${f.learningScope==='job'?'Shared preference: '+escape(f.signalStatus):'Applies to this candidate only'}</p><button type="button" class="rf-linkbtn" data-workspace-preference="${i}">Review as a reusable preference</button></div>`).join('')||'<p class="rf-sub">Your saved observations and interpretations will appear here.</p>');

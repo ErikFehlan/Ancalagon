@@ -53,6 +53,7 @@ assert.notEqual(proposalBeforeApproval.currentScore,proposalBeforeApproval.propo
 assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].managerScore),proposalBeforeApproval.currentScore);
 await page.locator('#workspaceEvaluation [data-evaluation-action="apply"]').click();
 assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].managerScore),9);
+assert.doesNotMatch(await page.locator('.rf-workspace-overview').textContent(),/Review an outdated evaluation/);
 await page.locator('.rf-nav [data-page="candidates"]').click();
 await page.locator('[data-candidate-id]').first().click();
 assert.match(await page.locator('#detailScreenEvidence').textContent(),/Evaluation matches current context/);
