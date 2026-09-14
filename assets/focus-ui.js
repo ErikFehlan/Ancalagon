@@ -11,16 +11,20 @@
   const top=editing?active.getBoundingClientRect().top:null;
   editingDepth++;try{return change();}finally{editingDepth--;if(editing&&active.isConnected&&global.document.activeElement===active){const delta=active.getBoundingClientRect().top-top;if(Math.abs(delta)>.5)global.scrollBy({top:delta,behavior:'instant'});}}
  }
- const panelMarkup=new WeakMap(),deferred=new WeakMap();
+ const panelMarkup=new WeakMap(),deferred=new WeakMap(),editorDrafts=new WeakMap();
  function updatePanel(wrap,html,bind=()=>{}){
   if(panelMarkup.get(wrap)===html)return;
   // Leave a correction editor (and its Save button) intact until the user leaves it.
   if(wrap.contains(global.document.activeElement)){
    deferred.set(wrap,{html,bind});if(!wrap.dataset.deferBound){wrap.dataset.deferBound='true';wrap.addEventListener('focusout',()=>setTimeout(()=>{if(wrap.isConnected&&!wrap.contains(global.document.activeElement)){const latest=deferred.get(wrap);if(latest){deferred.delete(wrap);updatePanel(wrap,latest.html,latest.bind);}}},0));}return;
   }
+  const drafts=editorDrafts.get(wrap)||new Map();editorDrafts.set(wrap,drafts);
+  const editorKey=field=>field.closest('[data-feedback-id]')?.dataset.feedbackId||field.id;
+  wrap.querySelectorAll('textarea').forEach(field=>{const key=editorKey(field);if(key){if(field.value!==field.defaultValue)drafts.set(key,field.value);else drafts.delete(key);}});
   const expanded=[...wrap.querySelectorAll('details')].map(d=>d.open);
   wrap.innerHTML=html;panelMarkup.set(wrap,html);deferred.delete(wrap);
-  wrap.querySelectorAll('details').forEach((d,i)=>d.open=expanded[i]||false);bind(wrap);
+  wrap.querySelectorAll('details').forEach((d,i)=>d.open=expanded[i]||false);
+  wrap.querySelectorAll('textarea').forEach(field=>{const key=editorKey(field);if(drafts.has(key)){if(field.defaultValue===drafts.get(key))drafts.delete(key);else field.value=drafts.get(key);}});bind(wrap);
  }
  function create({root,navigate}){
   const positions=new Map();let key=null,version=0,currentPage='home',currentJob=null,currentCandidate=null;
@@ -67,7 +71,8 @@
    const next=page+':'+(workspacePages.has(page)?'workspace':job?.id||'')+':'+(page==='detail'?candidate?.id||'':'');
    const same=next===key;key=next;
    if(!same){const y=['candidates','pipeline','jobs','job-picker'].includes(page)?positions.get(next)||0:0;
-    global.requestAnimationFrame(()=>{if(token===version)global.scrollTo({top:y,behavior:'instant'});});}
+    // Finish navigation before a newly focused editor can receive background updates.
+    if(token===version)global.scrollTo({top:y,behavior:'instant'});}
   }
   return {init,begin,show,context};
  }

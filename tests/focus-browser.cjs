@@ -36,18 +36,18 @@ const dir=path.resolve(__dirname,'..');
   assert.equal(await page.locator('#workspaceSubmission').evaluate(e=>e.open),false);await snap('candidate');
   // Background assessment content may grow, but the focused note and caret stay put.
   await page.locator('#workspaceNote').fill('Testing ownership to clarify');
-  const editor=await page.locator('#workspaceNote').evaluate(e=>{e.setSelectionRange(7,12);return {top:e.getBoundingClientRect().top,value:e.value}});
+  const editor=await page.locator('#workspaceNote').evaluate(e=>{e.setSelectionRange(7,12);return {top:e.getBoundingClientRect().top,value:e.value,scroll:scrollY,height:document.documentElement.scrollHeight}});
   await page.evaluate(()=>{window.fixture.candidates[0].feedbackEvaluation={status:'error',error:'The request needs another try. '.repeat(40)};window.AncalagonWorkspace.refreshEvaluation();});
   await page.waitForTimeout(50);
-  const after=await page.locator('#workspaceNote').evaluate(e=>({top:e.getBoundingClientRect().top,value:e.value,start:e.selectionStart,end:e.selectionEnd,focused:document.activeElement===e}));
-  assert.equal(after.value,editor.value);assert.equal(after.start,7);assert.equal(after.end,12);assert.equal(after.focused,true);assert.ok(Math.abs(after.top-editor.top)<5,'processing updates do not move the note editor');
+  const after=await page.locator('#workspaceNote').evaluate(e=>({top:e.getBoundingClientRect().top,value:e.value,start:e.selectionStart,end:e.selectionEnd,focused:document.activeElement===e,scroll:scrollY,height:document.documentElement.scrollHeight}));
+  assert.equal(after.value,editor.value);assert.equal(after.start,7);assert.equal(after.end,12);assert.equal(after.focused,true);assert.ok(Math.abs(after.top-editor.top)<5,'processing updates do not move the note editor: '+JSON.stringify({editor,after}));
   await page.evaluate(()=>{window.fixture.candidates[0].feedbackEvaluation=null;window.AncalagonWorkspace.refreshEvaluation();});
   // Correction text survives a changed interpretation arriving while the editor is focused.
   await page.evaluate(()=>window.AncalagonWorkspace.flushNotes());await page.waitForTimeout(300);if(!await page.locator('.rf-feedback-history').evaluate(e=>e.open))await page.locator('.rf-feedback-history > summary').click();await page.locator('#workspaceFeedback .rf-feedback-interpretation details > summary').last().click();
   const correction=page.locator('#workspaceFeedback textarea').last();await correction.fill('My unfinished clarification');
   await page.evaluate(()=>{window.fixture.feedback[0].interpretation.text='A new interpretation arrived';window.AncalagonWorkspace.refreshFeedback();});
   assert.equal(await correction.inputValue(),'My unfinished clarification');assert.equal(await correction.evaluate(e=>document.activeElement===e),true);
-  await page.locator('#workspaceNote').focus();await page.waitForTimeout(30);
+  await page.locator('#workspaceNote').focus();await page.waitForTimeout(30);assert.equal(await correction.inputValue(),'My unfinished clarification','unsaved correction survives a refresh after focus leaves');
   // Job filters are independent and remembered during this session.
   await page.evaluate(()=>{const s=document.querySelector('#globalJobSelect');s.value='job-b';s.dispatchEvent(new Event('change',{bubbles:true}));});
   await page.locator('#page-candidates.active').waitFor();assert.equal(await page.locator('#candidateSearch').inputValue(),'');assert.equal(await page.locator('[data-candidate-id]').count(),1);
