@@ -27,6 +27,7 @@ jobs:
       - name: Validate JavaScript
         run: |
           node --check assets/app.js
+          node --check assets/home.js
           node --check assets/select.js
           node --check assets/auth.js
           node --check assets/data.js
@@ -54,10 +55,31 @@ jobs:
           node tests/job-review-browser.cjs
           node tests/resume-intake-browser.cjs
           node tests/streamline-browser.cjs
+          node tests/home-browser.cjs
+
+  prepare-home:
+    if: github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: criteria-backend
+    timeout-minutes: 5
+    concurrency:
+      group: criteria-backend-deploy
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prepare personal Home bookmarks before publishing
+        run: node scripts/workspace-home-backend.mjs
 
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: validate
+    needs: [validate, prepare-home]
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

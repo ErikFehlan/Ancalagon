@@ -39,3 +39,9 @@ jobs:
           createdb -h localhost -U postgres reassessment
           psql -h localhost -U postgres -d reassessment -f tests/job-reassessments.sql
 
+      - name: Test personal Home permissions
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres workspace_home_test
+          psql -h localhost -U postgres -d workspace_home_test -f tests/workspace-home.sql
