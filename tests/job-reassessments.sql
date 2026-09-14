@@ -25,6 +25,7 @@ create table public.screening_insights(id uuid primary key default gen_random_uu
 create table public.interview_outcomes(id uuid primary key default gen_random_uuid(),workspace_id uuid,job_id uuid,candidate_id uuid,interview_stage text,decision text,positives text,concerns text,notes text,created_at timestamptz default now(),updated_at timestamptz default now(),
  foreign key(candidate_id,job_id,workspace_id) references candidates(id,job_id,workspace_id) on delete cascade);
 \ir ../supabase/migrations/20260914160000_job_reassessments.sql
+\ir ../supabase/migrations/20260914180000_resume_intake.sql
 insert into auth.users values('00000000-0000-0000-0000-000000000001');
 insert into workspaces values('00000000-0000-0000-0000-000000000001'),('00000000-0000-0000-0000-000000000002');
 insert into jobs(id,workspace_id,title) values
@@ -120,3 +121,16 @@ select * from public.claim_job_reassessments(null);
 do $$begin if exists(select 1 from job_reassessment_tasks where status<>'failed') then raise exception 'Retry limit missing';end if;end$$;
 delete from jobs where title='QA updated';
 do $$begin if exists(select 1 from job_reassessment_tasks) then raise exception 'Orphaned task';end if;end$$;
+
+
+-- Intake placeholders and unreviewed briefs must not cause duplicate AI work.
+insert into candidates(id,workspace_id,job_id,role) values('00000000-0000-0000-0000-000000000099','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000012','Resume awaiting analysis');
+select public.enqueue_job_reassessments('00000000-0000-0000-0000-000000000012','00000000-0000-0000-0000-000000000099');
+do $$begin if exists(select 1 from job_reassessment_tasks where candidate_id='00000000-0000-0000-0000-000000000099') then raise exception 'Incomplete intake triggered duplicate assessment';end if;end$$;
+insert into candidate_assessments(workspace_id,job_id,candidate_id,assessment_type,evidence) values('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000012','00000000-0000-0000-0000-000000000099','manual_correction','{"resume_intake":{"phase":"ready"},"review":null}');
+update candidates set role='QA Analyst' where id='00000000-0000-0000-0000-000000000099';
+select public.enqueue_job_reassessments('00000000-0000-0000-0000-000000000012','00000000-0000-0000-0000-000000000099');
+do $$begin if exists(select 1 from job_reassessment_tasks where candidate_id='00000000-0000-0000-0000-000000000099') then raise exception 'Unreviewed intake triggered duplicate assessment';end if;end$$;
+update candidate_assessments set evidence='{"resume_intake":{"reviewedAt":123}}' where candidate_id='00000000-0000-0000-0000-000000000099';
+select public.enqueue_job_reassessments('00000000-0000-0000-0000-000000000012','00000000-0000-0000-0000-000000000099');
+do $$begin if not exists(select 1 from job_reassessment_tasks where candidate_id='00000000-0000-0000-0000-000000000099' and status='queued') then raise exception 'Reviewed intake was not enabled for subsequent feedback';end if;end$$;

@@ -22,7 +22,7 @@ jobs:
       - name: Check worker types
         run: deno check supabase/functions/refine-job-criteria/index.ts supabase/functions/analyze-patterns-beta/index.ts supabase/functions/reassess-job/index.ts
       - name: Test focused feedback and authentication
-        run: deno test --allow-env tests/analysis-latency.test.ts tests/job-reassessment-worker.test.ts
+        run: deno test --allow-env tests/analysis-latency.test.ts tests/job-reassessment-worker.test.ts tests/resume-intake-backend.test.ts
       - name: Test queue transactions and permissions
         env:
           PGPASSWORD: postgres
@@ -38,3 +38,4 @@ jobs:
         run: |
           createdb -h localhost -U postgres reassessment
           psql -h localhost -U postgres -d reassessment -f tests/job-reassessments.sql
+
