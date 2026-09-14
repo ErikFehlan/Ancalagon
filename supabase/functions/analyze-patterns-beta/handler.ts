@@ -1,4 +1,4 @@
-import { handleAnalysis } from "../analyze-patterns-v2/index.ts";
+import { handleAnalysis } from "../analyze-patterns-v2/analysis.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,20 +27,22 @@ export async function handleAuthenticatedAnalysis(request: Request) {
   } catch {
     return json({ error: "Invalid JSON payload" }, 400);
   }
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return json({ error: "Invalid JSON payload" }, 400);
   const workspaceId = typeof payload.workspace_id === "string" ? payload.workspace_id : "";
   if (!workspaceId) return json({ error: "A workspace is required" }, 400);
 
   const headers = { Authorization: authorization, apikey: anonKey };
-  const [membership, userResponse] = await Promise.all([
-    fetch(`${supabaseUrl}/rest/v1/workspace_members?select=workspace_id&workspace_id=eq.${encodeURIComponent(workspaceId)}&limit=1`, { headers }),
-    fetch(`${supabaseUrl}/auth/v1/user`, { headers }),
-  ]);
-  const membershipRows = membership.ok ? await membership.json() : [];
+  let membership:Response,userResponse:Response;
+  try { [membership,userResponse] = await Promise.all([
+    fetch(`${supabaseUrl}/rest/v1/workspace_members?select=workspace_id&workspace_id=eq.${encodeURIComponent(workspaceId)}&limit=1`, { headers, signal: AbortSignal.timeout(15000) }),
+    fetch(`${supabaseUrl}/auth/v1/user`, { headers, signal: AbortSignal.timeout(15000) }),
+  ]); } catch { return json({error:"Authentication service temporarily unavailable"},503); }
+  const membershipRows = membership.ok ? await membership.json().catch(() => null) : [];
   if (!membership.ok || !Array.isArray(membershipRows) || !membershipRows.length) {
     return json({ error: "You do not have access to this workspace" }, 403);
   }
 
-  const user = userResponse.ok ? await userResponse.json() : null;
+  const user = userResponse.ok ? await userResponse.json().catch(() => null) : null;
   if (!user?.id) return json({ error: "Your session is invalid or expired" }, 401);
 
   const operation = payload.analysis_type === "resume"
@@ -52,6 +54,7 @@ export async function handleAuthenticatedAnalysis(request: Request) {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json", Prefer: "return=minimal" },
     body: JSON.stringify({ workspace_id: workspaceId, user_id: user.id, operation, status }),
+    signal: AbortSignal.timeout(10000),
   }).catch(() => null);
 
   const started = recordUsage("started");
@@ -62,4 +65,3 @@ export async function handleAuthenticatedAnalysis(request: Request) {
   else await telemetry;
   return response;
 }
-

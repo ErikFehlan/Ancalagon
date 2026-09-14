@@ -5,7 +5,7 @@ const test = require('node:test');
 const clone = x => JSON.parse(JSON.stringify(x));
 function fixture() {
   const rows = {jobs:[{id:'job',workspace_id:'workspace',title:'QA Analyst',criteria:[],created_at:'2026-01-01',updated_at:'2026-01-01'}]};
-  const calls=[]; let fail=false,rpcHandler;
+  const calls=[]; let fail=false,lose=false,rpcHandler;
   const client={rpc:(name,args)=>rpcHandler(name,args),from(table){let operation='select',payload,filters=[];const q={
     select(){return q},eq(k,v){filters.push([k,v]);return q},is(k,v){return q.eq(k,v)},
     insert(v){operation='insert';payload=v;return q},update(v){operation='update';payload=v;return q},delete(){operation='delete';return q},
@@ -15,7 +15,7 @@ function fixture() {
       if(operation==='select')return {data:clone(matching),error:null};
       calls.push({table,operation,payload,filters});
       if(fail){fail=false;return {data:null,error:new Error('network unavailable')}}
-      if(operation==='insert'){const row=clone(payload);rows[table].push(row);return {data:[row],error:null}}
+      if(operation==='insert'){if(rows[table].some(r=>r.id&&r.id===payload.id))return {data:null,error:{code:'23505'}};const row=clone(payload);rows[table].push(row);if(lose){lose=false;return {data:null,error:new Error('Response lost after commit')}}return {data:[row],error:null}}
       if(operation==='update')matching.forEach(row=>Object.assign(row,clone(payload)));
       if(operation==='delete')rows[table]=rows[table].filter(row=>!matching.includes(row));
       return {data:clone(matching),error:null};
@@ -24,7 +24,7 @@ function fixture() {
   const context={window:{},console,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto};
   vm.runInNewContext(fs.readFileSync('assets/data.js','utf8'),context);
   const service=context.window.AncalagonData.create({client,workspace:{id:'workspace'},session:{user:{id:'user'}}});
-  return {service,rows,calls,setRpc(handler){rpcHandler=handler},failNext(){fail=true}};
+  return {service,rows,calls,setRpc(handler){rpcHandler=handler},failNext(){fail=true},loseNextInsert(){lose=true}};
 }
 test('load and unchanged save perform no writes; one job edit updates only that job',async()=>{
  const f=fixture(),state=await f.service.load();await f.service.flush(state);assert.equal(f.calls.length,0);
@@ -133,4 +133,15 @@ test('intake metadata and pending status round-trip without redundant writes; so
  const count=f.calls.length;await f.service.flush(restored);assert.equal(f.calls.length,count);
  f.rows.candidate_documents=[{workspace_id:'workspace',job_id:'job',candidate_id:'intake',extracted_text:'Correct resume',created_at:'2026-01-01'},{workspace_id:'other',job_id:'job',candidate_id:'intake',extracted_text:'PRIVATE',created_at:'2026-02-01'}];
  assert.equal(await f.service.loadResumeText(restored.candidates[0]),'Correct resume');
+});
+
+test('retry after a lost insert response recovers the same record without a duplicate',async()=>{
+ const f=fixture(),state=await f.service.load();state.candidates.push({id:'stable-candidate',jobId:'job',name:'Synthetic',short:'Synthetic',strengths:[],concerns:[],tags:[],jdScore:7,managerScore:7,createdAt:1,updatedAt:1});
+ f.loseNextInsert();await assert.rejects(f.service.flush(state),/Response lost/);assert.equal(f.rows.candidates.length,1);assert.equal(f.service.hasPendingChanges(),true);
+ await f.service.flush(state);assert.equal(f.rows.candidates.length,1);assert.equal(f.service.hasPendingChanges(),false);
+});
+test('a colliding insert with different evidence is never adopted as the local save',async()=>{
+ const f=fixture(),state=await f.service.load();state.candidates.push({id:'collision',jobId:'job',name:'Local',short:'Local',strengths:[],concerns:[],tags:[],jdScore:7,managerScore:7,createdAt:1,updatedAt:1});
+ f.rows.candidates=[{id:'collision',workspace_id:'workspace',job_id:'job',name:'Another tab'}];
+ await assert.rejects(f.service.flush(state),e=>e.code==='23505');assert.equal(f.rows.candidates[0].name,'Another tab');
 });

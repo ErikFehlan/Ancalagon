@@ -365,7 +365,7 @@
         else{showPage('candidates');showToast('No more ready assessments for this job.');}
       }
       function intakeContext(c){
-        const neutral={...c,role:'',signal:'',tags:[],strengths:[],concerns:[],resumeJDScore:0};
+        const neutral={...c,role:'',signal:'',tags:[],strengths:[],concerns:[],resumeJDScore:0,resumeIntake:null};
         return evaluationContext(neutral,jobs.find(j=>j.id===c.jobId));
       }
       function refreshIntakeCandidate(c){
@@ -387,6 +387,9 @@
         add:value=>{const c=ensureScores({...value,short:value.name,initials:initialsFor(value.name)});candidates.push(c);return c;},
         persist:()=>dataService.flush(stateSnapshot()),upload:(c,file,text)=>dataService.uploadResume(c,file,text),
         text:c=>dataService.loadResumeText(c),analyze:analyzeResumeWithHybrid,
+        remoteAvailable:()=>!!dataService?.requestResumeIntake,
+        requestRemote:(id,retry)=>dataService.requestResumeIntake(id,retry),loadRemote:id=>dataService.loadResumeIntake(id),
+        reviewRemote:(id,revision)=>dataService.reviewResumeIntake(id,revision,stateSnapshot()),
         context:intakeContext,signature:context=>window.AncalagonContext.signature(context),fullContext:c=>evaluationContext(c,jobs.find(j=>j.id===c.jobId)),
         recommendation:recommendationForScore,changed:refreshIntakeCandidate,toast:showToast,track:trackProductEvent,
         open:(c,force=false)=>{if(!c||c.jobId!==activeJobId)return;

@@ -14,12 +14,13 @@
       if(candidate&&f.candidateId===candidate.id)add(`feedback-${f.id}`,'candidate feedback',`${f.type}; outcome: ${f.outcome||'unspecified'}. ${f.text}`,f.updatedAt||f.createdAt,'candidate');
     }
     if(candidate){
+      list(candidate.resumeIntake?.brief?.resume_evidence).forEach((e,i)=>add(`resume-quote-${i+1}`,'resume quotation (candidate claim, not independently verified)',e.quote,null,'candidate'));
       list(candidate.strengths).forEach((text,i)=>add(`profile-strength-${i+1}`,'profile summary (verify against source)',text,null,'candidate'));
       list(candidate.concerns).forEach((text,i)=>add(`profile-concern-${i+1}`,'concern or unknown',text,null,'candidate'));
       add('screening-notes','recruiter screening',candidate.screeningInsight?.notes,candidate.screeningInsight?.createdAt,'candidate');
       for(const o of list(outcomes).filter(o=>o.jobId===job.id&&o.candidateId===candidate.id))add(`outcome-${o.id}`,'interview outcome',`${o.stage}: ${o.decision}. Positives: ${o.positives||''}. Concerns: ${o.concerns||''}. Notes: ${o.notes||''}`,o.updatedAt||o.createdAt,'candidate');
       const correction=candidate.aiReview?.source==='hybrid_reevaluation'?candidate.aiReview.priorCorrection:candidate.aiReview;
-      add('manual-correction','recruiter correction',correction?.notes,correction?.createdAt,'candidate');
+      if(correction && !['resume_intake','ai','hybrid_reevaluation'].includes(correction.source))add('manual-correction','recruiter correction',correction.notes,correction.createdAt,'candidate');
     }
     const time=value=>typeof value==='number'?value:(Date.parse(value)||0);
     sources.sort((a,b)=>time(a.recorded_at)-time(b.recorded_at)||a.id.localeCompare(b.id));

@@ -1,6 +1,8 @@
 name: Validate and deploy GitHub Pages
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main, hardening/reliability]
   workflow_dispatch:
@@ -38,6 +40,7 @@ jobs:
           node --check assets/feedback.js
           node --check assets/job-review.js
           node --check assets/resume-intake.js
+          node --check assets/resume-remote.js
           node --check assets/candidate-automation.js
           node --check assets/candidate-workspace.js
           node --check assets/quick-notes.js
@@ -58,6 +61,7 @@ jobs:
           node tests/streamline-browser.cjs
           node tests/home-browser.cjs
           node tests/focus-browser.cjs
+          node tests/core-browser.cjs
 
   prepare-home:
     if: github.ref == 'refs/heads/main'
@@ -79,9 +83,15 @@ jobs:
       - name: Prepare personal Home bookmarks before publishing
         run: node scripts/workspace-home-backend.mjs
 
+  core-backend:
+    if: github.ref == 'refs/heads/main'
+    needs: validate
+    uses: ./.github/workflows/core-backend.yml
+    secrets: inherit
+
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: [validate, prepare-home]
+    needs: [validate, prepare-home, core-backend]
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

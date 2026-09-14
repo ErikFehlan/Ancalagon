@@ -1,13 +1,5 @@
 name: Deploy job reassessment backend
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'supabase/functions/reassess-job/**'
-      - 'supabase/migrations/20260914160000_job_reassessments.sql'
-      - 'scripts/job-reassessment-backend.mjs'
-      - 'assets/context.js'
-      - '.github/workflows/job-reassessment-backend.yml'
   workflow_dispatch:
 permissions:
   contents: read

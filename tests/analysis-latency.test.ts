@@ -29,6 +29,15 @@ Deno.test('feedback uses a short non-scoring schema and preserves supplied conte
   } finally {globalThis.fetch=oldFetch;Deno.env.delete('OPENAI_API_KEY');}
 });
 
+Deno.test('malformed authenticated payloads fail before any remote requests',async()=>{
+ const oldFetch=globalThis.fetch;
+ const names=['SUPABASE_URL','SUPABASE_ANON_KEY'],prior=names.map(n=>Deno.env.get(n));
+ Deno.env.set('SUPABASE_URL','https://example.invalid');Deno.env.set('SUPABASE_ANON_KEY','test-public');
+ globalThis.fetch=async()=>{throw Error('Malformed payload reached remote service');};
+ try{for(const body of [null,[],42])assert((await handleAuthenticatedAnalysis(request(body))).status===400,'invalid shape was not rejected');}
+ finally{globalThis.fetch=oldFetch;names.forEach((n,i)=>prior[i]===undefined?Deno.env.delete(n):Deno.env.set(n,prior[i]!));}
+});
+
 Deno.test('real screening still uses the full score schema', async () => {
   const oldFetch=globalThis.fetch;Deno.env.set('OPENAI_API_KEY','test-only');
   globalThis.fetch=async (_url,init)=>{

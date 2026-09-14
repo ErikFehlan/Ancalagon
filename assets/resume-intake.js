@@ -46,6 +46,7 @@
       if(quote.length>1000)invalid('invalid_evidence');
       return {claim:e.claim,quote};
     });
+    if(!evidence.length&&(a.score>0||a.manager_score>0))invalid('unsupported_score');
     return {...a,name:source.includes(normalize(a.name))?a.name:'Candidate',role:source.includes(normalize(a.role))?a.role:'Role not stated',
       score:Math.round(a.score*10)/10,manager_score:Math.round(a.manager_score*10)/10,
       resume_evidence:evidence,tags:a.tags.filter(t=>source.includes(normalize(t)))};
@@ -54,8 +55,10 @@
   async function identity(workspace,jobId,text){const contentHash=await hash(text),key=await hash(workspace+'|'+jobId+'|'+contentHash);return {hash:contentHash,id:key.slice(0,8)+'-'+key.slice(8,12)+'-5'+key.slice(13,16)+'-a'+key.slice(17,20)+'-'+key.slice(20,32)};}
   function create(api){
     const files=new Map(),queue=new Set(),reviewing=new Set();let running=false,extracting=false;
-    const valid=c=>api.candidates().includes(c)&&api.job(c.jobId)?.status!=='closed';
+    const valid=c=>api.candidates().includes(c)&&!!api.job(c.jobId)&&api.job(c.jobId).status!=='closed';
     const context=c=>api.context(c);
+    const remote=api.requestRemote?global.AncalagonRemoteIntake.create({...api,valid,changed:c=>changed(c)}):null;
+    const useRemote=()=>!!remote&&(!api.remoteAvailable||api.remoteAvailable());
     const changed=c=>{api.changed(c);render();};
     function set(c,phase,error=''){Object.assign(c.resumeIntake,{phase,error,updatedAt:Date.now()});changed(c);}
     async function upload(file){
@@ -74,7 +77,7 @@
         const existing=api.candidates().find(c=>c.jobId===jobId&&(c.id===key.id||c.resumeIntake?.hash===key.hash));
         if(existing){if(!existing.resumeIntake?.stored&&existing.resumeIntake){files.set(existing.id,{file,text});await storeDocument(existing);enqueue(existing);}else if(existing.resumeIntake?.phase==='error')await retry(existing);api.toast('This resume is already attached to '+existing.short+'.');api.open(existing,true);return existing;}
         const now=Date.now();
-        candidate=api.add({id:key.id,jobId,name:file.name.replace(/\.[^.]+$/,'').slice(0,160),role:'Resume awaiting analysis',score:0,jdScore:0,resumeJDScore:0,managerScore:0,originalManagerScore:0,rec:'Screen First',signal:'Preparing a screening brief.',strengths:[],concerns:[],tags:[],screeningQuestions:[],stage:'Sourced',createdAt:now,updatedAt:now,resumeIntake:{hash:key.hash,fileName:file.name,phase:'uploading',updatedAt:now}});
+        candidate=api.add({id:key.id,jobId,name:file.name.replace(/\.[^.]+$/,'').slice(0,160),role:'Resume awaiting analysis',score:0,jdScore:0,resumeJDScore:0,managerScore:0,originalManagerScore:0,rec:'Screen First',signal:'Preparing a screening brief.',strengths:[],concerns:[],tags:[],screeningQuestions:[],stage:'Sourced',createdAt:now,updatedAt:now,resumeIntake:{backend:useRemote()?'durable-v1':undefined,hash:key.hash,fileName:file.name,phase:'uploading',updatedAt:now}});
         files.set(candidate.id,{file,text});changed(candidate);
         await api.persist();
         await storeDocument(candidate);
@@ -95,7 +98,7 @@
       }
       set(c,'queued');await api.persist();
     }
-    function enqueue(c){if(!valid(c)||!pending(c))return;queue.add(c.id);void drain();}
+    function enqueue(c){if(!valid(c)||!pending(c))return;if(useRemote()){void remote.request(c);return;}queue.add(c.id);void drain();}
     async function drain(){
       if(running)return;running=true;
       try{while(queue.size){
@@ -133,6 +136,14 @@
         // A document may have saved just before the browser closed.
         try{if(await api.text(c))c.resumeIntake.stored=true;}catch{}
       }
+      if(useRemote()){
+        try{
+          if(files.has(c.id))await storeDocument(c);
+          if(!c.resumeIntake.stored){api.toast('Select this resume again to finish attaching it.','error');return;}
+          await remote.request(c,true);
+        }catch(e){set(c,'error',e.message||'The resume could not be saved. Try again.');api.toast(c.resumeIntake.error,'error');}
+        return;
+      }
       enqueue(c);
     }
     function duplicates(c){return api.candidates().filter(x=>x.id!==c.id&&x.jobId===c.jobId&&normalize(x.name)===normalize(c.name)&&c.resumeIntake?.brief?.name!=='Candidate');}
@@ -146,13 +157,18 @@
         if(api.beforeReview&&!await api.beforeReview(c))return;
         await api.persist();
         if(!valid(c)||c.resumeIntake.signature!==api.signature(context(c)))throw Error('Evidence changed. Prepare the latest assessment.');
+        if(useRemote()){
+          if(!c.resumeIntake.remoteRevision)throw Error('The latest assessment is still loading. Try again shortly.');
+          await api.reviewRemote(c.id,c.resumeIntake.remoteRevision);
+          approved=true;api.toast('Assessment approved and saved.');return true;
+        }
         const now=Date.now();c.resumeIntake.reviewedAt=now;
         Object.assign(c,{jdScore:brief.score,resumeJDScore:brief.score,originalManagerScore:brief.manager_score,managerScore:brief.manager_score,rec:api.recommendation(brief.manager_score),
           aiReview:{source:'resume_intake',verdict:'Needs Adjustment',correctedScore:brief.manager_score,correctedJDScore:brief.score,notes:brief.manager_reason,createdAt:now,reasons:['Resume assessment reviewed']}});
         c.aiReview.contextSignature=api.signature(api.fullContext(c));await api.persist();
         approved=true;api.toast('Assessment approved and added to rankings.');
       }catch(e){Object.assign(c,before);delete c.resumeIntake.reviewedAt;api.toast(e.message||'Approval could not be saved. Try again.','error');}
-      finally{reviewing.delete(c.id);changed(c);}
+      finally{reviewing.delete(c.id);changed(c);if(useRemote()&&approved&&next)api.next?.(c);}
       if(approved&&next)api.next?.(c);
       return approved;
     }
@@ -168,7 +184,7 @@
       if(stale)queueMicrotask(()=>enqueue(c));
       let html='<span class="rf-kicker">Resume screening brief</span>';
       if(state.phase==='error')html+='<h3>Resume intake needs attention</h3><p>'+escape(state.error)+'</p><button class="rf-btn" type="button" data-intake-retry>Try again</button>';
-      else if(state.phase!=='ready')html+='<h3>Preparing your screening brief…</h3><p class="rf-sub">You can keep working. If you close this tab, unfinished intake resumes when you return. Scores appear after review.</p>';
+      else if(state.phase!=='ready')html+='<h3>Preparing your screening brief…</h3><p class="rf-sub">You can keep working. Once your resume is saved, processing continues even if you close this tab. Scores appear after review.</p>';
       else{
         html+='<div class="rf-cardhead"><h3>'+(wrap.id==='workspaceIntake'?'Resume assessment':escape(c.short))+'</h3><span class="rf-pill '+(needsReview?'rf-amber':'rf-green')+'">'+(needsReview?'Awaiting your review':'Reviewed')+'</span></div><p>'+escape(brief.primary_signal)+'</p>';
         if(needsReview)html+='<p><strong>Proposed JD Fit: '+brief.score.toFixed(1)+'/10 · Manager Fit: '+brief.manager_score.toFixed(1)+'/10</strong></p>';
@@ -193,6 +209,7 @@
       wrap.querySelectorAll('[data-intake-open]').forEach(b=>b.addEventListener('click',()=>api.open(api.candidates().find(c=>c.id===b.dataset.intakeOpen),true)));
     }
     function resume(){
+      if(useRemote()){remote.resume();render();return;}
       api.candidates().filter(c=>pending(c)&&valid(c)).forEach(c=>{
         const state=c.resumeIntake;
         const legacyFailure=state.phase==='error'&&state.validationRecovery!=='word-quotes-v2'&&[
@@ -206,5 +223,5 @@
     function hasUnsavedFile(){for(const id of files.keys())if(!api.candidates().some(c=>c.id===id))files.delete(id);return extracting||files.size>0;}
     return {upload,retry,approve,resume,render,renderCandidate,hasUnsavedFile};
   }
-  const api={create,validate,identity,pending,normalize};if(typeof module!=='undefined')module.exports=api;global.AncalagonIntake=api;
+  const api={create,validate,identity,pending,normalize,sourceQuote};if(typeof module!=='undefined')module.exports=api;global.AncalagonIntake=api;
 })(typeof window==='undefined'?globalThis:window);
