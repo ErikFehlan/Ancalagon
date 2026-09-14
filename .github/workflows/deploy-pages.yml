@@ -35,6 +35,7 @@ jobs:
           node --check assets/context.js
           node --check assets/feedback.js
           node --check assets/job-review.js
+          node --check assets/resume-intake.js
           node --check assets/candidate-automation.js
           node --check assets/candidate-workspace.js
           node --check assets/criteria-automation.js
@@ -50,6 +51,7 @@ jobs:
         run: |
           node tests/browser-journey.cjs
           node tests/job-review-browser.cjs
+          node tests/resume-intake-browser.cjs
 
   deploy:
     if: github.ref == 'refs/heads/main'
@@ -70,3 +72,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+

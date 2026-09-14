@@ -65,6 +65,7 @@
             aiReview: review ? review.evidence?.review || null : null,
             submissionDraft: review?.evidence?.submission_draft || null,
             feedbackEvaluation: review?.evidence?.feedback_evaluation || null,
+            resumeIntake: review?.evidence?.resume_intake || null,
             screeningInsight: screening ? {
               canDoJob: screening.can_do_job, cultureFit: screening.culture_working_style_fit, notes: screening.notes,
               assessment: { jd_score: Number(screening.resulting_jd_score), manager_score: Number(screening.resulting_manager_score), summary: screening.assessment_summary },
@@ -178,8 +179,8 @@
     function reviewRow(candidate) { return {
         workspace_id: workspaceId, job_id: candidate.jobId, candidate_id: candidate.id, assessment_type: 'manual_correction',
         jd_score: candidate.jdScore, manager_score: candidate.managerScore, recommendation: candidate.rec,
-        summary: candidate.aiReview?.notes || '', evidence: { review: candidate.aiReview || null, submission_draft: candidate.submissionDraft || null, feedback_evaluation: candidate.feedbackEvaluation || null }, created_by: userId,
-        created_at: iso(candidate.aiReview?.createdAt || candidate.submissionDraft?.updatedAt || candidate.feedbackEvaluation?.updatedAt)
+        summary: candidate.aiReview?.notes || '', evidence: { review: candidate.aiReview || null, submission_draft: candidate.submissionDraft || null, feedback_evaluation: candidate.feedbackEvaluation || null, resume_intake: candidate.resumeIntake || null }, created_by: userId,
+        created_at: iso(candidate.aiReview?.createdAt || candidate.submissionDraft?.updatedAt || candidate.feedbackEvaluation?.updatedAt || candidate.resumeIntake?.updatedAt)
       }; }
     async function sync(state) {
       reconcileApprovals(state);
@@ -221,7 +222,7 @@
           model: item.assessment?.model || null, source_updated_at: item.createdAt, created_by: userId, created_at: iso(item.createdAt)
         };
       }));
-      const reviewAssessments = state.candidates.filter(x => x.aiReview || x.submissionDraft || x.feedbackEvaluation).map(reviewRow);
+      const reviewAssessments = state.candidates.filter(x => x.aiReview || x.submissionDraft || x.feedbackEvaluation || x.resumeIntake).map(reviewRow);
       const preferenceAssessments = state.feedback.filter(item => item.candidateId).map(item => {
         const candidate = state.candidates.find(candidate => candidate.id === item.candidateId);
         return { workspace_id: workspaceId, job_id: item.jobId, candidate_id: item.candidateId, assessment_type: 'manager_feedback',
@@ -298,7 +299,7 @@
             rec:row.recommendation,confidence:row.confidence,signal:row.primary_signal,strengths:row.strengths,concerns:row.concerns,
             tags:row.tags,screeningQuestions:row.screening_questions,createdAt:epoch(row.created_at),updatedAt:epoch(row.updated_at),
             aiReview:assessment.evidence?.review||null,submissionDraft:assessment.evidence?.submission_draft||null,
-            feedbackEvaluation:assessment.evidence?.feedback_evaluation||null};
+            feedbackEvaluation:assessment.evidence?.feedback_evaluation||null,resumeIntake:assessment.evidence?.resume_intake||null};
           for(const [table,remote,baseline] of [['candidates',row,candidateRow(server)],['candidate_assessments',assessment,reviewRow(server)]]){
             const rows=originals.get(table)||[],index=rows.findIndex(r=>r.id===remote.id);
             if(index<0)rows.push(copy(remote));else rows[index]=copy(remote);
@@ -345,6 +346,12 @@
       return data;
     }
 
+    async function loadResumeText(candidate) {
+      const {data,error}=await client.from('candidate_documents').select('extracted_text,created_at')
+        .eq('workspace_id',workspaceId).eq('job_id',candidate.jobId).eq('candidate_id',candidate.id);
+      if(error)throw error;
+      return (data||[]).sort((a,b)=>epoch(b.created_at)-epoch(a.created_at))[0]?.extracted_text||'';
+    }
     async function uploadResume(candidate, file, extractedText) {
       const safeName = String(file.name || 'resume').replace(/[^a-zA-Z0-9._-]+/g, '-');
       const path = `${workspaceId}/${candidate.jobId}/${candidate.id}/${crypto.randomUUID()}-${safeName}`;
@@ -365,8 +372,9 @@
       return path;
     }
 
-    return { load, schedule, flush, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, workspaceId };
+    return { load, schedule, flush, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };
 })();
+

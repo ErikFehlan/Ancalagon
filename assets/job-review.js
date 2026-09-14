@@ -3,7 +3,7 @@
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function create(api){
     const jobs=new Map(),requests=new Map(),busy=new Set(),errors=new Map(),markup=new WeakMap();let timer=null,loading=false,disposed=false;
-    const rows=()=>(jobs.get(api.job()?.id)||[]).filter(t=>t.job_id===api.job()?.id&&api.candidates().some(c=>c.id===t.candidate_id&&c.jobId===t.job_id));
+    const rows=()=>(jobs.get(api.job()?.id)||[]).filter(t=>!global.AncalagonIntake?.pending(api.candidates().find(c=>c.id===t.candidate_id))&&t.job_id===api.job()?.id&&api.candidates().some(c=>c.id===t.candidate_id&&c.jobId===t.job_id)).concat(api.candidates().filter(c=>c.jobId===api.job()?.id&&global.AncalagonIntake?.pending(c)).map(c=>({candidate_id:c.id,job_id:c.jobId,intake:true,status:c.resumeIntake.phase==='ready'?'ready':c.resumeIntake.phase==='error'?'failed':'processing'})));
     function plan(ms=4000){if(disposed)return;clearTimeout(timer);timer=setTimeout(refresh,ms);}
     async function refresh(){
       if(disposed)return;render();if(!api.ready()){plan(500);return;}
@@ -59,7 +59,7 @@
       }
       const tasks=rows(),ready=tasks.filter(t=>t.status==='ready'),working=tasks.filter(t=>['queued','processing'].includes(t.status)),failed=tasks.filter(t=>t.status==='failed');
       const counts=[ready.length&&`${ready.length} updated assessment${ready.length===1?'':'s'} ready to review`,working.length&&`${working.length} processing in the background`,failed.length&&`${failed.length} need attention`].filter(Boolean).join(' · ');
-      const message=error?'Updates temporarily unavailable. Retrying automatically.':!job?'Choose a job to see assessment updates.':!loaded?'Checking for updates…':counts||'No updates to review. Assessments run automatically when you save feedback or criteria.';
+      const message=error&&!tasks.some(t=>t.intake)?'Updates temporarily unavailable. Retrying automatically.':!job?'Choose a job to see assessment updates.':!loaded&&!tasks.length?'Checking for updates…':counts||'No updates to review. Assessments run automatically when you save feedback or criteria.';
       if(status.textContent!==message)status.textContent=message;
       panel.dataset.state=error||failed.length?'attention':ready.length?'ready':working.length?'working':loaded?'idle':'loading';
       const relevant=tasks.filter(t=>['ready','queued','processing','failed'].includes(t.status));
@@ -74,10 +74,12 @@
         let card=[...wrap.children].find(el=>el.dataset.reviewCard===c.id);
         if(!card){card=global.document.createElement('article');card.className='rf-assessment-item';card.dataset.reviewCard=c.id;}
         if(wrap.children[index]!==card)wrap.insertBefore(card,wrap.children[index]||null);
+        if(t.intake){api.renderIntake?.(c,card);return;}
         updateContent(card,`<h3>${escape(c.short)}</h3><p class="rf-sub">${escape(t.reason)}</p>${body(t,c)}`);
       });
     }
     function renderCandidate(candidate,wrap){
+      if(global.AncalagonIntake?.pending(candidate)){wrap.hidden=true;return true;}
       const task=taskFor(candidate),pending=requests.has(candidate.id);
       if(!task&&!pending)return false;
       wrap.hidden=false;
@@ -98,7 +100,7 @@
     }
     function dispose(){disposed=true;clearTimeout(timer);}
     function init(){plan(300);global.document?.addEventListener('visibilitychange',()=>{if(!document.hidden)plan(300);});}
-    return {init,refresh,request,renderCandidate,dispose};
+    return {init,refresh,request,render,renderCandidate,dispose};
   }
   const api={create};if(typeof module!=='undefined')module.exports=api;global.AncalagonJobReview=api;
 })(typeof window==='undefined'?globalThis:window);

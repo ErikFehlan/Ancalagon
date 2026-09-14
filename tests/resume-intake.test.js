@@ -42,8 +42,9 @@ test('changed evidence discards the old response, failed approval leaves scores 
  const f=fixture();let release;f.setAnalysis(()=>new Promise(r=>release=r));const c=await f.flow.upload(f.file);await until(()=>release);
  f.jobs[0].title='Updated QA';f.setAnalysis(async()=>result);release(result);await until(()=>c.resumeIntake.phase==='ready');
  assert.equal(f.calls.length,2);assert.match(c.resumeIntake.signature,/Updated QA/);
+ await f.flow.retry(c);await new Promise(r=>setTimeout(r,5));assert.equal(f.calls.length,2,'unchanged queued work must not repeat completed AI');
  f.failSave();await f.flow.approve(c);assert.equal(intake.pending(c),true);assert.equal(c.managerScore,0);
- f.setAnalysis(()=>new Promise(r=>release=r));release=null;await f.flow.retry(c);await until(()=>release);f.candidates.splice(0);release(result);await new Promise(r=>setTimeout(r,5));assert.equal(f.candidates.length,0);
+ f.jobs[0].title='Another update';f.setAnalysis(()=>new Promise(r=>release=r));release=null;await f.flow.retry(c);await until(()=>release);f.candidates.splice(0);release(result);await new Promise(r=>setTimeout(r,5));assert.equal(f.candidates.length,0);
 });
 test('resume quotes and scores are validated, missing identity stays explicit',()=>{
  assert.throws(()=>intake.validate({...result,resume_evidence:[{claim:'Senior manager',quote:'Managed a large engineering team'}]},text));
