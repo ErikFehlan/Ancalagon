@@ -18,7 +18,7 @@ const dir=path.resolve(__dirname,'..');
     load:async()=>clone(window.reloadFixture||fixture),schedule:(s,e,status)=>{window.testSaved=clone(s);status('saved');},flush:async s=>{window.testSaved=clone(s);},
     trackEvent:async()=>{},loadAdminAnalytics:async()=>{throw Error('not admin');},
     uploadResume:async(c,file,text)=>{if(window.failUpload){window.failUpload=false;throw Error('Simulated storage failure');}window.resumeDocs[c.id]=text;return 'private-resume';},
-    loadResumeText:async c=>(window.restoreDocs||window.resumeDocs)[c.id]||''
+    loadResumeText:async c=>window.resumeDocs[c.id]||(window.restoreDocs||{})[c.id]||''
    })};
    window.ancalagonAuth={session:{user:{id:'test'},access_token:'test-token'},workspace:{id:'workspace'}};
   });
