@@ -41,6 +41,7 @@
   }
   function renderEvaluation(candidate){
     const wrap=api.root.querySelector('#workspaceEvaluation');if(!wrap)return;
+    if(api.remoteEvaluation?.(candidate,wrap))return;
     const state=candidate.feedbackEvaluation,phase=api.evaluationPhase(candidate);wrap.hidden=!state;
     if(!state){wrap.innerHTML='';return;}
     const p=state.proposal,reviewable=api.canReview(candidate);
@@ -58,7 +59,8 @@
     }
     wrap.querySelectorAll('[data-evaluation-action]').forEach(b=>b.addEventListener('click',()=>api.reviewEvaluation(candidate,b.dataset.evaluationAction)));
   }
+  function refreshEvaluation(){if(!api||!current)return;const candidate=api.candidate(current);if(candidate)renderEvaluation(candidate);}
   async function copy(){const area=api.root.querySelector('#submissionDraft');if(!area)return;try{await navigator.clipboard.writeText(area.value);api.toast('Edited submission summary copied.');}catch{area.focus();area.select();api.toast('Select and copy the summary using your browser.','error');}}
-  const methods={init:options=>{api=options;},render,refreshFeedback,hasDrafts:pending,copy,summary};
+  const methods={init:options=>{api=options;},render,refreshFeedback,refreshEvaluation,hasDrafts:pending,copy,summary};
   if(typeof module!=='undefined')module.exports=methods;global.AncalagonWorkspace=methods;
 })(typeof window!=='undefined'?window:globalThis);
