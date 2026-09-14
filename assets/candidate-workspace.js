@@ -23,13 +23,14 @@
   }
   function refreshFeedback(){
     if(!api||!current)return;const candidate=api.candidate(current),wrap=api.root.querySelector('#workspaceFeedback');if(!candidate||!wrap)return;
-    renderEvaluation(candidate);refreshIntake();
+    renderEvaluation(candidate);
     const overview=api.root.querySelector('.rf-workspace-overview > div'),readiness=api.readiness(candidate);
     const stale=candidate.aiReview?.contextSignature&&candidate.aiReview.contextSignature!==api.signature(api.context(candidate));
-    if(overview){
+    if(overview&&!global.AncalagonIntake?.pending(candidate)){
       overview.querySelector('h3').textContent=stale?'Review an outdated evaluation':readiness.label;
       overview.querySelector('p').textContent=stale?'The recorded context has changed since the last approved evaluation. Review a new proposal before relying on the score.':'Resolve the key uncertainty below, then review the evidence before submitting.';
     }
+    refreshIntake();
     const all=api.feedback(),items=all.map((f,i)=>({f,i})).filter(x=>x.f.candidateId===current&&x.f.jobId===candidate.jobId).slice(-3).reverse();
     const outdated=candidate.aiReview?.contextSignature&&candidate.aiReview.contextSignature!==api.signature(api.context(candidate));
     wrap.innerHTML='<h4>What your feedback is teaching us</h4>'+(outdated?'<p class="rf-note">New context since the last approved evaluation. Review a fresh proposal; the score has not automatically changed.</p>':'')+ (items.map(({f,i})=>`<div class="rf-workspace-note"><p><strong>Original note:</strong> ${escape(f.text)}</p>${api.interpretationHTML(f,i)}<p class="rf-sub">${f.learningScope==='job'?'Shared preference: '+escape(f.signalStatus):'Applies to this candidate only'}</p><button type="button" class="rf-linkbtn" data-workspace-preference="${i}">Review as a reusable preference</button></div>`).join('')||'<p class="rf-sub">Your saved observations and interpretations will appear here.</p>');
@@ -69,7 +70,12 @@
     const label=api.root.querySelector('label[for="workspaceNote"]');if(label)label.textContent='Quick feedback for '+c.short;
     const evidence=api.root.querySelector('.rf-workspace-overview > div:nth-child(2) p');if(evidence)evidence.textContent=c.strengths?.[0]||c.signal;
     const overview=api.root.querySelector('.rf-workspace-overview > div');
-    if(overview&&global.AncalagonIntake?.pending(c)){overview.querySelector('h3').textContent='Review the screening brief';overview.querySelector('p').textContent='Check the evidence and proposed assessment, then use the questions below in your screen.';}
+    if(overview&&global.AncalagonIntake?.pending(c)){
+      const failed=c.resumeIntake.phase==='error',ready=c.resumeIntake.phase==='ready';
+      overview.querySelector('h3').textContent=failed?'Retry the resume assessment':ready?'Review the screening brief':'Preparing the resume assessment';
+      overview.querySelector('p').textContent=failed?'Use Try again above to continue with this candidate. No assessment scores have been applied.':ready?'Check the evidence and proposed assessment, then use the questions below in your screen.':'You can keep working while the screening brief is prepared.';
+      if(evidence&&!ready)evidence.textContent=failed?'Assessment unavailable. Resume evidence has not been confirmed.':'Resume evidence is being checked.';
+    }
   }
   function refreshEvaluation(){if(!api||!current)return;const candidate=api.candidate(current);if(candidate)renderEvaluation(candidate);}
   async function copy(){const area=api.root.querySelector('#submissionDraft');if(!area)return;try{await navigator.clipboard.writeText(area.value);api.toast('Edited submission summary copied.');}catch{area.focus();area.select();api.toast('Select and copy the summary using your browser.','error');}}

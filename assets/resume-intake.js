@@ -4,17 +4,51 @@
   const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const pending=c=>!!c?.resumeIntake&&!c.resumeIntake.reviewedAt&&!c.aiReview;
   const strings=(a,max,len)=>Array.isArray(a)&&a.length<=max&&a.every(s=>typeof s==='string'&&s.trim()&&s.length<=len);
+  // Keep content identity normalization unchanged: existing uploaded resumes use it.
+  // This separate index ignores only typography and maps matches back to the actual
+  // source. Never remove words, negation, numbers, or join noncontiguous passages.
+  function quoteIndex(text){
+    let value='',offset=0;const starts=[],ends=[];
+    for(const char of String(text||'')){
+      const start=offset;offset+=char.length;
+      const clean=char.normalize('NFKC').toLowerCase()
+        .replace(/[\u00ad\u200b\ufeff]/g,'').replace(/[\u2010-\u2015]/g,'-')
+        .replace(/[\u2018\u2019]/g,"'").replace(/[\u201c\u201d]/g,'"')
+        .replace(/[\u2022\u25cf\u25aa]/g,' ');
+      for(const c of clean.split('')){
+        if(/\s/.test(c)){
+          if(!value||value.endsWith(' ')){if(value)ends[ends.length-1]=offset;continue;}
+          value+=' ';
+        }else value+=c;
+        starts.push(start);ends.push(offset);
+      }
+    }
+    if(value.endsWith(' ')){value=value.slice(0,-1);starts.pop();ends.pop();}
+    return {value,starts,ends};
+  }
+  function sourceQuote(text,quote,index=quoteIndex(text)){
+    const needle=quoteIndex(quote).value,at=needle?index.value.indexOf(needle):-1;
+    return at<0?null:String(text).slice(index.starts[at],index.ends[at+needle.length-1]);
+  }
+  function invalid(code){const e=new Error('The AI response could not be verified against this resume. Try the assessment again.');e.code=code;throw e;}
   function validate(a,text){
     const source=normalize(text);
-    if(!a||!['score','manager_score'].every(k=>typeof a[k]==='number'&&Number.isFinite(a[k])&&a[k]>=0&&a[k]<=10)
-      ||!['name','role','primary_signal','jd_reason','manager_reason'].every(k=>typeof a[k]==='string'&&a[k].trim()&&a[k].length<=2000)
-      ||!strings(a.concerns,6,800)||!strings(a.screening_questions,3,600)||!strings(a.tags,8,100)
-      ||!Array.isArray(a.resume_evidence)||a.resume_evidence.length>5
-      ||a.resume_evidence.some(e=>!e||typeof e.claim!=='string'||!e.claim.trim()||e.claim.length>800||typeof e.quote!=='string'||e.quote.trim().length<12||e.quote.length>1000||!source.includes(normalize(e.quote))))
-      throw Error('The AI response could not be verified against this resume. Try the assessment again.');
+    if(!a||!['score','manager_score'].every(k=>typeof a[k]==='number'&&Number.isFinite(a[k])&&a[k]>=0&&a[k]<=10))invalid('invalid_score');
+    if(!['name','role','primary_signal','jd_reason','manager_reason'].every(k=>typeof a[k]==='string'&&a[k].trim()&&a[k].length<=2000))invalid('invalid_profile');
+    if(!strings(a.concerns,6,800))invalid('invalid_concerns');
+    if(!strings(a.screening_questions,3,600))invalid('invalid_questions');
+    if(!strings(a.tags,8,100))invalid('invalid_tags');
+    if(!Array.isArray(a.resume_evidence)||a.resume_evidence.length>5)invalid('invalid_evidence');
+    const index=quoteIndex(text),evidence=a.resume_evidence.map(e=>{
+      if(!e||typeof e.claim!=='string'||!e.claim.trim()||e.claim.length>800||typeof e.quote!=='string'||e.quote.trim().length<12||e.quote.length>1000)invalid('invalid_evidence');
+      const quote=sourceQuote(text,e.quote,index);
+      if(!quote)invalid('unmatched_quote');
+      if(quote.length>1000)invalid('invalid_evidence');
+      return {claim:e.claim,quote};
+    });
     return {...a,name:source.includes(normalize(a.name))?a.name:'Candidate',role:source.includes(normalize(a.role))?a.role:'Role not stated',
       score:Math.round(a.score*10)/10,manager_score:Math.round(a.manager_score*10)/10,
-      resume_evidence:a.resume_evidence.map(e=>({claim:e.claim,quote:e.quote})),tags:a.tags.filter(t=>source.includes(normalize(t)))};
+      resume_evidence:evidence,tags:a.tags.filter(t=>source.includes(normalize(t)))};
   }
   async function hash(text){const bytes=await global.crypto.subtle.digest('SHA-256',new TextEncoder().encode(normalize(text)));return [...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join('');}
   async function identity(workspace,jobId,text){const contentHash=await hash(text),key=await hash(workspace+'|'+jobId+'|'+contentHash);return {hash:contentHash,id:key.slice(0,8)+'-'+key.slice(8,12)+'-5'+key.slice(13,16)+'-a'+key.slice(17,20)+'-'+key.slice(20,32)};}
@@ -38,7 +72,7 @@
         if(!api.job(jobId)||api.job(jobId).status==='closed')throw Error('The selected job was closed or removed. Choose an open job.');
         const key=await identity(api.workspace(),jobId,text);
         const existing=api.candidates().find(c=>c.jobId===jobId&&(c.id===key.id||c.resumeIntake?.hash===key.hash));
-        if(existing){if(!existing.resumeIntake?.stored&&existing.resumeIntake){files.set(existing.id,{file,text});await storeDocument(existing);enqueue(existing);}api.toast('This resume is already attached to '+existing.short+'.');api.open(existing,true);return existing;}
+        if(existing){if(!existing.resumeIntake?.stored&&existing.resumeIntake){files.set(existing.id,{file,text});await storeDocument(existing);enqueue(existing);}else if(existing.resumeIntake?.phase==='error')await retry(existing);api.toast('This resume is already attached to '+existing.short+'.');api.open(existing,true);return existing;}
         const now=Date.now();
         candidate=api.add({id:key.id,jobId,name:file.name.replace(/\.[^.]+$/,'').slice(0,160),role:'Resume awaiting analysis',score:0,jdScore:0,resumeJDScore:0,managerScore:0,originalManagerScore:0,rec:'Screen First',signal:'Preparing a screening brief.',strengths:[],concerns:[],tags:[],screeningQuestions:[],stage:'Sourced',createdAt:now,updatedAt:now,resumeIntake:{hash:key.hash,fileName:file.name,phase:'uploading',updatedAt:now}});
         files.set(candidate.id,{file,text});changed(candidate);
@@ -150,10 +184,19 @@
       wrap.innerHTML=list.map(c=>'<button type="button" class="rf-intake-status" data-intake-open="'+escape(c.id)+'"><strong>'+escape(c.short)+'</strong><span>'+({uploading:'Saving resume…',queued:'Queued for assessment',processing:'Preparing screening brief…',ready:'Screening brief ready · review',error:'Needs attention'}[c.resumeIntake.phase]||'Preparing…')+'</span></button>').join('');
       wrap.querySelectorAll('[data-intake-open]').forEach(b=>b.addEventListener('click',()=>api.open(api.candidates().find(c=>c.id===b.dataset.intakeOpen),true)));
     }
-    function resume(){api.candidates().filter(c=>pending(c)&&(['queued','processing','uploading'].includes(c.resumeIntake.phase)||(c.resumeIntake.phase==='ready'&&c.resumeIntake.signature!==api.signature(context(c))))).forEach(enqueue);render();}
+    function resume(){
+      api.candidates().filter(c=>pending(c)&&valid(c)).forEach(c=>{
+        const state=c.resumeIntake;
+        const legacyFailure=state.phase==='error'&&state.validationRecovery!=='word-quotes-v2'&&[
+          'The resume evidence could not be verified. Please retry the assessment.',
+          'The AI response could not be verified against this resume. Try the assessment again.'
+        ].includes(state.error);
+        if(legacyFailure)state.validationRecovery='word-quotes-v2';
+        if(legacyFailure||['queued','processing','uploading'].includes(state.phase)||(state.phase==='ready'&&state.signature!==api.signature(context(c))))enqueue(c);
+      });render();
+    }
     function hasUnsavedFile(){for(const id of files.keys())if(!api.candidates().some(c=>c.id===id))files.delete(id);return extracting||files.size>0;}
     return {upload,retry,approve,resume,render,renderCandidate,hasUnsavedFile};
   }
   const api={create,validate,identity,pending,normalize};if(typeof module!=='undefined')module.exports=api;global.AncalagonIntake=api;
 })(typeof window==='undefined'?globalThis:window);
-
