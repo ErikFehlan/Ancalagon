@@ -64,6 +64,7 @@
             createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at),
             aiReview: review ? review.evidence?.review || null : null,
             submissionDraft: review?.evidence?.submission_draft || null,
+            feedbackEvaluation: review?.evidence?.feedback_evaluation || null,
             screeningInsight: screening ? {
               canDoJob: screening.can_do_job, cultureFit: screening.culture_working_style_fit, notes: screening.notes,
               assessment: { jd_score: Number(screening.resulting_jd_score), manager_score: Number(screening.resulting_manager_score), summary: screening.assessment_summary },
@@ -212,11 +213,11 @@
           model: item.assessment?.model || null, created_by: userId, created_at: iso(item.createdAt)
         };
       }));
-      const reviewAssessments = state.candidates.filter(x => x.aiReview || x.submissionDraft).map(candidate => ({
+      const reviewAssessments = state.candidates.filter(x => x.aiReview || x.submissionDraft || x.feedbackEvaluation).map(candidate => ({
         workspace_id: workspaceId, job_id: candidate.jobId, candidate_id: candidate.id, assessment_type: 'manual_correction',
         jd_score: candidate.jdScore, manager_score: candidate.managerScore, recommendation: candidate.rec,
-        summary: candidate.aiReview?.notes || '', evidence: { review: candidate.aiReview || null, submission_draft: candidate.submissionDraft || null }, created_by: userId,
-        created_at: iso(candidate.aiReview?.createdAt || candidate.submissionDraft?.updatedAt)
+        summary: candidate.aiReview?.notes || '', evidence: { review: candidate.aiReview || null, submission_draft: candidate.submissionDraft || null, feedback_evaluation: candidate.feedbackEvaluation || null }, created_by: userId,
+        created_at: iso(candidate.aiReview?.createdAt || candidate.submissionDraft?.updatedAt || candidate.feedbackEvaluation?.updatedAt)
       }));
       const preferenceAssessments = state.feedback.filter(item => item.candidateId && (item.learningScope === 'job' || item.interpretation)).map(item => {
         const candidate = state.candidates.find(candidate => candidate.id === item.candidateId);
