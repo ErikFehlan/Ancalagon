@@ -53,3 +53,35 @@ test('resume quotes and scores are validated, missing identity stays explicit',(
  assert.throws(()=>intake.validate({...result,screening_questions:['a','b','c','d']},text));
 });
 
+
+test('Word bullets, nonbreaking hyphens, smart quotes and tabs resolve to original source passages',()=>{
+ const source='Alex Carter\nQA Analyst\n• Worked on risk •documentation and business\u2011aligned controls.\nUsed “security controls” across\t teams.';
+ const quotes=['Worked on risk documentation and business-aligned controls.', 'Used "security controls" across teams.'];
+ const fixed=intake.validate({...result,resume_evidence:quotes.map(quote=>({claim:'Documented controls',quote}))},source);
+ assert.equal(fixed.resume_evidence[0].quote,'Worked on risk •documentation and business\u2011aligned controls.');
+ assert.equal(fixed.resume_evidence[1].quote,'Used “security controls” across\t teams.');
+ for(const evidence of fixed.resume_evidence)assert.ok(source.includes(evidence.quote),'return actual source, not rewritten text');
+ assert.deepEqual(intake.validate(fixed,source),fixed,'validation must be idempotent in the browser');
+ const astral='🔐 '+source;
+ assert.deepEqual(intake.validate({...result,resume_evidence:quotes.map(quote=>({claim:'Controls',quote}))},astral).resume_evidence.map(e=>e.quote),fixed.resume_evidence.map(e=>e.quote));
+});
+test('format tolerance preserves dates, quantities, negation and contiguous evidence',()=>{
+ const source='Alex Carter did not manage 20 engineers. Owned audit evidence. Separately supported testing.';
+ for(const quote of ['Alex Carter did manage 20 engineers.', 'did not manage 200 engineers.', 'Owned audit evidence. supported testing.', 'Owned audit evidence ... supported testing.']){
+  assert.throws(()=>intake.validate({...result,resume_evidence:[{claim:'Claim',quote}]},source),{code:'unmatched_quote'});
+ }
+ assert.throws(()=>intake.validate({...result,manager_score:99},source),{code:'invalid_score'});
+ assert.throws(()=>intake.validate({...result,jd_reason:''},source),{code:'invalid_profile'});
+ assert.throws(()=>intake.validate({...result,resume_evidence:[{claim:'Claim',quote:'audit'}]},source),{code:'invalid_evidence'});
+});
+test('legacy verification failure recovers automatically once without duplicate candidates or retry loops',async()=>{
+ const f=fixture();const c={id:'existing',jobId:'a',name:'Saved resume',short:'Saved resume',managerScore:0,resumeIntake:{phase:'error',stored:true,fileName:'Saved.docx',error:'The resume evidence could not be verified. Please retry the assessment.'}};
+ f.candidates.push(c);f.docs.set(c.id,text);f.setAnalysis(async()=>{throw Error('The resume evidence could not be verified. Please retry the assessment.');});
+ f.flow.resume();await until(()=>f.calls.length===1&&c.resumeIntake.phase==='error');
+ assert.equal(c.resumeIntake.validationRecovery,'word-quotes-v2');f.flow.resume();await new Promise(r=>setTimeout(r,10));assert.equal(f.calls.length,1);
+ f.setAnalysis(async()=>result);await f.flow.retry(c);await until(()=>c.resumeIntake.phase==='ready');assert.equal(f.candidates.length,1);assert.equal(c.managerScore,0);
+});
+test('re-uploading a saved resume after assessment failure retries the existing candidate',async()=>{
+ const f=fixture();f.setAnalysis(async()=>{throw Error('Temporary model failure');});const c=await f.flow.upload(f.file);await until(()=>c.resumeIntake.phase==='error');
+ f.setAnalysis(async()=>result);await f.flow.upload(f.file);await until(()=>c.resumeIntake.phase==='ready');assert.equal(f.candidates.length,1);assert.equal(f.calls.length,2);
+});
