@@ -271,6 +271,23 @@
         }
       }
     }
+    async function loadHome() {
+      const {data,error}=await client.from('workspace_home').select('first_visited_at,last_job_id,last_candidate_id,last_page,last_opened_at').eq('user_id',userId).eq('workspace_id',workspaceId).maybeSingle();
+      if(error)throw error;return data;
+    }
+    async function visitHome() {
+      const {error}=await client.from('workspace_home').upsert({user_id:userId,workspace_id:workspaceId},{onConflict:'user_id,workspace_id',ignoreDuplicates:true});
+      if(error)throw error;
+    }
+    async function saveHome(location) {
+      // A delayed request from another tab must not replace a more recent visit.
+      const {error}=await client.from('workspace_home').update(location).eq('user_id',userId).eq('workspace_id',workspaceId).or('last_opened_at.is.null,last_opened_at.lte.'+location.last_opened_at);
+      if(error)throw error;
+    }
+    async function loadHomeReviews() {
+      const {data,error}=await client.from('job_reassessment_tasks').select('candidate_id,job_id,status').eq('workspace_id',workspaceId).eq('status','ready');
+      if(error)throw error;return data||[];
+    }
     async function loadJobReassessments(jobId) {
       const {data,error}=await client.from('job_reassessment_tasks')
         .select('candidate_id,job_id,revision,reason,status,result,error_code,updated_at,reviewed_at,attempts')
@@ -372,7 +389,7 @@
       return path;
     }
 
-    return { load, schedule, flush, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
+    return { load, schedule, flush, loadHome, visitHome, saveHome, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };

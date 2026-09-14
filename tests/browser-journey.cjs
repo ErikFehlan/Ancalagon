@@ -11,7 +11,7 @@ await page.route('**/assets/data.js*',r=>r.fulfill({contentType:'application/jav
 let holdNextAssessment=false,heldAssessment=null;
 await page.route('**/functions/v1/**',async route=>{const payload=route.request().postDataJSON();assert.ok(payload.evaluation_context);if(payload.analysis_type==='feedback'){assert.ok(payload.feedback.text);assert.equal(payload.candidate,undefined);await route.fulfill({json:{summary:'Ownership evidence reviewed.',clarification_question:'Which systems did they personally own?',model:'test-model'}})}else if(payload.analysis_type==='screening'){assert.ok(payload.evaluation_context.sources.some(s=>s.id.startsWith('feedback-')));if(holdNextAssessment){holdNextAssessment=false;await new Promise(resolve=>{heldAssessment={payload,resolve}});}await route.fulfill({json:{manager_score:9,jd_score:8.5,manager_reason:'Specific ownership example in candidate feedback supports manager priority.',jd_reason:'Qualification baseline unchanged.',summary:'Ownership evidence reviewed.',model:'test-model'}})}else await route.fulfill({json:{summary:'Pattern review',signals:[],resume_interview_gaps:[],recommended_weight_changes:[]}})});
 await page.goto(`http://127.0.0.1:${server.address().port}/`);
-await page.locator('#learnWelcome [data-goto="learn"]').click();
+await page.locator('#page-home.active').waitFor();await page.locator('#workspaceHome [data-home-action="learn"]').first().click();
 await page.locator('#page-learn.active').waitFor();
 assert.equal(await page.locator('#page-learn .rf-learn-guides details').count(),5);
 assert.equal(await page.evaluate(()=>window.testSaved?.candidates?.length||0),0);
@@ -82,7 +82,7 @@ await page.locator('#detailStage').selectOption('Hired',{force:true});
 assert.equal(await page.evaluate(()=>window.testSaved.jobs[0].status),'closed');
 const saved=await page.evaluate(()=>window.testSaved);
 await page.addInitScript(state=>{window.reloadFixture=state},saved);
-await page.reload();await page.locator('#page-job-picker.active').waitFor();
+await page.reload();await page.locator('#page-home.active').waitFor();
 assert.match(await page.locator('#jobPickerGrid').textContent(),/Reliability test/);
 assert.deepEqual(await page.evaluate(()=>window.reloadFixture.candidates[0].feedbackEvaluation.proposal),pendingProposal);
 assert.equal(await page.locator('#qualityLab').isVisible(),false);

@@ -42,7 +42,7 @@ const dir=path.resolve(__dirname,'..');
    }else await route.fulfill({json:{summary:'Note retained',clarification_question:null}});
   });
   await page.goto('http://127.0.0.1:'+server.address().port+'/');
-  await page.locator('#page-job-picker.active').waitFor();
+  await page.locator('#page-home.active').waitFor();
   await page.locator('.rf-nav [data-page="candidates"]').click();
   assert.equal(await page.locator('#resumeUpload').isVisible(),true,'upload is available without opening a form');
   await page.locator('#resumeUpload').setInputFiles({name:'Alex.txt',mimeType:'text/plain',buffer:Buffer.from(resume)});
@@ -87,7 +87,7 @@ const dir=path.resolve(__dirname,'..');
   await page.locator('.rf-nav [data-page="candidates"]').click();
   // Clear unsaved UI drafts before this intentional reload.
   page.once('dialog',d=>d.accept());await page.reload();
-  await page.locator('#page-job-picker.active').waitFor();
+  await page.locator('#page-home.active').waitFor();
   await page.locator('.rf-nav [data-page="candidates"]').click();
   await page.locator('[data-candidate-id]').first().click();
   assert.equal(await page.locator('#workspaceIntake').isVisible(),false);assert.match(await page.locator('#workspaceFit').textContent(),/8.7/);assert.equal(calls,1);

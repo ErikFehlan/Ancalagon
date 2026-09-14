@@ -40,7 +40,7 @@ const dir=path.resolve(__dirname,'..');
    window.ancalagonAuth={session:{user:{id:'test'},access_token:'test-token'},workspace:{id:'test'}};
   });
   await page.goto('http://127.0.0.1:'+server.address().port+'/');
-  await page.locator('#page-job-picker.active').waitFor();
+  await page.locator('#page-home.active').waitFor();
   await page.locator('.rf-nav [data-page="candidates"]').click();
   await page.locator('[data-candidate-id="candidate-a"]').first().click();
   await page.locator('#workspaceEvaluation [data-job-review="approve-next"]').waitFor();
