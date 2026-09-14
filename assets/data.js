@@ -17,7 +17,7 @@
     function hasPendingChanges() { return loaded && (pendingWrites > 0 || (pendingState !== null && JSON.stringify(pendingState) !== lastFingerprint)); }
     function markPending(state) { pendingState = copy(state); }
     function reportStatus() { statusListener?.(pendingWrites || JSON.stringify(pendingState) !== lastFingerprint ? 'saving' : 'saved'); }
-    const originals = new Map(), baselines = new Map(), insertIds = new Map();
+    const originals = new Map(), baselines = new Map(), insertIds = new Map(), approvals = new Map();
     let seeding = false, loaded = false;
 
     async function query(table, columns = '*') {
@@ -166,7 +166,23 @@
       }
     }
 
+    function candidateRow(candidate) { return {
+        id: candidate.id, workspace_id: workspaceId, job_id: candidate.jobId, name: candidate.name || candidate.short,
+        role: candidate.role || '', stage: candidate.stage || 'Sourced', resume_jd_score: candidate.resumeJDScore,
+        jd_score: candidate.jdScore, original_manager_score: candidate.originalManagerScore, manager_score: candidate.managerScore,
+        confidence: candidate.confidence || 'Low', recommendation: candidate.rec || 'Screen First', primary_signal: candidate.signal || '',
+        strengths: candidate.strengths || [], concerns: candidate.concerns || [], tags: candidate.tags || [],
+        screening_questions: candidate.screeningQuestions || [], created_by: userId,
+        created_at: iso(candidate.createdAt), updated_at: iso(candidate.updatedAt)
+      }; }
+    function reviewRow(candidate) { return {
+        workspace_id: workspaceId, job_id: candidate.jobId, candidate_id: candidate.id, assessment_type: 'manual_correction',
+        jd_score: candidate.jdScore, manager_score: candidate.managerScore, recommendation: candidate.rec,
+        summary: candidate.aiReview?.notes || '', evidence: { review: candidate.aiReview || null, submission_draft: candidate.submissionDraft || null, feedback_evaluation: candidate.feedbackEvaluation || null }, created_by: userId,
+        created_at: iso(candidate.aiReview?.createdAt || candidate.submissionDraft?.updatedAt || candidate.feedbackEvaluation?.updatedAt)
+      }; }
     async function sync(state) {
+      reconcileApprovals(state);
       if (!loaded && !seeding) throw new Error("Load the workspace successfully before saving.");
       const jobRows = state.jobs.map(job => ({
         id: job.id, workspace_id: workspaceId, title: job.title, client: compact(job.client), description: job.description || '',
@@ -177,15 +193,7 @@
       }));
       await replaceChildren('jobs', jobRows);
 
-      const candidateRows = state.candidates.map(candidate => ({
-        id: candidate.id, workspace_id: workspaceId, job_id: candidate.jobId, name: candidate.name || candidate.short,
-        role: candidate.role || '', stage: candidate.stage || 'Sourced', resume_jd_score: candidate.resumeJDScore,
-        jd_score: candidate.jdScore, original_manager_score: candidate.originalManagerScore, manager_score: candidate.managerScore,
-        confidence: candidate.confidence || 'Low', recommendation: candidate.rec || 'Screen First', primary_signal: candidate.signal || '',
-        strengths: candidate.strengths || [], concerns: candidate.concerns || [], tags: candidate.tags || [],
-        screening_questions: candidate.screeningQuestions || [], created_by: userId,
-        created_at: iso(candidate.createdAt), updated_at: iso(candidate.updatedAt)
-      }));
+      const candidateRows = state.candidates.map(candidateRow);
       await replaceChildren('candidates', candidateRows);
 
       await replaceChildren('candidate_benchmarks', state.candidates.filter(x => x.benchmark).map(candidate => ({
@@ -213,17 +221,12 @@
           model: item.assessment?.model || null, created_by: userId, created_at: iso(item.createdAt)
         };
       }));
-      const reviewAssessments = state.candidates.filter(x => x.aiReview || x.submissionDraft || x.feedbackEvaluation).map(candidate => ({
-        workspace_id: workspaceId, job_id: candidate.jobId, candidate_id: candidate.id, assessment_type: 'manual_correction',
-        jd_score: candidate.jdScore, manager_score: candidate.managerScore, recommendation: candidate.rec,
-        summary: candidate.aiReview?.notes || '', evidence: { review: candidate.aiReview || null, submission_draft: candidate.submissionDraft || null, feedback_evaluation: candidate.feedbackEvaluation || null }, created_by: userId,
-        created_at: iso(candidate.aiReview?.createdAt || candidate.submissionDraft?.updatedAt || candidate.feedbackEvaluation?.updatedAt)
-      }));
-      const preferenceAssessments = state.feedback.filter(item => item.candidateId && (item.learningScope === 'job' || item.interpretation)).map(item => {
+      const reviewAssessments = state.candidates.filter(x => x.aiReview || x.submissionDraft || x.feedbackEvaluation).map(reviewRow);
+      const preferenceAssessments = state.feedback.filter(item => item.candidateId).map(item => {
         const candidate = state.candidates.find(candidate => candidate.id === item.candidateId);
         return { workspace_id: workspaceId, job_id: item.jobId, candidate_id: item.candidateId, assessment_type: 'manager_feedback',
           jd_score: candidate?.jdScore ?? null, manager_score: candidate?.managerScore ?? null, recommendation: candidate?.rec || null,
-          summary: item.signalLabel || '', evidence: { feedback_id: item.id, learning_scope: item.learningScope,
+          summary: item.signalLabel || '', evidence: { feedback_id: item.id, learning_scope: item.learningScope, source_updated_at: item.updatedAt || item.createdAt,
             signal_label: item.signalLabel, signal_direction: item.signalDirection, signal_status: item.signalStatus,
             interpretation: item.interpretation || null, signal_confidence: Number(item.signalConfidence || 0) }, created_by: userId, created_at: iso(item.updatedAt || item.createdAt) };
       });
@@ -256,6 +259,62 @@
       catch (error) { pendingWrites--; statusListener?.('error'); throw error; }
     }
 
+    function reconcileApprovals(state) {
+      for(const c of state.candidates||[]){
+        const change=approvals.get(c.id);if(!change)continue;
+        // Rebase saves queued while the RPC was in flight. Preserve a newer
+        // explicit recruiter correction instead of overwriting that intent.
+        if(JSON.stringify(c.aiReview)!==JSON.stringify(change.before.aiReview))continue;
+        for(const key of ['managerScore','rec','aiReview','updatedAt']) {
+          if(JSON.stringify(c[key])===JSON.stringify(change.before[key]))c[key]=copy(change.after[key]);
+        }
+      }
+    }
+    async function loadJobReassessments(jobId) {
+      const {data,error}=await client.from('job_reassessment_tasks')
+        .select('candidate_id,job_id,revision,reason,status,result,error_code,updated_at,reviewed_at,attempts')
+        .eq('workspace_id',workspaceId).eq('job_id',jobId);
+      if(error)throw error;return data||[];
+    }
+    async function requestCandidateReassessment(candidateId) {
+      const {error}=await client.rpc('request_candidate_reassessment',{p_candidate:candidateId});
+      if(error)throw error;
+    }
+    async function reviewJobReassessment(candidateId,revision,decision,state) {
+      clearTimeout(timer);pendingWrites++;statusListener?.('saving');
+      const operation=queued.then(async()=>{
+        const previousPending=pendingState;
+        await sync(copy(state));
+        const candidate=state.candidates.find(c=>c.id===candidateId),before=candidate?copy(candidate):null;
+        const {data,error}=await client.rpc('review_job_reassessment',{p_candidate:candidateId,p_revision:revision,p_decision:decision});
+        if(error)throw error;
+        if(data.status==='approved'&&candidate){
+          const row=data.candidate,assessment=data.assessment;
+          if(row.id!==candidate.id||row.job_id!==candidate.jobId||row.workspace_id!==workspaceId
+             ||assessment.candidate_id!==row.id||assessment.workspace_id!==workspaceId)throw Error('Unexpected approval scope');
+          const server={...before,name:row.name,short:row.name,role:row.role,stage:row.stage,
+            resumeJDScore:Number(row.resume_jd_score??row.jd_score??0),jdScore:Number(row.jd_score??0),
+            originalManagerScore:Number(row.original_manager_score??row.manager_score??0),managerScore:Number(row.manager_score),
+            rec:row.recommendation,confidence:row.confidence,signal:row.primary_signal,strengths:row.strengths,concerns:row.concerns,
+            tags:row.tags,screeningQuestions:row.screening_questions,createdAt:epoch(row.created_at),updatedAt:epoch(row.updated_at),
+            aiReview:assessment.evidence?.review||null,submissionDraft:assessment.evidence?.submission_draft||null,
+            feedbackEvaluation:assessment.evidence?.feedback_evaluation||null};
+          for(const [table,remote,baseline] of [['candidates',row,candidateRow(server)],['candidate_assessments',assessment,reviewRow(server)]]){
+            const rows=originals.get(table)||[],index=rows.findIndex(r=>r.id===remote.id);
+            if(index<0)rows.push(copy(remote));else rows[index]=copy(remote);
+            originals.set(table,rows);baselines.get(table).set(rowKey(table,baseline),copy(baseline));
+          }
+          approvals.set(candidate.id,{before,after:server});
+          reconcileApprovals(state);
+          const persisted=JSON.parse(lastFingerprint);reconcileApprovals(persisted);lastFingerprint=JSON.stringify(persisted);
+          if(pendingState)reconcileApprovals(pendingState);
+        }
+        if(pendingState===previousPending)pendingState=copy(state);return data;
+      });
+      queued=operation.catch(()=>{});
+      try{const data=await operation;pendingWrites--;reportStatus();return data;}
+      catch(error){pendingWrites--;statusListener?.('error');throw error;}
+    }
     async function loadCriteriaTask(jobId) {
       const { data, error } = await client.from('job_criteria_tasks').select('job_id,revision,input,status,result,display_original,error_code,updated_at').eq('workspace_id',workspaceId).eq('job_id',jobId);
       if(error)throw error;return data?.[0]||null;
@@ -306,7 +365,7 @@
       return path;
     }
 
-    return { load, schedule, flush, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, workspaceId };
+    return { load, schedule, flush, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };

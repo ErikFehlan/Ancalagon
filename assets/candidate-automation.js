@@ -9,6 +9,7 @@
     function schedule(){if(timer!==null)return;timer=setTimeout(()=>{timer=null;pump();},delay);}
     function request(candidate){
       if(!valid(candidate))return;
+      if(api.delegate?.(candidate))return;
       tasks.get(candidate.id)?.controller.abort();
       candidate.feedbackEvaluation={status:'queued',updatedAt:Date.now()};
       tasks.set(candidate.id,{candidate,controller:new AbortController(),started:false,saving:false});
