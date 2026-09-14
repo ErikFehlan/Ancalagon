@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 create schema auth;
 create table auth.users(id uuid primary key);
-create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('test.user',true),'')::uuid$$;
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('test.actor',true),'')::uuid$$;
 create schema vault;
 create table vault.decrypted_secrets(name text,decrypted_secret text);
 create schema net;
@@ -89,7 +89,7 @@ do $$declare l record;begin
 end$$;
 set role authenticated;
 set test.workspace='00000000-0000-0000-0000-000000000002';
-set test.user='00000000-0000-0000-0000-000000000001';
+set test.actor='00000000-0000-0000-0000-000000000001';
 do $$begin
  if exists(select 1 from job_reassessment_tasks) then raise exception 'RLS isolation failed';end if;
  begin perform public.review_job_reassessment('00000000-0000-0000-0000-000000000021','wrong','approve');raise exception 'Foreign review allowed';exception when insufficient_privilege then null;end;

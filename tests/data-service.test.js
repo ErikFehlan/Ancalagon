@@ -113,3 +113,14 @@ test('stale backend approval rejects without changing the local score',async()=>
  await assert.rejects(f.service.reviewJobReassessment('c','old','approve',state),e=>e.code==='40001');
  assert.equal(state.candidates[0].managerScore,7);
 });
+
+test('source timestamps stay consistent with worker context after database update timestamps change',async()=>{
+ const f=fixture(),state=await f.service.load();
+ state.candidates.push({id:'c',jobId:'job',name:'Test',short:'Test',strengths:[],concerns:[],tags:[],jdScore:7,managerScore:7,screeningInsight:{canDoJob:'Yes',cultureFit:'Strong',notes:'Manual testing evidence',createdAt:123,previousJDScore:7,previousManagerScore:7,assessment:{jd_score:7,manager_score:7}}});
+ state.feedback.push({id:'f',jobId:'job',candidateId:'c',type:'General note',text:'Testing ownership',learningScope:'candidate',createdAt:10,updatedAt:123});
+ state.interviewOutcomes.push({id:'o',jobId:'job',candidateId:'c',stage:'Technical',decision:'Move Forward',createdAt:10,updatedAt:456});
+ await f.service.flush(state);
+ f.rows.manager_feedback[0].updated_at='2026-09-14T15:00:00Z';f.rows.interview_outcomes[0].updated_at='2026-09-14T15:00:00Z';f.rows.screening_insights[0].created_at='2026-09-14T15:00:00Z';
+ const restored=await f.service.load();
+ assert.equal(restored.feedback[0].updatedAt,123);assert.equal(restored.interviewOutcomes[0].updatedAt,456);assert.equal(restored.candidates[0].screeningInsight.createdAt,123);
+});

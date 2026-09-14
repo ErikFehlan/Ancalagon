@@ -32,9 +32,9 @@
         query('jobs', 'id,title,client,description,manager_feedback,criteria,knockouts,weights,pattern_analysis,status,close_reason,closed_at,hired_candidate_id,created_at,updated_at'),
         query('candidates', 'id,job_id,name,role,stage,resume_jd_score,jd_score,original_manager_score,manager_score,confidence,recommendation,primary_signal,strengths,concerns,tags,screening_questions,created_at,updated_at'),
         query('manager_feedback', 'id,job_id,candidate_id,feedback_type,outcome,feedback_text,created_at,updated_at'),
-        query('interview_outcomes', 'id,job_id,candidate_id,interview_stage,decision,positives,concerns,notes,previous_pipeline_stage,created_at,updated_at'),
+        query('interview_outcomes', 'id,job_id,candidate_id,interview_stage,decision,positives,concerns,notes,previous_pipeline_stage,source_updated_at,created_at,updated_at'),
         query('candidate_benchmarks', 'job_id,candidate_id'),
-        query('screening_insights', 'id,job_id,candidate_id,can_do_job,culture_working_style_fit,notes,resulting_jd_score,resulting_manager_score,assessment_summary,assessment_source,created_at,previous_jd_score,previous_manager_score'),
+        query('screening_insights', 'id,job_id,candidate_id,can_do_job,culture_working_style_fit,notes,resulting_jd_score,resulting_manager_score,assessment_summary,assessment_source,source_updated_at,created_at,previous_jd_score,previous_manager_score'),
         query('candidate_assessments', 'id,job_id,candidate_id,assessment_type,evidence,created_at')
       ]);
       const benchmarkIds = new Set(benchmarkRows.map(row => row.candidate_id));
@@ -68,7 +68,7 @@
             screeningInsight: screening ? {
               canDoJob: screening.can_do_job, cultureFit: screening.culture_working_style_fit, notes: screening.notes,
               assessment: { jd_score: Number(screening.resulting_jd_score), manager_score: Number(screening.resulting_manager_score), summary: screening.assessment_summary },
-              source: screening.assessment_source, createdAt: epoch(screening.created_at),
+              source: screening.assessment_source, createdAt: screening.source_updated_at ?? epoch(screening.created_at),
               previousJDScore: Number(screening.previous_jd_score), previousManagerScore: Number(screening.previous_manager_score)
             } : null
           };
@@ -83,14 +83,14 @@
           signalStatus: preferenceByFeedback.get(row.id)?.signal_status || 'candidate_only',
           signalConfidence: Number(preferenceByFeedback.get(row.id)?.signal_confidence || 0),
           interpretation: preferenceByFeedback.get(row.id)?.interpretation || null,
-          createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at)
+          createdAt: epoch(row.created_at), updatedAt: preferenceByFeedback.get(row.id)?.source_updated_at ?? epoch(row.updated_at)
         })),
         interviewOutcomes: outcomeRows.map(row => ({
           id: row.id, jobId: row.job_id, candidateId: row.candidate_id,
           candidate: candidateRows.find(candidate => candidate.id === row.candidate_id)?.name || 'Candidate',
           stage: row.interview_stage, decision: row.decision, positives: row.positives || '', concerns: row.concerns || '',
           notes: row.notes || '', previousStage: row.previous_pipeline_stage || 'Sourced',
-          createdAt: epoch(row.created_at), updatedAt: epoch(row.updated_at)
+          createdAt: epoch(row.created_at), updatedAt: row.source_updated_at ?? epoch(row.updated_at)
         }))
       };
       seeding = true;
@@ -207,7 +207,7 @@
       await replaceChildren('interview_outcomes', state.interviewOutcomes.filter(x => x.candidateId).map(item => ({
         id: item.id, workspace_id: workspaceId, job_id: item.jobId, candidate_id: item.candidateId,
         interview_stage: item.stage, decision: item.decision, positives: item.positives || '', concerns: item.concerns || '',
-        notes: item.notes || '', previous_pipeline_stage: item.previousStage || null, created_by: userId,
+        notes: item.notes || '', previous_pipeline_stage: item.previousStage || null, source_updated_at: item.updatedAt || item.createdAt, created_by: userId,
         created_at: iso(item.createdAt), updated_at: iso(item.updatedAt)
       })));
       await replaceChildren('screening_insights', state.candidates.filter(x => x.screeningInsight).map(candidate => {
@@ -218,7 +218,7 @@
           previous_jd_score: item.previousJDScore, resulting_jd_score: item.assessment?.jd_score ?? candidate.jdScore,
           previous_manager_score: item.previousManagerScore, resulting_manager_score: item.assessment?.manager_score ?? candidate.managerScore,
           assessment_summary: item.assessment?.summary || '', assessment_source: item.source || 'local',
-          model: item.assessment?.model || null, created_by: userId, created_at: iso(item.createdAt)
+          model: item.assessment?.model || null, source_updated_at: item.createdAt, created_by: userId, created_at: iso(item.createdAt)
         };
       }));
       const reviewAssessments = state.candidates.filter(x => x.aiReview || x.submissionDraft || x.feedbackEvaluation).map(reviewRow);

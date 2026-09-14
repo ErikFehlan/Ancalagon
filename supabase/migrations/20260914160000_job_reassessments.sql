@@ -1,4 +1,6 @@
 begin;
+alter table public.interview_outcomes add column if not exists source_updated_at bigint;
+alter table public.screening_insights add column if not exists source_updated_at bigint;
 create table if not exists public.job_reassessment_tasks (
   candidate_id uuid primary key,
   job_id uuid not null,
@@ -63,7 +65,7 @@ language sql volatile security definer set search_path='' as $$
       'tags',c.tags,'strengths',c.strengths,'concerns',c.concerns,'resumeJDScore',coalesce(c.resume_jd_score,c.jd_score,0),
       'jdScore',coalesce(c.jd_score,0),'managerScore',coalesce(c.manager_score,0),'rec',coalesce(c.recommendation,'Screen First'),
       'screeningInsight',case when s.id is null then null else jsonb_build_object('notes',s.notes,'canDoJob',s.can_do_job,
-        'cultureFit',s.culture_working_style_fit,'createdAt',floor(extract(epoch from s.created_at)*1000)) end,
+        'cultureFit',s.culture_working_style_fit,'createdAt',coalesce(s.source_updated_at,floor(extract(epoch from s.created_at)*1000))) end,
       'aiReview',case when a.evidence#>>'{review,source}'='hybrid_reevaluation'
         then jsonb_build_object('source','hybrid_reevaluation','priorCorrection',a.evidence#>'{review,priorCorrection}')
         else a.evidence->'review' end),
@@ -71,7 +73,7 @@ language sql volatile security definer set search_path='' as $$
       where f->>'candidateId'=c.id::text or (f->>'learningScope'='job' and f->>'signalStatus'='approved')),'[]'::jsonb),
     'outcomes',coalesce((select jsonb_agg(jsonb_build_object('id',o.id,'jobId',o.job_id,'candidateId',o.candidate_id,
       'stage',o.interview_stage,'decision',o.decision,'positives',o.positives,'concerns',o.concerns,'notes',o.notes,
-      'createdAt',floor(extract(epoch from o.created_at)*1000),'updatedAt',floor(extract(epoch from o.updated_at)*1000)) order by o.id)
+      'createdAt',floor(extract(epoch from o.created_at)*1000),'updatedAt',coalesce(o.source_updated_at,floor(extract(epoch from o.updated_at)*1000))) order by o.id)
       from public.interview_outcomes o where o.candidate_id=c.id and o.job_id=c.job_id and o.workspace_id=c.workspace_id),'[]'::jsonb))
   from public.candidates c
   left join lateral(select * from public.screening_insights s where s.candidate_id=c.id and s.job_id=c.job_id and s.workspace_id=c.workspace_id order by s.created_at desc,s.id desc limit 1) s on true
@@ -213,7 +215,7 @@ end $$;
 create function public.review_job_reassessment(p_candidate uuid,p_revision text,p_decision text) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare task public.job_reassessment_tasks; c public.candidates; a public.candidate_assessments;
-  prior jsonb; review jsonb; audit jsonb; score numeric; jdscore numeric; recommendation text; stamp bigint; history jsonb;
+  prior jsonb; review jsonb; audit jsonb; score numeric; jdscore numeric; proposed_recommendation text; stamp bigint; history jsonb;
 begin
   if p_decision is null or p_decision not in ('approve','ignore','retry') then raise exception 'Invalid decision';end if;
   select * into task from public.job_reassessment_tasks where candidate_id=p_candidate for update;
@@ -238,8 +240,8 @@ begin
   if score is null or score not between 0 and 10 then raise exception 'Invalid proposed score';end if;
   jdscore:=(task.result->>'jd_score')::numeric;if jdscore is null or jdscore not between 0 and 10 then raise exception 'Invalid proposed JD score';end if;
   jdscore:=round(jdscore,1);score:=round(score,1);stamp:=floor(extract(epoch from now())*1000);
-  recommendation:=case when score>=9.2 then 'Interview' when score>=8.3 then 'Strong Consideration' when score>=7.2 then 'Consider' when score>=6 then 'Screen First' else 'Not Recommended' end;
-  audit:=jsonb_build_object('previousScore',c.manager_score,'newScore',score,'previousJDScore',c.jd_score,'newJDScore',jdscore,'previousRecommendation',c.recommendation,'newRecommendation',recommendation,
+  proposed_recommendation:=case when score>=9.2 then 'Interview' when score>=8.3 then 'Strong Consideration' when score>=7.2 then 'Consider' when score>=6 then 'Screen First' else 'Not Recommended' end;
+  audit:=jsonb_build_object('previousScore',c.manager_score,'newScore',score,'previousJDScore',c.jd_score,'newJDScore',jdscore,'previousRecommendation',c.recommendation,'newRecommendation',proposed_recommendation,
     'reasons',jsonb_build_array(task.result->>'manager_reason',task.result->>'jd_reason'),'appliedAt',stamp,'source','job_reassessment','revision',task.revision);
   select coalesce(jsonb_agg(value order by ord),'[]'::jsonb) into history from (
     select value,ord from jsonb_array_elements(coalesce(prior->'history','[]'::jsonb)||jsonb_build_array(audit)) with ordinality as h(value,ord) order by ord desc limit 20
@@ -248,12 +250,12 @@ begin
     'notes',concat_ws(' · ',task.result->>'manager_reason',task.result->>'jd_reason'),'source','hybrid_reevaluation',
     'priorCorrection',case when prior->>'source'='hybrid_reevaluation' then prior->'priorCorrection' else prior end,
     'contextSignature',task.result->>'context_signature','model',task.result->>'model','history',history,'createdAt',stamp);
-  update public.candidates set jd_score=jdscore,manager_score=score,recommendation=recommendation where id=c.id returning * into c;
+  update public.candidates set jd_score=jdscore,manager_score=score,recommendation=proposed_recommendation where id=c.id returning * into c;
   if a.id is null then
     insert into public.candidate_assessments(workspace_id,job_id,candidate_id,assessment_type,jd_score,manager_score,recommendation,summary,evidence,created_by)
-      values(c.workspace_id,c.job_id,c.id,'manual_correction',c.jd_score,score,recommendation,review->>'notes',jsonb_build_object('review',review),auth.uid()) returning * into a;
+      values(c.workspace_id,c.job_id,c.id,'manual_correction',c.jd_score,score,proposed_recommendation,review->>'notes',jsonb_build_object('review',review),auth.uid()) returning * into a;
   else
-    update public.candidate_assessments set jd_score=jdscore,manager_score=score,recommendation=recommendation,summary=review->>'notes',
+    update public.candidate_assessments set jd_score=jdscore,manager_score=score,recommendation=proposed_recommendation,summary=review->>'notes',
       evidence=jsonb_set(a.evidence,'{review}',review) where id=a.id returning * into a;
   end if;
   -- Source triggers may have invalidated the proposal while persisting approval.
