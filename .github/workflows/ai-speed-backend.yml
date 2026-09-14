@@ -27,6 +27,8 @@ jobs:
       - name: Install immediate dispatch
         run: node scripts/ai-speed-backend.mjs install
       - name: Deploy focused feedback processing
-        run: supabase functions deploy analyze-patterns-beta analyze-patterns-v2 --project-ref "$SUPABASE_PROJECT_REF"
+        run: |
+          supabase functions deploy analyze-patterns-beta --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy analyze-patterns-v2 --project-ref "$SUPABASE_PROJECT_REF"
       - name: Activate and verify database transport
         run: node scripts/ai-speed-backend.mjs activate
