@@ -48,12 +48,12 @@ Deno.test('auth checks overlap, model waits for both, telemetry does not delay r
   const oldRuntime=globals.EdgeRuntime;
   for(const [key,value] of Object.entries({OPENAI_API_KEY:'test-only',SUPABASE_URL:'https://example.invalid',SUPABASE_ANON_KEY:'test-public'}))Deno.env.set(key,value);
   let releaseMember!:(r:Response)=>void,releaseUser!:(r:Response)=>void,releaseUsage!:(r:Response)=>void;
-  let modelCalled=false,background:Promise<unknown>|undefined;
+  let authCalls=0,modelCalled=false,background:Promise<unknown>|undefined;
   globals.EdgeRuntime={waitUntil:p=>{background=p;}};
   globalThis.fetch=(url,init)=>{
     const u=String(url);
-    if(u.includes('workspace_members'))return new Promise(r=>{releaseMember=r;});
-    if(u.includes('/auth/v1/user'))return new Promise(r=>{releaseUser=r;});
+    if(u.includes('workspace_members')){authCalls++;return new Promise(r=>{releaseMember=r;});}
+    if(u.includes('/auth/v1/user')){authCalls++;return new Promise(r=>{releaseUser=r;});}
     if(u.includes('ai_usage_events')){
       const row=JSON.parse(String(init?.body));assert(row.operation==='screening_reassessment','unsupported usage type');
       return row.status==='started'?new Promise(r=>{releaseUsage=r;}):Promise.resolve(json({}));
@@ -64,15 +64,16 @@ Deno.test('auth checks overlap, model waits for both, telemetry does not delay r
     const pending=handleAuthenticatedAnalysis(request(payload));
     // Parsing a cloned request is asynchronous; wait until the two auth calls start.
     for(let i=0;i<100&&(!releaseMember||!releaseUser);i++)await new Promise(r=>setTimeout(r,1));
-    assert(releaseMember&&releaseUser,'auth checks did not start together');assert(!modelCalled,'model ran before authorization');
+    assert(typeof releaseMember==='function'&&typeof releaseUser==='function','auth checks did not start together');assert(!modelCalled,'model ran before authorization');
     releaseMember(json([{workspace_id:'workspace-a'}]));releaseUser(json({id:'test-user'}));
     const response=await pending;
-    assert(response.ok&&modelCalled&&releaseUsage&&background,'response blocked on telemetry');
+    assert(response.ok&&modelCalled&&typeof releaseUsage==='function'&&background,'response blocked on telemetry');
     releaseUsage(json({}));await background;
     // Rejecting membership must still prevent any model request.
     modelCalled=false;
     const rejected=handleAuthenticatedAnalysis(request(payload));
-    await new Promise(r=>setTimeout(r,5));releaseMember(json([],403));releaseUser(json({id:'test-user'}));
+    for(let i=0;i<1000&&authCalls<4;i++)await new Promise(r=>setTimeout(r,1));
+    assert(authCalls===4,'second auth checks did not start');releaseMember(json([],403));releaseUser(json({id:'test-user'}));
     assert((await rejected).status===403&&!modelCalled,'workspace authorization bypassed');
   }finally{
     globalThis.fetch=oldFetch;globals.EdgeRuntime=oldRuntime;
