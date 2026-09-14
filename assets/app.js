@@ -286,9 +286,9 @@
       const feedbackInterpretations=new Map();
       function feedbackInterpretationHTML(f,i){
         const state=feedbackInterpretations.get(f.id);
-        if(state?.item===f)return '<p role="status">Saving note and drafting interpretation…</p>';
+        if(state?.item===f&&state.phase!=='saving')return '<p role="status">Drafting interpretation…</p>';
         if(!f.interpretation)return `<p class="rf-sub">${state?.error?'Your original note is retained. Saving or interpretation failed.':'No AI interpretation yet.'} <button class="rf-btn" type="button" data-interpret-feedback="${i}">Retry interpretation</button></p>`;
-        return `${state?.error?'<p role="status">Interpretation could not be saved. Use the sync retry control to save it.</p>':''}<div class="rf-feedback-interpretation"><strong>${f.interpretation.source==='recruiter'?'Your clarification':'AI interpretation · draft'}</strong><p>${escapeHTML(f.interpretation.text)}</p><span class="rf-sub">Original note preserved · scores unchanged</span><details><summary>Correct interpretation</summary><textarea aria-label="Correct interpretation" maxlength="2000">${escapeHTML(f.interpretation.text)}</textarea><button class="rf-btn" type="button" data-correct-interpretation="${i}">Save clarification</button></details></div>`;
+        return `${state?.phase==='saving'?'<p role="status">Interpretation ready · saving…</p>':''}${state?.error?'<p role="status">Interpretation could not be saved. Use the sync retry control to save it.</p>':''}<div class="rf-feedback-interpretation"><strong>${f.interpretation.source==='recruiter'?'Your clarification':'AI interpretation · draft'}</strong><p>${escapeHTML(f.interpretation.text)}</p><span class="rf-sub">Original note preserved · scores unchanged</span><details><summary>Correct interpretation</summary><textarea aria-label="Correct interpretation" maxlength="2000">${escapeHTML(f.interpretation.text)}</textarea><button class="rf-btn" type="button" data-correct-interpretation="${i}">Save clarification</button></details></div>`;
       }
       function bindFeedbackInterpretations(list){
         list.querySelectorAll('[data-interpret-feedback]').forEach(b=>b.addEventListener('click',()=>void interpretFeedback(feedback[Number(b.dataset.interpretFeedback)])));
@@ -299,15 +299,19 @@
         const job=jobs.find(j=>j.id===item.jobId),candidate=candidateForRef(item.candidateId,item.jobId);if(!job||!candidate)return;
         const context=evaluationContext(candidate,job),signature=window.AncalagonContext.signature(context),payload=window.AncalagonFeedback.buildPayload(item,job,candidate,context);
         const token={item};feedbackInterpretations.set(item.id,token);renderFeedback();
+        // Save the note and request its interpretation concurrently. Capture save errors
+        // immediately so a fast failure cannot become an unhandled rejection.
+        const saved=dataService.flush(stateSnapshot()).then(()=>null,error=>error);
         try{
-          await dataService.flush(stateSnapshot());
-          if(!feedback.includes(item))return;
           const result=await callHybrid(payload,'Feedback interpretation');
           if(!feedback.includes(item)||signature!==window.AncalagonContext.signature(evaluationContext(candidate,job)))return;
-          item.interpretation=window.AncalagonFeedback.fromResult(result);item.updatedAt=Date.now();
-          await dataService.flush(stateSnapshot());
+          const interpretation=window.AncalagonFeedback.fromResult(result);
+          item.interpretation=interpretation;item.updatedAt=Date.now();token.phase='saving';
+          dataService.markPending?.(stateSnapshot());if(activeJobId===item.jobId)renderFeedback();
+          const saveError=await saved;if(saveError)throw saveError;
+          if(feedback.includes(item)&&item.interpretation===interpretation)await dataService.flush(stateSnapshot());
         }catch(error){token.error=true;showToast('Your note is retained. '+(error.message||'Interpretation unavailable.'),'error');}
-        finally{if(feedbackInterpretations.get(item.id)===token){feedbackInterpretations.set(item.id,{error:token.error});if(activeJobId===item.jobId)renderFeedback();}}
+        finally{await saved;if(feedbackInterpretations.get(item.id)===token){feedbackInterpretations.set(item.id,{error:token.error});if(activeJobId===item.jobId)renderFeedback();}}
       }
       function editFeedback(i){const f=feedback[i];if(!f)return;root.querySelector('#feedbackEditIndex').value=String(i);root.querySelector('#feedbackCandidate').value=f.candidateId||candidateForRef(f.candidate,f.jobId)?.id||'';root.querySelector('#feedbackType').value=f.type;root.querySelector('#feedbackOutcome').value=f.outcome||'Neutral / no signal';root.querySelector('#feedbackText').value=f.text;root.querySelector('#feedbackScope').value=f.learningScope||'candidate';root.querySelector('#feedbackSignal').value=f.signalLabel||'';root.querySelector('#feedbackDetails').open=true;root.querySelector('#feedbackSubmitBtn').textContent='Update note';root.querySelector('#cancelFeedbackEdit').classList.remove('rf-hidden');root.querySelector('#feedbackForm').scrollIntoView({behavior:'smooth',block:'start'})}
       function resetFeedbackForm(){const selected=root.querySelector('#feedbackCandidate').value;root.querySelector('#feedbackForm').reset();root.querySelector('#feedbackCandidate').value=selected;root.querySelector('#feedbackDetails').open=false;delete root.querySelector('#feedbackSignal').dataset.edited;root.querySelector('#feedbackEditIndex').value='';root.querySelector('#feedbackSignal').value='';root.querySelector('#feedbackSubmitBtn').textContent='Save note';root.querySelector('#cancelFeedbackEdit').classList.add('rf-hidden')}

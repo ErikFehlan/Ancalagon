@@ -1,0 +1,32 @@
+name: Deploy faster AI processing
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: criteria-backend-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: criteria-backend
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy compatible criteria worker
+        run: supabase functions deploy refine-job-criteria --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Install immediate dispatch
+        run: node scripts/ai-speed-backend.mjs install
+      - name: Deploy focused feedback processing
+        run: supabase functions deploy analyze-patterns-beta analyze-patterns-v2 --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Activate and verify database transport
+        run: node scripts/ai-speed-backend.mjs activate
