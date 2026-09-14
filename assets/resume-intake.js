@@ -67,6 +67,7 @@
       try{while(queue.size){
         const id=queue.values().next().value;queue.delete(id);const c=api.candidates().find(c=>c.id===id);
         if(!c||!valid(c)||!pending(c))continue;
+        if(c.resumeIntake.phase==='ready'&&c.resumeIntake.signature===api.signature(context(c)))continue;
         try{
           if(files.has(id))await storeDocument(c);
           const text=await api.text(c);
@@ -125,6 +126,7 @@
     function renderCandidate(c,wrap){
       if(!wrap)return;const state=c?.resumeIntake;wrap.hidden=!state;if(!state){wrap.innerHTML='';return;}
       const brief=state.brief,needsReview=pending(c),stale=needsReview&&state.phase==='ready'&&state.signature!==api.signature(context(c));
+      if(stale)queueMicrotask(()=>enqueue(c));
       let html='<span class="rf-kicker">Resume screening brief</span>';
       if(state.phase==='error')html+='<h3>Resume intake needs attention</h3><p>'+escape(state.error)+'</p><button class="rf-btn" type="button" data-intake-retry>Try again</button>';
       else if(state.phase!=='ready')html+='<h3>Preparing your screening brief…</h3><p class="rf-sub">You can keep working. If you close this tab, unfinished intake resumes when you return. Scores appear after review.</p>';
@@ -148,7 +150,7 @@
       wrap.innerHTML=list.map(c=>'<button type="button" class="rf-intake-status" data-intake-open="'+escape(c.id)+'"><strong>'+escape(c.short)+'</strong><span>'+({uploading:'Saving resume…',queued:'Queued for assessment',processing:'Preparing screening brief…',ready:'Screening brief ready · review',error:'Needs attention'}[c.resumeIntake.phase]||'Preparing…')+'</span></button>').join('');
       wrap.querySelectorAll('[data-intake-open]').forEach(b=>b.addEventListener('click',()=>api.open(api.candidates().find(c=>c.id===b.dataset.intakeOpen),true)));
     }
-    function resume(){api.candidates().filter(c=>pending(c)&&['queued','processing','uploading'].includes(c.resumeIntake.phase)).forEach(enqueue);render();}
+    function resume(){api.candidates().filter(c=>pending(c)&&(['queued','processing','uploading'].includes(c.resumeIntake.phase)||(c.resumeIntake.phase==='ready'&&c.resumeIntake.signature!==api.signature(context(c))))).forEach(enqueue);render();}
     function hasUnsavedFile(){for(const id of files.keys())if(!api.candidates().some(c=>c.id===id))files.delete(id);return extracting||files.size>0;}
     return {upload,retry,approve,resume,render,renderCandidate,hasUnsavedFile};
   }
