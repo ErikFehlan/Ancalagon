@@ -29,3 +29,18 @@ test('matching results appear automatically and original wording can be restored
  job.criteria=['8+ years QA required'];assert.equal(app.questions(job).length,0);
  available=false;await app.refresh(job,true);const previous=updates;await app.refresh(job,true);assert.equal(updates,previous,'unchanged empty results must not redraw the candidate workspace');
 });
+test('pending polling is faster, completed polling slows, and switching jobs never waits',async()=>{
+ const vm=require('node:vm'),fs=require('node:fs');let clock=0,calls=0,renders=0;
+ const sandbox={module:{exports:{}},Date:{now:()=>clock},setInterval:()=>1,document:{visibilityState:'visible',addEventListener(){}}};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../assets/criteria-automation.js'),'utf8'),sandbox);
+ const app=sandbox.module.exports;let job={id:'one',title:'QA',criteria:[]},status='queued';
+ const wrap={set innerHTML(value){renders++;},querySelector:()=>null};
+ app.init({root:{querySelector:()=>wrap},ready:()=>true,job:()=>job,fetch:async id=>{calls++;return{job_id:id,status,input:{title:job.title,criteria:job.criteria},result:{criteria:[]}};},updated(){}});
+ await app.refresh(job);assert.equal(calls,1);const initialRenders=renders;
+ clock=1999;await app.refresh(job);assert.equal(calls,1);assert.equal(renders,initialRenders,'unchanged poll must not redraw the panel');
+ clock=2000;await app.refresh(job);assert.equal(calls,2);
+ status='ready';clock=4000;await app.refresh(job);assert.equal(calls,3);
+ clock=6000;await app.refresh(job);assert.equal(calls,3);
+ job={...job,id:'two'};await app.refresh(job);assert.equal(calls,4);
+ job={...job,title:'Changed'};await app.refresh(job);assert.equal(calls,5);
+});

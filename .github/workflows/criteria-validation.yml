@@ -20,8 +20,14 @@ jobs:
         with:
           deno-version: v2.x
       - name: Check worker types
-        run: deno check supabase/functions/refine-job-criteria/index.ts
+        run: deno check supabase/functions/refine-job-criteria/index.ts supabase/functions/analyze-patterns-beta/index.ts
+      - name: Test focused feedback and authentication
+        run: deno test --allow-env tests/analysis-latency.test.ts
       - name: Test queue transactions and permissions
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -f tests/criteria-queue.sql
+      - name: Test immediate dispatch and scoped claims
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -f tests/criteria-immediate.sql

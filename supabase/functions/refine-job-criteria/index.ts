@@ -7,10 +7,12 @@ Deno.serve(async request=>{
   if(request.method!=='POST')return response({error:'Method not allowed'},405);
   const base=Deno.env.get('SUPABASE_URL'),key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),apiKey=Deno.env.get('OPENAI_API_KEY');
   if(!base||!key||!apiKey)return response({error:'Worker configuration incomplete'},503);
-  const command=await request.json().catch(()=>({}));if(command.health===true)return response({status:'configured'});
+  const command=await request.json().catch(()=>({}));if(command.health===true)return response({status:'configured',immediate_criteria:true});
   async function rpc(name:string,body:unknown){const r=await fetch(`${base}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:key!,Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('database_unavailable');return r.json();}
+  const jobId=command.job_id;
+  if(jobId!==undefined&&(typeof jobId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(jobId)))return response({error:'Invalid job'},400);
   let task;
-  try{[task]=await rpc('claim_job_criteria',{});if(!task)return response({status:'idle'});
+  try{[task]=await rpc(jobId?'claim_job_criteria_for_job':'claim_job_criteria',jobId?{p_job:jobId}:{});if(!task)return response({status:'idle'});
     const source=prepare(task.input);let result;
     if(!source.length)result={criteria:[]};else{
       const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(60000),body:JSON.stringify({model:Deno.env.get('CRITERIA_MODEL')||'gpt-4.1-mini',store:false,max_output_tokens:8000,
