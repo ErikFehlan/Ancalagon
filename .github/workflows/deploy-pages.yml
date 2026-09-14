@@ -28,6 +28,7 @@ jobs:
         run: |
           node --check assets/app.js
           node --check assets/home.js
+          node --check assets/focus-ui.js
           node --check assets/select.js
           node --check assets/auth.js
           node --check assets/data.js
@@ -56,6 +57,7 @@ jobs:
           node tests/resume-intake-browser.cjs
           node tests/streamline-browser.cjs
           node tests/home-browser.cjs
+          node tests/focus-browser.cjs
 
   prepare-home:
     if: github.ref == 'refs/heads/main'

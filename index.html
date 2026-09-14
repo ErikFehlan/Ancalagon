@@ -9,7 +9,7 @@
   <meta name="description" content="Ancalagon recruiting intelligence dashboard for jobs, candidates, manager feedback, interview outcomes, pipeline tracking, and fit analysis.">
   <link rel="icon" type="image/png" href="assets/ancalagon.png">
   <link rel="apple-touch-icon" href="assets/ancalagon.png">
-  <link rel="stylesheet" href="assets/app.css?v=20260914-home">
+  <link rel="stylesheet" href="assets/app.css?v=20260914-focus">
 </head>
 <body class="rf-auth-pending">
 <div class="rf-auth-gate" id="authGate" aria-live="polite">
@@ -60,22 +60,26 @@
 </div>
       <nav class="rf-nav" aria-label="Ancalagon navigation">
         <button data-page="home"><span aria-hidden="true">⌂</span><span>Home</span></button>
-        <div class="rf-navgroup-label">Search</div>
-        <button class="active" data-page="dashboard"><span>⌂</span><span>Dashboard</span></button>
-        <button data-page="candidates"><span>◎</span><span>Candidates</span></button>
-        <button data-page="pipeline"><span>⇢</span><span>Pipeline</span></button>
-        <button data-page="outcomes"><span>✓</span><span>Interview Activity</span></button>
-        <div class="rf-navgroup-label">Intelligence</div>
-        <button data-page="rankings"><span>≡</span><span>Rankings</span></button>
-        <button data-page="compare"><span>⇄</span><span>Compare</span></button>
-        <button data-page="benchmarks"><span>★</span><span>Benchmarks</span></button>
-        <button data-page="criteria"><span>◫</span><span>Evaluation Criteria</span></button>
-        <button data-page="feedback"><span>◌</span><span>Manager Feedback</span></button>
-        <button data-page="insights"><span>◈</span><span>Hiring Insights</span></button>
-        <div class="rf-navgroup-label">Manage</div>
-        <button data-page="jobs"><span>▣</span><span>Jobs</span></button>
-        <button data-page="learn"><span aria-hidden="true">?</span><span>Learn Ancalagon</span></button>
-        <button class="rf-hidden" id="adminUsageNav" data-page="admin-usage"><span>◉</span><span>Usage Analytics</span></button>
+        <button data-page="jobs"><span aria-hidden="true">▣</span><span>Jobs</span></button>
+        <div class="rf-navgroup-label">Current search</div>
+        <button data-page="dashboard"><span aria-hidden="true">◫</span><span>Overview</span></button>
+        <button data-page="candidates"><span aria-hidden="true">◎</span><span>Candidates</span></button>
+        <button data-page="pipeline"><span aria-hidden="true">⇢</span><span>Pipeline</span></button>
+        <details class="rf-nav-tools" id="feedbackNav"><summary>Feedback &amp; setup</summary>
+          <button data-page="feedback"><span aria-hidden="true">◌</span><span>Manager Feedback</span></button>
+          <button data-page="outcomes"><span aria-hidden="true">✓</span><span>Interview Activity</span></button>
+          <button data-page="criteria"><span aria-hidden="true">◫</span><span>Evaluation Criteria</span></button>
+        </details>
+        <details class="rf-nav-tools" id="analysisNav"><summary>Analysis tools</summary>
+          <button data-page="rankings"><span aria-hidden="true">≡</span><span>Rankings</span></button>
+          <button data-page="compare"><span aria-hidden="true">⇄</span><span>Compare</span></button>
+          <button data-page="benchmarks"><span aria-hidden="true">★</span><span>Benchmarks</span></button>
+          <button data-page="insights"><span aria-hidden="true">◈</span><span>Hiring Insights</span></button>
+        </details>
+        <div class="rf-nav-help">
+          <button data-page="learn"><span aria-hidden="true">?</span><span>Learn Ancalagon</span></button>
+          <button class="rf-hidden" id="adminUsageNav" data-page="admin-usage"><span aria-hidden="true">◉</span><span>Usage Analytics</span></button>
+        </div>
       </nav>
       <div class="rf-bench"><h4>Active benchmarks</h4><div class="rf-note">No benchmarks yet</div></div>
     </aside>
@@ -88,19 +92,20 @@
         <div class="rf-userbar"><div><strong id="authWorkspaceName">Private workspace</strong><span id="authUserEmail"></span></div><button class="rf-btn" id="authSignOut" type="button">Sign out</button></div>
         <button class="rf-btn rf-settingsbtn" type="button" data-goto="backend">⚙ <span>Settings</span></button>
       </div>
+      <nav id="workspaceBreadcrumbs" class="rf-breadcrumbs" aria-label="Current location"></nav>
       <section class="rf-page" id="page-home" aria-label="Your starting point"><div id="workspaceHome"></div></section>
       <section class="rf-page" id="page-job-picker">
         <div class="rf-job-picker">
           <div class="rf-job-picker-hero">
             <div><h1>Choose a job to open</h1><p>Select the search you want to work on. Each job keeps its candidates, evaluation criteria, benchmarks, feedback, and interview outcomes separate.</p></div>
-            <button class="rf-btn primary" type="button" data-goto="jobs">+ Create New Job</button>
+            <button class="rf-btn primary" type="button" data-new-job>+ Create New Job</button>
           </div>
           <div class="rf-job-picker-grid" id="jobPickerGrid"></div>
           <div class="rf-job-picker-foot">Your workspace data is securely loaded from your Ancalagon account.</div>
         </div>
       </section>
       <section class="rf-page active" id="page-dashboard">
-        <div class="rf-top"><div><h1>Ancalagon Dashboard</h1><p>Evaluate candidates against what this hiring manager actually responds to.</p></div><div class="rf-actions"><button class="rf-btn primary" id="addCandidateBtn">Upload resume</button><button class="rf-btn" id="exportBtn">Export Report</button></div></div>
+        <div class="rf-top"><div><h1>Search overview</h1><p>Review the shortlist and the latest assessment updates.</p></div><div class="rf-actions"><button class="rf-btn primary" id="addCandidateBtn">Upload resume</button><button class="rf-linkbtn" id="exportBtn">Export Report</button></div></div>
         <details class="rf-card rf-assessment-updates" id="jobAssessmentPanel" data-state="loading">
           <summary>
             <span class="rf-assessment-dot" aria-hidden="true"></span>
@@ -143,7 +148,7 @@
       </section>
 
       <section class="rf-page" id="page-candidates">
-        <div class="rf-sectiontitle"><div><h2>Candidates</h2><p>Add a candidate, then click any profile to review strengths, concerns, and recommendation.</p></div><div class="rf-actions"><input class="rf-search" id="candidateSearch" placeholder="Search candidates…" aria-label="Search candidates"><button class="rf-btn primary" id="openAddCandidate">Upload resume</button></div></div>
+        <div class="rf-sectiontitle"><div><h2>Candidates</h2><p>Find a candidate, review the assessment, or upload a resume.</p></div><div class="rf-actions"><input class="rf-search" id="candidateSearch" placeholder="Search candidates…" aria-label="Search candidates"><button class="rf-btn primary" id="openAddCandidate">Upload resume</button></div></div>
         <div class="rf-card" id="addCandidatePanel" style="margin-bottom:16px"><div class="rf-cardhead"><h3>Add Candidate</h3><button class="rf-linkbtn" id="closeAddCandidate" type="button" hidden>Close</button></div><div id="resumeDropZone" class="rf-resume-drop"><label for="resumeUpload"><strong>Drop a resume here</strong><span>Or choose a PDF, DOCX, or TXT file · up to 10 MB</span></label><input id="resumeUpload" type="file" accept=".pdf,.docx,.txt"><p id="resumeUploadNote" class="rf-sub" role="status">Upload a resume to create a candidate and prepare a screening brief automatically.</p></div><details id="manualCandidateEntry"><summary>Add candidate details manually</summary><form class="rf-form" id="candidateForm"><div class="rf-formrow"><div><label for="candidateName">Name</label><input id="candidateName" required placeholder="e.g. Jane Smith"></div><div><label for="candidateRole">Role / headline</label><input id="candidateRole" required placeholder="e.g. Senior Product Designer"></div></div><div class="rf-formrow"><div><label for="candidateScore">Fit score</label><input id="candidateScore" type="number" min="0" max="10" step="0.1" required placeholder="8.5"></div><div><label for="candidateRec">Recommendation</label><select id="candidateRec"><option>Interview</option><option>Strong Consideration</option><option>Consider</option><option selected>Screen First</option><option>Not Recommended</option></select></div></div><div><label for="candidateSignal">Primary signal</label><input id="candidateSignal" required placeholder="One-sentence summary of why they fit"></div><div class="rf-formrow"><div><label for="candidateStrengths">Strengths</label><textarea id="candidateStrengths" required placeholder="One strength per line"></textarea></div><div><label for="candidateConcerns">Concerns / questions</label><textarea id="candidateConcerns" placeholder="One concern per line"></textarea></div></div><div><label for="candidateTags">Tags</label><input id="candidateTags" placeholder="Legacy modernization, Research, Cleveland"></div><button class="rf-btn primary" type="submit">Add Candidate to Rankings</button><div class="rf-note">AI output is advisory. Review the extracted details and score before adding the candidate.</div></form></details></div>
         <div id="resumeIntakeStatus" class="rf-intake-list" aria-live="polite" hidden></div><div class="rf-cards" id="candidateCards"></div>
       </section>
@@ -182,7 +187,7 @@
       </section>
 
       <section class="rf-page" id="page-pipeline">
-        <div class="rf-sectiontitle"><div><h2>Candidate Pipeline</h2><p>Track every candidate from sourcing through hire, rejection, or withdrawal.</p></div></div>
+        <div class="rf-sectiontitle"><div><h2>Candidate Pipeline</h2><p>Move candidates forward and record what happens next.</p></div><button class="rf-btn" type="button" data-goto="outcomes">Record interview outcome</button></div>
         <div class="rf-card"><div class="rf-kanban" id="pipelineBoard"></div></div>
       </section>
 
@@ -211,7 +216,7 @@
         <div class="rf-card rf-learn-welcome rf-hidden" id="learnWelcome"><div><strong>New to Ancalagon?</strong><p>Take a five-minute tour, or start your first job below.</p></div><div class="rf-actions"><button class="rf-btn primary" type="button" data-goto="learn">Learn Ancalagon</button><button class="rf-btn" type="button" id="dismissLearnWelcome">Skip for now</button></div></div>
         <div class="rf-sectiontitle"><div><h2>Jobs</h2><p>Create multiple searches, store each job description and manager feedback, and switch the dashboard between them.</p></div><button class="rf-btn primary" id="newJobBtn">+ New Job</button></div>
         <div class="rf-grid rf-two">
-          <div class="rf-card"><h3>Active Jobs</h3><div id="jobList" class="rf-list"></div></div>
+          <div class="rf-card"><h3>Your searches</h3><div id="jobList" class="rf-list"></div></div>
           <div class="rf-card"><div class="rf-cardhead"><h3 id="jobFormTitle">Add Job</h3><button class="rf-linkbtn rf-hidden" id="cancelJobEdit" type="button">Cancel edit</button></div><form class="rf-form" id="jobForm"><input type="hidden" id="jobId"><div class="rf-formrow"><div><label for="jobTitle">Job title</label><input id="jobTitle" required placeholder="e.g. Security Engineer"></div><div><label for="jobClient">Client / company</label><input id="jobClient" placeholder="Optional"></div></div><div><label for="jobDescription">Job description</label><textarea id="jobDescription" required placeholder="Paste the complete job description here…" style="min-height:180px"></textarea></div><div><label for="jobManagerFeedback">Manager feedback / calibration notes</label><textarea id="jobManagerFeedback" placeholder="What has the manager liked, disliked, rejected, or prioritized so far?" style="min-height:150px"></textarea></div><div><label for="jobCriteria">Key screening criteria</label><textarea id="jobCriteria" aria-describedby="criteriaAutomationHint" placeholder="Write one criterion per line, e.g. 5+ years QA experience required; BDD preferred; Selenium is a plus."></textarea><p class="rf-sub" id="criteriaAutomationHint">Save your rough criteria as usual. Ancalagon will polish the wording and prepare screening questions automatically. Your originals are preserved.</p></div><div><label for="jobKnockouts">Knockout rules</label><textarea id="jobKnockouts" placeholder="One rule per line, e.g. No sponsorship; Must be Ohio-based; Must have Palantir Foundry"></textarea></div><button class="rf-btn primary" type="submit">Save Job</button><div class="rf-note">Each job keeps its own description, manager calibration, criteria priority, knockout rules, and candidate pipeline.</div></form></div>
         </div>
       </section>
@@ -266,7 +271,7 @@
       </section>
 
       <section class="rf-page" id="page-detail">
-        <div class="rf-sectiontitle"><div><button class="rf-linkbtn" id="backCandidates">← Back to candidates</button><h2 id="detailName" tabindex="-1" style="margin-top:8px"></h2><p id="detailRole"></p></div><div><span id="detailRec" class="rf-pill rf-blue"></span></div></div>
+        <div class="rf-sectiontitle"><div><button class="rf-linkbtn" id="backCandidates">← Back to candidates</button><h2 id="detailName" tabindex="-1" style="margin-top:8px"></h2><p id="detailRole"></p></div><div id="detailActions" class="rf-detail-actions"><span id="detailRec" class="rf-pill rf-blue"></span><button type="button" class="rf-linkbtn" id="recordCandidateOutcome">Record interview outcome</button></div></div>
         <div id="candidateWorkspace"></div><details class="rf-card rf-workspace-details"><summary>Scores, evidence, and activity</summary>
         <div class="rf-detail"><div class="rf-card"><div class="rf-formrow"><div><div class="rf-kicker">JD Fit</div><div class="rf-scorebox" id="detailJDScore"></div></div><div><div class="rf-kicker">Manager Fit</div><div class="rf-scorebox" id="detailManagerScore"></div></div></div><div class="rf-sub" id="detailConfidence" style="margin-top:10px"></div><div id="detailScreenEvidence"></div><div style="margin-top:14px"><label class="rf-kicker">Pipeline stage</label><select id="detailStage" class="rf-search" style="width:100%;margin-top:6px"><option>Sourced</option><option>Screened</option><option>Submitted</option><option>Interviewing</option><option>Offer</option><option>Hired</option><option>Rejected</option><option>Withdrew</option></select></div><h3 style="margin-top:18px">Why they fit</h3><ul id="detailStrengths"></ul><h3 style="margin-top:18px">Screening Questions</h3><ul id="detailQuestions"></ul></div><div class="rf-card"><h3>Concerns / Questions</h3><ul id="detailConcerns"></ul><div id="detailKnockouts" style="margin-top:14px"></div><h3 style="margin-top:20px">Primary signal</h3><p id="detailSignal" style="font-size:13px;line-height:1.55"></p><h3 style="margin-top:20px">Activity Timeline</h3><div class="rf-timeline" id="detailTimeline"></div></div></div>
         <div class="rf-card rf-readiness-card"><div class="rf-cardhead"><div><div class="rf-kicker">Decision support</div><h3>Submission Readiness</h3><p class="rf-sub">A requirement-by-requirement view of what is proven, missing, or still needs to be screened.</p></div><button class="rf-btn" id="copySubmissionSummary" type="button">Copy Submission Summary</button></div><div class="rf-readiness-hero" id="submissionReadiness"></div><div class="rf-tablewrap"><table class="rf-table rf-evidence-table"><thead><tr><th>Requirement</th><th>Priority</th><th>Status</th><th>Supporting evidence</th></tr></thead><tbody id="requirementEvidenceRows"></tbody></table></div></div>
@@ -282,7 +287,7 @@
   <div class="rf-modalbackdrop" id="closeJobModal" role="dialog" aria-modal="true" aria-labelledby="closeJobTitle"><div class="rf-modal"><form class="rf-form" id="closeJobForm"><div><div class="rf-kicker">Job lifecycle</div><h3 id="closeJobTitle">Close job</h3><p>Close the search without deleting its candidates, feedback, or hiring intelligence.</p></div><div><label for="closeJobReason">Why is this job closing?</label><select id="closeJobReason" required><option value="Filled Internally">Filled internally</option><option value="Filled by Another Firm">Filled by another firm</option><option value="Cancelled">Position cancelled</option><option value="On Hold">Position placed on hold</option></select></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="closeJobCancel" type="button">Cancel</button><button class="rf-btn primary" type="submit">Close Job</button></div></form></div></div>
   <div class="rf-modalbackdrop" id="screeningModal" role="dialog" aria-modal="true" aria-labelledby="screeningTitle"><div class="rf-modal rf-screen-modal"><form class="rf-form" id="screeningForm"><div><div class="rf-kicker">Screening insight</div><h3 id="screeningTitle">Add screening evidence</h3><p>Capture only what changes the assessment. Ancalagon will compare this evidence with the job, manager priorities, and current evaluation.</p></div><div class="rf-screen-context"><div>Current JD Fit<strong id="screenCurrentJD">—</strong></div><div>Current Manager Fit<strong id="screenCurrentManager">—</strong></div></div><div class="rf-formrow"><div><label for="screenAbility">Can they do the job?</label><select id="screenAbility" required><option value="">Select an assessment</option><option value="Yes">Yes — evidence supports it</option><option value="Maybe">Maybe — important gaps remain</option><option value="No">No — evidence shows a mismatch</option></select></div><div><label for="screenCulture">Culture / working-style fit</label><select id="screenCulture" required><option value="">Select an assessment</option><option value="Strong">Strong alignment</option><option value="Mixed">Mixed / uncertain</option><option value="Weak">Weak alignment</option></select></div></div><div><label for="screenNotes">What did you learn?</label><textarea id="screenNotes" required maxlength="4000" placeholder="Add concise, job-related evidence from the conversation—skills depth, ownership, communication, motivation, or working style."></textarea><div class="rf-sub" style="margin-top:5px">Do not include protected personal information. Notes are used as evidence, not as an automatic hiring decision.</div></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="screenCancel" type="button">Cancel</button><button class="rf-btn primary" id="screenSubmit" type="submit">✦ Reassess & Mark Screened</button></div></form></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="assets/auth.js?v=20260914-home"></script>
+  <script src="assets/auth.js?v=20260914-focus"></script>
   <script src="assets/data.js?v=20260914-intake"></script>
   <script src="assets/select.js?v=20260910-dark-dropdowns"></script>
   <script src="assets/evidence.js?v=20260911-quick-feedback"></script>
@@ -291,14 +296,15 @@
   <script src="assets/quality.js?v=20260911-quick-feedback"></script>
   <script src="assets/quality-ui.js?v=20260911-quick-feedback"></script>
   <script src="assets/feedback.js?v=20260914-speed"></script>
-  <script src="assets/resume-intake.js?v=20260914-home"></script>
-  <script src="assets/job-review.js?v=20260914-home"></script>
+  <script src="assets/resume-intake.js?v=20260914-focus"></script>
+  <script src="assets/job-review.js?v=20260914-focus"></script>
   <script src="assets/candidate-automation.js?v=20260914-job-review"></script>
-  <script src="assets/quick-notes.js?v=20260914-home"></script>
-  <script src="assets/candidate-workspace.js?v=20260914-home"></script>
+  <script src="assets/quick-notes.js?v=20260914-focus"></script>
+  <script src="assets/candidate-workspace.js?v=20260914-focus"></script>
   <script src="assets/criteria-automation.js?v=20260914-speed"></script>
-  <script src="assets/home.js?v=20260914-home"></script>
-<script src="assets/app.js?v=20260914-home"></script>
+  <script src="assets/home.js?v=20260914-focus"></script>
+<script src="assets/focus-ui.js?v=20260914-focus"></script>
+<script src="assets/app.js?v=20260914-focus"></script>
 </div>
 </body>
 </html>

@@ -21,10 +21,12 @@
   }
   function render(candidate){
     if(!candidate||!api)return;
+    if(current===candidate.id&&api.root.querySelector('#candidateWorkspace').dataset.workspaceCandidate===candidate.id){currentCandidate=candidate;refreshFeedback();noteStatus(candidate);return;}
     if(current&&current!==candidate.id){const previous=currentCandidate;if(previous)void quickNotes.flush(previous);}
     current=candidate.id;currentCandidate=candidate;const job=api.job(),all=api.feedback(),readiness=api.readiness(candidate);
     const questions=questionsFor(candidate);
     const wrap=api.root.querySelector('#candidateWorkspace'),note=quickNotes.entry(candidate);
+    wrap.dataset.workspaceCandidate=candidate.id;
     wrap.innerHTML=`<div id="workspaceIntake" class="rf-card rf-intake-brief" hidden></div><div id="workspaceEvaluation" class="rf-card" aria-live="polite" hidden></div>
       <div class="rf-card rf-workspace-overview"><div><span class="rf-kicker">Screening brief</span><h3>${escape(readiness.label)}</h3><p></p><div id="workspaceFit" class="rf-brief-fit"></div></div><div><strong>Strongest evidence</strong><p>${escape(candidate.strengths?.[0]||candidate.signal||'No supporting evidence recorded yet.')}</p></div><div><strong>Key uncertainty</strong><p>${escape(readiness.knockouts[0]?.requirement||readiness.mustGaps[0]?.requirement||candidate.concerns?.[0]||'Confirm personal ownership and the job requirements.')}</p></div></div>
       <div class="rf-card rf-screening-work"><div class="rf-workspace-columns"><form id="workspaceNoteForm" class="rf-form"><label for="workspaceNote">Quick feedback for ${escape(candidate.short)}</label><textarea id="workspaceNote" maxlength="10000" placeholder="Type rough notes. AI will put them in context.">${escape(note.text)}</textarea><div class="rf-note-controls"><p id="workspaceNoteStatus" class="rf-sub" role="status"></p><button type="button" class="rf-linkbtn" id="newQuickNote">New note</button><button type="submit" class="rf-btn" id="retryQuickNote" hidden>Retry save</button></div></form><div class="rf-screen-questions"><h3>Questions to resolve</h3><ol id="workspaceQuestions">${questions.map(q=>`<li>${escape(q)}</li>`).join('')}</ol></div></div><details class="rf-feedback-history"><summary>Saved feedback and AI interpretations</summary><div id="workspaceFeedback" aria-live="polite"></div></details></div>
@@ -40,7 +42,9 @@
     wrap.querySelector('#regenerateSubmission').addEventListener('click',()=>{if(!global.confirm('Replace the summary text with a fresh draft from the current evidence?'))return;const text=summary(candidate,job,api.feedback());drafts.set(id,text);wrap.querySelector('#submissionDraft').value=text;wrap.querySelector('#submissionDraftStatus').textContent='Unsaved fresh draft';});
     refreshFeedback();noteStatus(candidate);
   }
-  function refreshFeedback(){
+  function preserve(change){return global.AncalagonFocus?global.AncalagonFocus.preserveEditing(api?.root,change):change();}
+  function refreshFeedback(){return preserve(refreshFeedbackContent);}
+  function refreshFeedbackContent(){
     if(!api||!current)return;const candidate=api.candidate(current),wrap=api.root.querySelector('#workspaceFeedback');if(!candidate||!wrap)return;
     renderEvaluation(candidate);
     const overview=api.root.querySelector('.rf-workspace-overview > div'),readiness=api.readiness(candidate);
@@ -52,9 +56,9 @@
     refreshIntake();
     const all=api.feedback(),items=all.map((f,i)=>({f,i})).filter(x=>x.f.candidateId===current&&x.f.jobId===candidate.jobId).slice(-3).reverse();
     const outdated=candidate.aiReview?.contextSignature&&candidate.aiReview.contextSignature!==api.signature(api.context(candidate));
-    wrap.innerHTML=(outdated?'<p class="rf-note">New context since the last approved evaluation. Review a fresh proposal; the score has not automatically changed.</p>':'')+ (items.map(({f,i})=>`<div class="rf-workspace-note"><p><strong>Original note:</strong> ${escape(f.text)}</p>${api.interpretationHTML(f,i)}<p class="rf-sub">${f.learningScope==='job'?'Shared preference: '+escape(f.signalStatus):'Applies to this candidate only'}</p><button type="button" class="rf-linkbtn" data-workspace-preference="${i}">Review as a reusable preference</button></div>`).join('')||'<p class="rf-sub">Your saved observations and interpretations will appear here.</p>');
-    api.bindInterpretations(wrap);
-    wrap.querySelectorAll('[data-workspace-preference]').forEach(b=>b.addEventListener('click',()=>api.editPreference(Number(b.dataset.workspacePreference))));
+    const feedbackHTML=(outdated?'<p class="rf-note">New context since the last approved evaluation. Review a fresh proposal; the score has not automatically changed.</p>':'')+ (items.map(({f,i})=>`<div class="rf-workspace-note"><p><strong>Original note:</strong> ${escape(f.text)}</p>${api.interpretationHTML(f,i)}<p class="rf-sub">${f.learningScope==='job'?'Shared preference: '+escape(f.signalStatus):'Applies to this candidate only'}</p><button type="button" class="rf-linkbtn" data-workspace-preference="${i}">Review as a reusable preference</button></div>`).join('')||'<p class="rf-sub">Your saved observations and interpretations will appear here.</p>');
+    const bind=()=>{api.bindInterpretations(wrap);wrap.querySelectorAll('[data-workspace-preference]').forEach(b=>b.addEventListener('click',()=>api.editPreference(Number(b.dataset.workspacePreference))));};
+    if(global.AncalagonFocus)global.AncalagonFocus.updatePanel(wrap,feedbackHTML,bind);else{wrap.innerHTML=feedbackHTML;bind();}
     const history=api.root.querySelector('#workspaceScoreHistory');
     const changes=candidate.aiReview?.history||[];
     if(history)history.innerHTML=changes.length?changes.slice(-3).reverse().map(h=>`<div class="rf-workspace-note"><strong>${Number(h.previousScore).toFixed(1)} → ${Number(h.newScore).toFixed(1)} Manager Fit</strong><p>${escape((h.reasons||[]).join(' '))}</p><span class="rf-sub">Approved ${escape(new Date(h.appliedAt).toLocaleString())}</span></div>`).join(''):'<p class="rf-sub">No approved AI re-evaluation changes yet. Saving a quick note does not automatically change the score.</p>';
@@ -62,24 +66,23 @@
   function renderEvaluation(candidate){
     const wrap=api.root.querySelector('#workspaceEvaluation');if(!wrap)return;
     if(api.remoteEvaluation?.(candidate,wrap))return;
-    const state=candidate.feedbackEvaluation,phase=api.evaluationPhase(candidate);wrap.hidden=!state;
-    if(!state){wrap.innerHTML='';return;}
-    const p=state.proposal,reviewable=api.canReview(candidate);
+    const state=candidate.feedbackEvaluation,phase=api.evaluationPhase(candidate);
+    wrap.hidden=!state||['applied','ignored'].includes(phase);if(wrap.hidden)return;
+    const p=state.proposal,reviewable=api.canReview(candidate);let html;
     if(['queued','running','saving'].includes(phase)){
-      wrap.innerHTML=`<h3>${phase==='saving'?'Saving updated assessment…':'Updating assessment from your feedback…'}</h3><p class="rf-sub">You can keep working. The AI proposal will appear here for review.</p>`;return;
-    }
-    if(phase==='pending'&&reviewable){
-      wrap.innerHTML=`<span class="rf-kicker">Ready for review</span><h3>Updated candidate assessment</h3><p><strong>Manager Fit: ${Number(p.currentScore).toFixed(1)} → ${Number(p.proposedScore).toFixed(1)} / 10</strong></p><p class="rf-sub">${escape(p.currentRecommendation)} → ${escape(p.proposedRecommendation)}</p><ul>${p.reasons.map(r=>`<li>${escape(r)}</li>`).join('')}</ul><p class="rf-sub">Based on the current job evidence and feedback. This AI proposal has not changed the candidate’s score.</p><div class="rf-actions"><button type="button" class="rf-btn primary" data-evaluation-action="apply-next">Approve &amp; next</button><button type="button" class="rf-btn" data-evaluation-action="apply">Approve assessment</button><button type="button" class="rf-btn" data-evaluation-action="ignore">Keep current assessment</button></div>`;
+      html=`<h3>${phase==='saving'?'Saving updated assessment…':'Updating assessment from your feedback…'}</h3><p class="rf-sub">You can keep working. The AI proposal will appear here for review.</p>`;
+    }else if(phase==='pending'&&reviewable){
+      html=`<span class="rf-kicker">Ready for review</span><h3>Updated candidate assessment</h3><p><strong>Manager Fit: ${Number(p.currentScore).toFixed(1)} → ${Number(p.proposedScore).toFixed(1)} / 10</strong></p><p class="rf-sub">${escape(p.currentRecommendation)} → ${escape(p.proposedRecommendation)}</p><ul>${p.reasons.map(r=>`<li>${escape(r)}</li>`).join('')}</ul><p class="rf-sub">Review this proposal before applying it.</p><div class="rf-actions"><button type="button" class="rf-btn primary" data-evaluation-action="apply-next">Approve &amp; next</button><button type="button" class="rf-btn" data-evaluation-action="apply">Approve assessment</button><button type="button" class="rf-btn" data-evaluation-action="ignore">Keep current assessment</button></div>`;
     }else if(phase==='error'){
-      wrap.innerHTML=`<h3>Assessment needs another try</h3><p class="rf-sub">${escape(state.error)} Your feedback is retained; no AI score change was applied.</p><button type="button" class="rf-btn" data-evaluation-action="retry">Try again</button>`;
+      html=`<h3>Assessment needs another try</h3><p class="rf-sub">${escape(state.error)} Your feedback is retained; no AI score change was applied.</p><button type="button" class="rf-btn" data-evaluation-action="retry">Try again</button>`;
     }else if(phase==='pending'){
-      wrap.innerHTML='<h3>New evidence since this proposal</h3><p class="rf-sub">The previous suggestion is out of date and cannot be applied.</p><button type="button" class="rf-btn" data-evaluation-action="retry">Prepare current assessment</button>';
-    }else{
-      wrap.innerHTML=`<p class="rf-sub">${phase==='applied'?'Assessment approved. The score and approval history are updated.':'Current assessment kept. Saving new feedback will prepare another proposal.'}</p>`;
-    }
-    wrap.querySelectorAll('[data-evaluation-action]').forEach(b=>b.addEventListener('click',()=>api.reviewEvaluation(candidate,b.dataset.evaluationAction)));
+      html='<h3>New evidence since this proposal</h3><p class="rf-sub">The previous suggestion is out of date and cannot be applied.</p><button type="button" class="rf-btn" data-evaluation-action="retry">Prepare current assessment</button>';
+    }else{html='<p class="rf-sub">Current assessment kept. New feedback will prepare another proposal.</p>';}
+    const bind=()=>wrap.querySelectorAll('[data-evaluation-action]').forEach(b=>b.addEventListener('click',()=>api.reviewEvaluation(candidate,b.dataset.evaluationAction)));
+    if(global.AncalagonFocus)global.AncalagonFocus.updatePanel(wrap,html,bind);else{wrap.innerHTML=html;bind();}
   }
-  function refreshIntake(){
+  function refreshIntake(){return preserve(refreshIntakeContent);}
+  function refreshIntakeContent(){
     if(!api||!current)return;const c=api.candidate(current);if(!c)return;
     api.intakeBrief?.(c,api.root.querySelector('#workspaceIntake'));
     const list=api.root.querySelector('#workspaceQuestions');if(list)list.innerHTML=questionsFor(c).map(q=>'<li>'+escape(q)+'</li>').join('');
@@ -96,7 +99,7 @@
       if(evidence&&!ready)evidence.textContent=failed?'Assessment unavailable. Resume evidence has not been confirmed.':'Resume evidence is being checked.';
     }
   }
-  function refreshEvaluation(){if(!api||!current)return;const candidate=api.candidate(current);if(candidate){renderEvaluation(candidate);refreshIntake();}}
+  function refreshEvaluation(){if(!api||!current)return;return preserve(()=>{const candidate=api.candidate(current);if(candidate){renderEvaluation(candidate);refreshIntake();}});}
   async function copy(){const area=api.root.querySelector('#submissionDraft');if(!area)return;try{await navigator.clipboard.writeText(area.value);api.toast('Edited submission summary copied.');}catch{area.focus();area.select();api.toast('Select and copy the summary using your browser.','error');}}
   async function beforeReview(candidate){
     if(!quickNotes?.pending(candidate.id))return true;

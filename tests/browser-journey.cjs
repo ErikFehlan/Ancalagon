@@ -21,7 +21,7 @@ await page.locator('#page-jobs.active').waitFor();
 await page.locator('#jobTitle').fill('Reliability test');await page.locator('#jobDescription').fill('Build and maintain Kubernetes infrastructure');await page.locator('#jobForm button[type=submit]').click();
 await page.locator('#page-dashboard.active').waitFor();assert.equal(await page.evaluate(()=>window.testSaved.jobs[0].title),'Reliability test');
 await page.locator('#addCandidateBtn').click();await page.locator('#manualCandidateEntry > summary').click();await page.locator('#candidateName').fill('Test Candidate');await page.locator('#candidateRole').fill('Engineer');await page.locator('#candidateScore').fill('8.5');await page.locator('#candidateSignal').fill('Infrastructure engineer');await page.locator('#candidateStrengths').fill('Built production Kubernetes clusters');await page.locator('#candidateForm button[type=submit]').click();
-await page.locator('#page-detail.active').waitFor();assert.equal(await page.locator('#detailName').textContent(),'Test Candidate');assert.equal(await page.evaluate(()=>window.testSaved.candidates.length),1);await page.locator('.rf-nav [data-page="feedback"]').click();
+await page.locator('#page-detail.active').waitFor();assert.equal(await page.locator('#detailName').textContent(),'Test Candidate');assert.equal(await page.evaluate(()=>window.testSaved.candidates.length),1);await page.locator('#feedbackNav > summary').click();await page.locator('.rf-nav [data-page="feedback"]').click();
 await page.locator('#feedbackText').fill('Technically strong, ownership unclear');
 await page.evaluate(()=>{window.testDelayNextFlush=true});
 await page.locator('#feedbackSubmitBtn').click();
@@ -98,7 +98,7 @@ await page.locator('#workspaceNote').fill('Owned the nightly regression suite; v
 
 for(let i=0;i<100&&!heldAssessment;i++)await page.waitForTimeout(50);
 assert.ok(heldAssessment,'automatic screening request started');
-await page.locator('.rf-nav [data-page="jobs"]').click();
+await page.locator('.rf-nav [data-page="jobs"]').click();await page.locator('#newJobBtn').click();
 await page.locator('#jobTitle').fill('Separate job');
 await page.locator('#jobDescription').fill('Finance operations');
 await page.locator('#jobForm button[type=submit]').click();
