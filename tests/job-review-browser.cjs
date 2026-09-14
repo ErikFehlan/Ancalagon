@@ -18,11 +18,11 @@ const dir=path.resolve(__dirname,'..');
    window.fixture={jobs:[job('job-a','QA search'),job('job-b','Other search')],candidates:[candidate('candidate-a','job-a','Alice'),candidate('candidate-b','job-a','Bob'),candidate('candidate-other','job-b','PRIVATE OTHER JOB')],feedback:[],interviewOutcomes:[]};
    const result={manager_score:9,jd_score:8,confidence:'medium',summary:'Updated priorities reviewed',manager_reason:'Manual regression ownership supports the new priority.',jd_reason:'Qualification baseline unchanged.',evidence_ids:['profile-strength-1'],questions:['What testing did you personally own?']};
    window.reviewRows={'job-a':[{job_id:'job-a',candidate_id:'candidate-a',revision:'a1',status:'ready',reason:'Job requirements changed',result},{job_id:'job-a',candidate_id:'candidate-b',revision:'b1',status:'processing',reason:'Job requirements changed'}],'job-b':[{job_id:'job-b',candidate_id:'candidate-other',revision:'other',status:'ready',reason:'Other job',result}]};
-   window.requests=[];window.testSaved=clone(window.fixture);
+   window.requests=[];window.reviewLoads=0;window.testSaved=clone(window.fixture);
    window.AncalagonData={create:()=>({
     load:async()=>clone(window.fixture),schedule:(s,e,status)=>{window.testSaved=clone(s);status('saved');},flush:async s=>{window.testSaved=clone(s);},
     trackEvent:async()=>{},loadAdminAnalytics:async()=>{throw Error('not admin');},
-    loadJobReassessments:async id=>clone(window.reviewRows[id]||[]),
+    loadJobReassessments:async id=>{window.reviewLoads++;if(window.delayReviewLoad)await new Promise(r=>setTimeout(r,400));return clone(window.reviewRows[id]||[]);},
     requestCandidateReassessment:async id=>{window.requests.push(id);const t=Object.values(window.reviewRows).flat().find(t=>t.candidate_id===id);if(t){t.status='processing';t.revision+='new';}},
     reviewJobReassessment:async(id,revision,decision,s)=>{
      if(window.failNextReview){window.failNextReview=false;throw Error('Evidence changed. Review the latest assessment.');}
@@ -44,9 +44,21 @@ const dir=path.resolve(__dirname,'..');
   await page.locator('[data-candidate-id="candidate-a"]').first().click();
   await page.locator('#workspaceNote').fill('Unsaved note stays here');
   await page.locator('#submissionDraft').fill('Unsaved recruiter draft stays here');
-  await page.locator('.rf-nav [data-page="job-review"]').click();
+  await page.locator('.rf-nav [data-page="dashboard"]').click();
+  assert.equal(await page.locator('.rf-nav [data-page="job-review"]').count(),0,'no separate review destination');
+  assert.equal(await page.locator('#jobAssessmentPanel').evaluate(el=>el.open),false,'dashboard starts compact');
+  await page.waitForFunction(()=>document.querySelector('#jobReviewSummary').textContent.includes('1 updated assessment ready to review'));
+  await page.locator('#jobAssessmentPanel > summary').focus();
+  await page.keyboard.press('Enter');
   await page.locator('#jobAssessmentUpdates [data-review-candidate="candidate-a"][data-job-review="approve"]').waitFor();
-  assert.match(await page.locator('#jobReviewSummary').textContent(),/1 ready to review/);
+  const evidence=page.locator('[data-review-card="candidate-a"] details');
+  await evidence.locator('summary').click();
+  const approve=page.locator('[data-review-card="candidate-a"] [data-job-review="approve"]');
+  await approve.focus();
+  const priorLoads=await page.evaluate(()=>window.reviewLoads);
+  await page.waitForFunction(count=>window.reviewLoads>count,priorLoads);
+  assert.equal(await evidence.evaluate(el=>el.open),true,'background refresh keeps evidence open');
+  assert.equal(await approve.evaluate(el=>el===document.activeElement),true,'background refresh keeps keyboard focus');
   assert.doesNotMatch(await page.locator('#jobAssessmentUpdates').textContent(),/PRIVATE OTHER JOB/);
   assert.match(await page.locator('#jobAssessmentUpdates').textContent(),/You can close Ancalagon/);
   assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].managerScore),7,'proposals must not apply themselves');
@@ -58,7 +70,11 @@ const dir=path.resolve(__dirname,'..');
   assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].jdScore),8);
   // Simulate the worker completing another candidate independently of browser AI.
   await page.evaluate(()=>{const rows=window.reviewRows['job-a'];rows[1].status='ready';rows[1].result=rows[0].result;});
-  await page.locator('.rf-nav [data-page="job-review"]').click();
+  // Results arrive with the dashboard collapsed; no navigation or Run button is needed.
+  await page.locator('#jobAssessmentPanel > summary').click();
+  await page.waitForFunction(()=>document.querySelector('#jobReviewSummary').textContent.includes('1 updated assessment ready to review'));
+  assert.equal(await page.locator('#jobAssessmentPanel').evaluate(el=>el.open),false,'worker completion does not force the panel open');
+  await page.locator('#jobAssessmentPanel > summary').click();
   await page.locator('#jobAssessmentUpdates [data-review-candidate="candidate-b"][data-job-review="approve"]').waitFor();
   await page.evaluate(()=>{window.failNextReview=true;});
   await page.locator('#jobAssessmentUpdates [data-review-candidate="candidate-b"][data-job-review="approve"]').click();
@@ -71,9 +87,27 @@ const dir=path.resolve(__dirname,'..');
   await page.locator('#workspaceNoteForm button').click();
   await page.waitForFunction(()=>window.requests.includes('candidate-a'));
   assert.equal(screeningCalls,0,'backend queue replaces browser reassessment requests');
+  await page.evaluate(()=>{window.reviewRows['job-a'][0].status='ready';});
+  await page.locator('#workspaceEvaluation [data-job-review="ignore"]').waitFor();
+  assert.match(await page.locator('#workspaceEvaluation').textContent(),/Updated candidate assessment/);
+  await page.locator('#workspaceEvaluation [data-job-review="ignore"]').click();
+  await page.waitForFunction(()=>window.reviewRows['job-a'][0].status==='ignored');
+  await page.locator('.rf-nav [data-page="dashboard"]').click();
+  // Switching jobs clears the old proposals immediately, even during a slow load.
+  await page.evaluate(()=>{window.delayReviewLoad=true;const select=document.querySelector('#globalJobSelect');select.value='job-b';select.dispatchEvent(new Event('change',{bubbles:true}));});
+  assert.doesNotMatch(await page.locator('#jobAssessmentUpdates').textContent(),/Alice|Bob/);
+  await page.waitForFunction(()=>document.querySelector('#jobReviewSummary').textContent.includes('1 updated assessment ready to review'));
+  assert.equal(await page.locator('#jobAssessmentPanel').evaluate(el=>el.open),false);
+  await page.locator('#jobAssessmentPanel > summary').click();
+  assert.match(await page.locator('#jobAssessmentUpdates').textContent(),/PRIVATE OTHER JOB/);
+  // Expanded results remain usable on mobile and in each existing theme.
   await page.setViewportSize({width:390,height:844});
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+  for(const theme of ['tech','violet','emerald','light']){
+   await page.evaluate(t=>document.querySelector('#rf-app').dataset.theme=t,theme);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,theme+' dashboard must fit mobile');
+   assert.equal(await page.locator('#jobAssessmentUpdates [data-job-review="approve"]').isVisible(),true);
+  }
   assert.deepEqual(errors,[]);
-  console.log('Job review journey passed: scoped proposals, approve/keep, stale rejection, preserved drafts, durable delegation.');
+  console.log('Dashboard review journey passed: automatic status, inline decisions, scope isolation, keyboard focus, preserved evidence/drafts, mobile themes, durable delegation.');
  }finally{if(browser)await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
