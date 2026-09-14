@@ -329,10 +329,17 @@
         if(!candidates.includes(candidate)||!jobs.some(j=>j.id===candidate.jobId))throw Error('This candidate is no longer available.');
         const index=feedback.findIndex(f=>f.id===id),existing=feedback[index];
         if(existing&&(existing.candidateId!==candidate.id||existing.jobId!==candidate.jobId||existing.learningScope!=='candidate'||(existing.text!==previous&&existing.text!==text)))throw Error('This note changed elsewhere. Start a new note or review its saved version.');
-        const now=Date.now(),item={id,jobId:candidate.jobId,candidateId:candidate.id,candidate:candidate.short,text,type:'General note',outcome:'Neutral / no signal',learningScope:'candidate',signalStatus:'candidate_only',signalDirection:'neutral',signalLabel:'',createdAt:existing?.createdAt||now,updatedAt:now};
+        const previousUpdated=candidate.updatedAt,now=Date.now(),item={id,jobId:candidate.jobId,candidateId:candidate.id,candidate:candidate.short,text,type:'General note',outcome:'Neutral / no signal',learningScope:'candidate',signalStatus:'candidate_only',signalDirection:'neutral',signalLabel:'',createdAt:existing?.createdAt||now,updatedAt:now};
         if(index<0)feedback.push(item);else feedback[index]=item;
         candidate.updatedAt=now;dataService.markPending?.(stateSnapshot());renderFeedback();
-        await dataService.flush(stateSnapshot());
+        try{await dataService.flush(stateSnapshot());}
+        catch(error){
+          // A failed write must not leave an unsaved replacement masquerading as
+          // the saved note when the recruiter undoes their edit in the textbox.
+          const at=feedback.indexOf(item);if(at>=0){if(existing)feedback[at]=existing;else feedback.splice(at,1);}
+          if(candidate.updatedAt===now)candidate.updatedAt=previousUpdated;
+          dataService.markPending?.(stateSnapshot());renderFeedback();throw error;
+        }
         if(!feedback.includes(item))throw Error('This note changed while saving. Check its saved version.');
         if(!existing)trackProductEvent('feedback_saved');
         void interpretFeedback(item);

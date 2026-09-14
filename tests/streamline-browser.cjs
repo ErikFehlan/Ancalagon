@@ -80,6 +80,7 @@ const dir=path.resolve(__dirname,'..');
   await page.locator('#retryQuickNote').waitFor();
   assert.match(await page.locator('#workspaceNoteStatus').textContent(),/Not saved/);
   assert.equal(await page.evaluate(()=>window.AncalagonWorkspace.hasDrafts()),true);
+  assert.equal(await page.evaluate(()=>window.testSaved.feedback[0].text),'Owned regression testing. Confirm automation scope.','failed edits keep the last saved version');
   await page.locator('#retryQuickNote').click();
   await page.waitForFunction(()=>document.querySelector('#workspaceNoteStatus').textContent.startsWith('Saved'));
   await page.waitForFunction(()=>window.testSaved.feedback[0]?.interpretation);
