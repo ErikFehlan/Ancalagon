@@ -38,6 +38,7 @@ jobs:
           node --check assets/resume-intake.js
           node --check assets/candidate-automation.js
           node --check assets/candidate-workspace.js
+          node --check assets/quick-notes.js
           node --check assets/criteria-automation.js
           node --check assets/quality.js
           node --check assets/quality-ui.js
@@ -52,6 +53,7 @@ jobs:
           node tests/browser-journey.cjs
           node tests/job-review-browser.cjs
           node tests/resume-intake-browser.cjs
+          node tests/streamline-browser.cjs
 
   deploy:
     if: github.ref == 'refs/heads/main'

@@ -136,42 +136,50 @@
       enqueue(c);
     }
     function duplicates(c){return api.candidates().filter(x=>x.id!==c.id&&x.jobId===c.jobId&&normalize(x.name)===normalize(c.name)&&c.resumeIntake?.brief?.name!=='Candidate');}
-    async function approve(c){
+    async function approve(c,{next=false}={}){
       if(!valid(c)||reviewing.has(c.id)||c.resumeIntake.phase!=='ready'||!pending(c))return;
       if(c.resumeIntake.signature!==api.signature(context(c))){await retry(c);return;}
       reviewing.add(c.id);changed(c);
+      let approved=false;
       const before={jdScore:c.jdScore,resumeJDScore:c.resumeJDScore,originalManagerScore:c.originalManagerScore,managerScore:c.managerScore,aiReview:c.aiReview,rec:c.rec},brief=c.resumeIntake.brief;
       try{
+        if(api.beforeReview&&!await api.beforeReview(c))return;
         await api.persist();
         if(!valid(c)||c.resumeIntake.signature!==api.signature(context(c)))throw Error('Evidence changed. Prepare the latest assessment.');
         const now=Date.now();c.resumeIntake.reviewedAt=now;
         Object.assign(c,{jdScore:brief.score,resumeJDScore:brief.score,originalManagerScore:brief.manager_score,managerScore:brief.manager_score,rec:api.recommendation(brief.manager_score),
           aiReview:{source:'resume_intake',verdict:'Needs Adjustment',correctedScore:brief.manager_score,correctedJDScore:brief.score,notes:brief.manager_reason,createdAt:now,reasons:['Resume assessment reviewed']}});
         c.aiReview.contextSignature=api.signature(api.fullContext(c));await api.persist();
-        api.toast('Assessment approved and added to rankings.');
+        approved=true;api.toast('Assessment approved and added to rankings.');
       }catch(e){Object.assign(c,before);delete c.resumeIntake.reviewedAt;api.toast(e.message||'Approval could not be saved. Try again.','error');}
       finally{reviewing.delete(c.id);changed(c);}
+      if(approved&&next)api.next?.(c);
+      return approved;
     }
     function bind(wrap,c){
       wrap.querySelector('[data-intake-approve]')?.addEventListener('click',()=>void approve(c));
+      wrap.querySelector('[data-intake-next]')?.addEventListener('click',()=>void approve(c,{next:true}));
       wrap.querySelector('[data-intake-retry]')?.addEventListener('click',()=>void retry(c));
       wrap.querySelectorAll('[data-intake-existing]').forEach(b=>b.addEventListener('click',()=>{const existing=api.candidates().find(x=>x.id===b.dataset.intakeExisting&&x.jobId===c.jobId);if(existing)api.open(existing,true);}));
     }
     function renderCandidate(c,wrap){
-      if(!wrap)return;const state=c?.resumeIntake;wrap.hidden=!state;if(!state){wrap.innerHTML='';return;}
+      if(!wrap)return;const state=c?.resumeIntake;wrap.hidden=!state||(wrap.id==='workspaceIntake'&&!pending(c));if(wrap.hidden){wrap.innerHTML='';delete wrap.dataset.markup;return;}
       const brief=state.brief,needsReview=pending(c),stale=needsReview&&state.phase==='ready'&&state.signature!==api.signature(context(c));
       if(stale)queueMicrotask(()=>enqueue(c));
       let html='<span class="rf-kicker">Resume screening brief</span>';
       if(state.phase==='error')html+='<h3>Resume intake needs attention</h3><p>'+escape(state.error)+'</p><button class="rf-btn" type="button" data-intake-retry>Try again</button>';
       else if(state.phase!=='ready')html+='<h3>Preparing your screening brief…</h3><p class="rf-sub">You can keep working. If you close this tab, unfinished intake resumes when you return. Scores appear after review.</p>';
       else{
-        html+='<div class="rf-cardhead"><h3>'+escape(c.short)+'</h3><span class="rf-pill '+(needsReview?'rf-amber':'rf-green')+'">'+(needsReview?'Awaiting your review':'Reviewed')+'</span></div><p>'+escape(brief.primary_signal)+'</p>';
+        html+='<div class="rf-cardhead"><h3>'+(wrap.id==='workspaceIntake'?'Resume assessment':escape(c.short))+'</h3><span class="rf-pill '+(needsReview?'rf-amber':'rf-green')+'">'+(needsReview?'Awaiting your review':'Reviewed')+'</span></div><p>'+escape(brief.primary_signal)+'</p>';
         if(needsReview)html+='<p><strong>Proposed JD Fit: '+brief.score.toFixed(1)+'/10 · Manager Fit: '+brief.manager_score.toFixed(1)+'/10</strong></p>';
-        html+='<p class="rf-sub">'+escape(brief.jd_reason)+'</p><p class="rf-sub">'+escape(brief.manager_reason)+'</p><details><summary>Supporting resume evidence</summary><ul>'+brief.resume_evidence.map(e=>'<li><strong>'+escape(e.claim)+'</strong><blockquote>'+escape(e.quote)+'</blockquote></li>').join('')+'</ul>'+(brief.resume_evidence.length?'':'<p>No supporting job-related evidence was confirmed. Verify the requirements during screening.</p>')+'</details><h4>Concerns to clarify</h4><ul>'+brief.concerns.map(s=>'<li>'+escape(s)+'</li>').join('')+'</ul>';
+        html+='<p><strong>Key uncertainty:</strong> '+escape(brief.concerns[0]||'Confirm the job requirements during screening.')+'</p><details><summary>Supporting resume evidence and score details</summary><p class="rf-sub">'+escape(brief.jd_reason)+'</p><p class="rf-sub">'+escape(brief.manager_reason)+'</p><ul>'+brief.resume_evidence.map(e=>'<li><strong>'+escape(e.claim)+'</strong><blockquote>'+escape(e.quote)+'</blockquote></li>').join('')+'</ul>'+(brief.resume_evidence.length?'':'<p>No supporting job-related evidence was confirmed. Verify the requirements during screening.</p>')+'<h4>Concerns to clarify</h4><ul>'+brief.concerns.map(s=>'<li>'+escape(s)+'</li>').join('')+'</ul></details>';
         if(brief.name==='Candidate'||brief.role==='Role not stated')html+='<p class="rf-note">The resume did not clearly identify the name or professional role. Verify these details during screening.</p>';
         const matches=duplicates(c);
         if(matches.length)html+='<div class="rf-note">Possible duplicate: this name is already on this job. '+matches.map(x=>'<button class="rf-linkbtn" type="button" data-intake-existing="'+escape(x.id)+'">Open '+escape(x.short)+'</button>').join(' ')+' No records have been merged.</div>';
-        if(needsReview)html+='<div class="rf-actions"><button class="rf-btn primary" type="button" '+(stale?'data-intake-retry':'data-intake-approve')+(reviewing.has(c.id)||api.job(c.jobId)?.status==='closed'?' disabled':'')+'>'+(stale?'Update from latest evidence':matches.length?'Keep separate and approve assessment':'Approve assessment')+'</button></div>';
+        if(needsReview){
+          const inline=wrap.id==='workspaceIntake',disabled=reviewing.has(c.id)||api.job(c.jobId)?.status==='closed';
+          html+='<div class="rf-actions">'+(!stale&&inline?'<button class="rf-btn primary" type="button" data-intake-next'+(disabled?' disabled':'')+'>'+(matches.length?'Keep separate, approve &amp; next':'Approve &amp; next')+'</button>':'')+'<button class="rf-btn'+(!inline||stale?' primary':'')+'" type="button" '+(stale?'data-intake-retry':'data-intake-approve')+(disabled?' disabled':'')+'>'+(stale?'Update from latest evidence':matches.length?'Keep separate and approve assessment':'Approve assessment')+'</button></div>';
+        }
         if(stale)html+='<p class="rf-sub">The job or feedback changed. This proposal needs updating before approval.</p>';
       }
       // Keep evidence expanded across intake status refreshes.

@@ -234,3 +234,25 @@
 .rf-intake-list{display:grid;gap:8px;margin-bottom:16px}.rf-intake-status{display:flex;justify-content:space-between;gap:12px;text-align:left;padding:14px;border:1px solid rgba(120,150,190,.3);border-radius:10px;background:rgba(90,140,200,.08);color:inherit;cursor:pointer}.rf-intake-status span{font-size:13px}
 .rf-intake-brief{margin-bottom:18px}.rf-intake-brief blockquote{margin:8px 0 16px;padding-left:12px;border-left:2px solid var(--rf-blue);color:var(--rf-muted)}.rf-intake-brief details>summary{cursor:pointer}.rf-intake-brief p,.rf-intake-brief li{line-height:1.6;overflow-wrap:anywhere}.rf-intake-brief .rf-actions{margin-top:16px}.rf-candidate-score[hidden],[hidden].rf-intake-list{display:none}
 @media(max-width:560px){.rf-intake-status{flex-direction:column}.rf-resume-drop{padding:16px}}
+/* Keep the daily screening task visible; disclose submission and audit tools on demand. */
+#candidateWorkspace [hidden]{display:none!important}
+.rf-screening-work{margin-bottom:16px}
+.rf-screening-work .rf-workspace-columns{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:28px;margin-bottom:0}
+.rf-screening-work .rf-workspace-columns p,.rf-screening-work .rf-workspace-columns li{font-size:14px;line-height:1.55}
+.rf-screening-work #workspaceNote{min-height:110px;resize:vertical;font:inherit;line-height:1.55}
+.rf-note-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rf-note-controls p{flex:1;margin:8px 0;min-width:180px}
+#workspaceNoteStatus[data-state="error"]{color:var(--rf-red,#f87171)}
+.rf-screen-questions h3{font-size:15px;margin:0 0 8px}
+.rf-screen-questions ol{margin:0;padding-left:20px}.rf-screen-questions li+li{margin-top:8px}
+.rf-feedback-history{border-top:1px solid rgba(148,163,184,.2);padding-top:12px;margin-top:12px}
+.rf-feedback-history>summary{cursor:pointer;font-size:14px;font-weight:600}
+.rf-submission-tools label{display:block;margin-bottom:8px}
+.rf-submission-tools textarea{width:100%;max-width:100%;box-sizing:border-box;min-height:230px;line-height:1.55;font:inherit}
+.rf-submission-tools .rf-actions{margin-top:12px;flex-wrap:wrap}
+.rf-workspace-overview{gap:18px;margin-bottom:16px}.rf-workspace-overview h3{font-size:18px;margin:6px 0}.rf-workspace-overview p{font-size:14px;line-height:1.5;margin:8px 0}
+.rf-brief-fit{font-size:14px;font-weight:700;margin-top:10px}
+.rf-intake-brief .rf-approve-next{margin-top:10px}
+@media(max-width:760px){.rf-screening-work .rf-workspace-columns{grid-template-columns:1fr;gap:18px}.rf-workspace-overview{grid-template-columns:1fr}.rf-submission-tools .rf-actions{width:auto}}
+
+#workspaceEvaluation{margin-bottom:16px}

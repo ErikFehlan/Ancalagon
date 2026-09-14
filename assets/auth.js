@@ -289,7 +289,7 @@
 
   signOutButton.addEventListener('click', async function () {
     signOutButton.disabled = true;
-    try { await window.ancalagonFlush?.(); } catch (error) { console.warn('Final workspace sync failed', error); }
+    try { await window.ancalagonFlush?.(); } catch (error) { console.warn('Final workspace sync failed', error); signOutButton.disabled = false; return; }
     await client.auth.signOut();
     window.location.reload();
   });
@@ -313,3 +313,4 @@
     applySession(client, data.session);
   });
 })();
+
