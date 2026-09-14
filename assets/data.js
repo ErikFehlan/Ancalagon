@@ -265,7 +265,7 @@
         // Rebase saves queued while the RPC was in flight. Preserve a newer
         // explicit recruiter correction instead of overwriting that intent.
         if(JSON.stringify(c.aiReview)!==JSON.stringify(change.before.aiReview))continue;
-        for(const key of ['managerScore','rec','aiReview','updatedAt']) {
+        for(const key of ['managerScore','jdScore','rec','aiReview','updatedAt']) {
           if(JSON.stringify(c[key])===JSON.stringify(change.before[key]))c[key]=copy(change.after[key]);
         }
       }

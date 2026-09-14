@@ -80,7 +80,7 @@ insert into candidate_assessments(workspace_id,job_id,candidate_id,assessment_ty
 update job_reassessment_tasks set next_run_at=now()-interval '1 second';
 do $$declare l record;begin
  for l in select * from public.claim_job_reassessments(null) loop
- if not public.finish_job_reassessment(l.candidate_id,l.revision,l.lease_id,'{"manager_score":9,"jd_score":7,"manager_reason":"Ownership evidence supports this priority.","jd_reason":"Qualification baseline unchanged.","evidence_ids":["criterion-1"],"questions":[],"confidence":"medium","context_signature":"test-context","model":"test"}') then raise exception 'Valid completion rejected';end if;
+ if not public.finish_job_reassessment(l.candidate_id,l.revision,l.lease_id,'{"manager_score":9,"jd_score":8,"manager_reason":"Ownership evidence supports this priority.","jd_reason":"Qualification baseline unchanged.","evidence_ids":["criterion-1"],"questions":[],"confidence":"medium","context_signature":"test-context","model":"test"}') then raise exception 'Valid completion rejected';end if;
  end loop;
  if exists(select 1 from candidates where manager_score<>7) then raise exception 'AI changed a score without review';end if;
  if has_function_privilege('authenticated','public.claim_job_reassessments(uuid)','EXECUTE') then raise exception 'Worker permission leaked';end if;
@@ -101,6 +101,7 @@ do $$declare rev text;result jsonb;begin
  begin perform public.review_job_reassessment('00000000-0000-0000-0000-000000000021',null,'approve');raise exception 'Missing revision accepted';exception when serialization_failure then null;end;
  result:=public.review_job_reassessment('00000000-0000-0000-0000-000000000021',rev,'approve');
  if result#>>'{candidate,manager_score}'<>'9.0' and result#>>'{candidate,manager_score}'<>'9' then raise exception 'Score not saved atomically';end if;
+ if (result#>>'{candidate,jd_score}')::numeric<>8 then raise exception 'JD score not saved atomically';end if;
  if result#>>'{assessment,evidence,submission_draft,text}'<>'Keep this draft' then raise exception 'Draft overwritten';end if;
  if result#>>'{assessment,evidence,review,history,0,previousScore}'<>'7' then raise exception 'Audit absent';end if;
  if (select status from job_reassessment_tasks where candidate_id='00000000-0000-0000-0000-000000000021')<>'approved' then raise exception 'Approval requeued itself';end if;

@@ -92,9 +92,9 @@ test('server approval adopts authoritative versions and preserves drafts and que
  f.setRpc(async(name,args)=>{
   assert.equal(name,'review_job_reassessment');assert.equal(args.p_candidate,'c');assert.equal(args.p_revision,'revision');
   started=true;await new Promise(r=>release=r);
-  const row=f.rows.candidates[0];row.manager_score=9;row.recommendation='Strong Consideration';row.updated_at='2026-09-14T15:00:00.000Z';
+  const row=f.rows.candidates[0];row.jd_score=8;row.manager_score=9;row.recommendation='Strong Consideration';row.updated_at='2026-09-14T15:00:00.000Z';
   const assessment=f.rows.candidate_assessments.find(a=>a.assessment_type==='manual_correction');
-  assessment.evidence.review={source:'hybrid_reevaluation',verdict:'Needs Adjustment',correctedScore:9,notes:'Ownership evidence',createdAt:100,history:[{previousScore:7,newScore:9}]};
+  assessment.evidence.review={source:'hybrid_reevaluation',verdict:'Needs Adjustment',correctedScore:9,correctedJDScore:8,notes:'Ownership evidence',createdAt:100,history:[{previousScore:7,newScore:9}]};
   return {data:{status:'approved',candidate:clone(row),assessment:clone(assessment)},error:null};
  });
  const approval=f.service.reviewJobReassessment('c','revision','approve',state);
@@ -103,7 +103,7 @@ test('server approval adopts authoritative versions and preserves drafts and que
  const queued=f.service.flush(state);
  release();await approval;await queued;
  assert.equal(c.managerScore,9);assert.equal(c.aiReview.correctedScore,9);assert.equal(c.submissionDraft.text,'Keep draft');
- assert.equal(f.rows.candidates[0].manager_score,9);assert.equal(f.rows.candidates[0].role,'Updated role while approval runs');
+ assert.equal(f.rows.candidates[0].manager_score,9);assert.equal(f.rows.candidates[0].jd_score,8);assert.equal(f.rows.candidates[0].role,'Updated role while approval runs');
  await f.service.flush(state);assert.equal(f.service.hasPendingChanges(),false);
  const restored=await f.service.load();assert.equal(restored.candidates[0].managerScore,9);assert.equal(restored.candidates[0].submissionDraft.text,'Keep draft');
 });

@@ -184,6 +184,8 @@ begin
   end if;
   if p_error is null and (jsonb_typeof(p_result->'manager_score') is distinct from 'number'
       or (p_result->>'manager_score')::numeric not between 0 and 10
+      or jsonb_typeof(p_result->'jd_score') is distinct from 'number'
+      or (p_result->>'jd_score')::numeric not between 0 and 10
       or jsonb_typeof(p_result->'evidence_ids') is distinct from 'array'
       or nullif(p_result->>'context_signature','') is null) then raise exception 'Invalid assessment result';end if;
   update public.job_reassessment_tasks set status=case when p_error is null then 'ready' when attempts>=3 then 'failed' else 'queued' end,
@@ -200,18 +202,18 @@ begin
     then perform public.wake_job_reassessments(p_job);end if;
 end $$;
 
-create function public.request_candidate_reassessment(p_candidate uuid) returns void language plpgsql security definer set search_path='' as $
+create function public.request_candidate_reassessment(p_candidate uuid) returns void language plpgsql security definer set search_path='' as $$
 declare c public.candidates;
 begin
  select * into c from public.candidates where id=p_candidate;
  if not found or not public.is_workspace_member(c.workspace_id) then raise exception 'Candidate unavailable' using errcode='42501';end if;
  perform public.enqueue_job_reassessments(c.job_id,c.id,'Candidate feedback updated');
-end $;
+end $$;
 
 create function public.review_job_reassessment(p_candidate uuid,p_revision text,p_decision text) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare task public.job_reassessment_tasks; c public.candidates; a public.candidate_assessments;
-  prior jsonb; review jsonb; audit jsonb; score numeric; recommendation text; stamp bigint; history jsonb;
+  prior jsonb; review jsonb; audit jsonb; score numeric; jdscore numeric; recommendation text; stamp bigint; history jsonb;
 begin
   if p_decision is null or p_decision not in ('approve','ignore','retry') then raise exception 'Invalid decision';end if;
   select * into task from public.job_reassessment_tasks where candidate_id=p_candidate for update;
@@ -234,23 +236,24 @@ begin
     order by created_at desc,id desc limit 1 for update;
   prior:=a.evidence->'review';score:=(task.result->>'manager_score')::numeric;
   if score is null or score not between 0 and 10 then raise exception 'Invalid proposed score';end if;
-  score:=round(score,1);stamp:=floor(extract(epoch from now())*1000);
+  jdscore:=(task.result->>'jd_score')::numeric;if jdscore is null or jdscore not between 0 and 10 then raise exception 'Invalid proposed JD score';end if;
+  jdscore:=round(jdscore,1);score:=round(score,1);stamp:=floor(extract(epoch from now())*1000);
   recommendation:=case when score>=9.2 then 'Interview' when score>=8.3 then 'Strong Consideration' when score>=7.2 then 'Consider' when score>=6 then 'Screen First' else 'Not Recommended' end;
-  audit:=jsonb_build_object('previousScore',c.manager_score,'newScore',score,'previousRecommendation',c.recommendation,'newRecommendation',recommendation,
+  audit:=jsonb_build_object('previousScore',c.manager_score,'newScore',score,'previousJDScore',c.jd_score,'newJDScore',jdscore,'previousRecommendation',c.recommendation,'newRecommendation',recommendation,
     'reasons',jsonb_build_array(task.result->>'manager_reason',task.result->>'jd_reason'),'appliedAt',stamp,'source','job_reassessment','revision',task.revision);
   select coalesce(jsonb_agg(value order by ord),'[]'::jsonb) into history from (
     select value,ord from jsonb_array_elements(coalesce(prior->'history','[]'::jsonb)||jsonb_build_array(audit)) with ordinality as h(value,ord) order by ord desc limit 20
   ) h;
-  review:=jsonb_build_object('verdict','Needs Adjustment','correctedScore',score,'reasons',jsonb_build_array('Job-wide AI assessment'),
+  review:=jsonb_build_object('verdict','Needs Adjustment','correctedScore',score,'correctedJDScore',jdscore,'reasons',jsonb_build_array('Job-wide AI assessment'),
     'notes',concat_ws(' · ',task.result->>'manager_reason',task.result->>'jd_reason'),'source','hybrid_reevaluation',
     'priorCorrection',case when prior->>'source'='hybrid_reevaluation' then prior->'priorCorrection' else prior end,
     'contextSignature',task.result->>'context_signature','model',task.result->>'model','history',history,'createdAt',stamp);
-  update public.candidates set manager_score=score,recommendation=recommendation where id=c.id returning * into c;
+  update public.candidates set jd_score=jdscore,manager_score=score,recommendation=recommendation where id=c.id returning * into c;
   if a.id is null then
     insert into public.candidate_assessments(workspace_id,job_id,candidate_id,assessment_type,jd_score,manager_score,recommendation,summary,evidence,created_by)
       values(c.workspace_id,c.job_id,c.id,'manual_correction',c.jd_score,score,recommendation,review->>'notes',jsonb_build_object('review',review),auth.uid()) returning * into a;
   else
-    update public.candidate_assessments set manager_score=score,recommendation=recommendation,summary=review->>'notes',
+    update public.candidate_assessments set jd_score=jdscore,manager_score=score,recommendation=recommendation,summary=review->>'notes',
       evidence=jsonb_set(a.evidence,'{review}',review) where id=a.id returning * into a;
   end if;
   -- Source triggers may have invalidated the proposal while persisting approval.

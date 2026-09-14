@@ -16,7 +16,7 @@ const dir=path.resolve(__dirname,'..');
    const job=(id,title)=>({id,title,description:'Manual QA',criteria:['Must Have | manual testing'],weights:[],knockouts:[],status:'active',createdAt:1,updatedAt:1});
    const candidate=(id,jobId,name)=>({id,jobId,name,short:name,role:'QA',stage:'Sourced',resumeJDScore:7,jdScore:7,originalManagerScore:7,managerScore:7,rec:'Consider',signal:'Manual testing',strengths:['Manual regression ownership'],concerns:[],tags:[],screeningQuestions:[],createdAt:1,updatedAt:1,aiReview:null});
    window.fixture={jobs:[job('job-a','QA search'),job('job-b','Other search')],candidates:[candidate('candidate-a','job-a','Alice'),candidate('candidate-b','job-a','Bob'),candidate('candidate-other','job-b','PRIVATE OTHER JOB')],feedback:[],interviewOutcomes:[]};
-   const result={manager_score:9,jd_score:7,confidence:'medium',summary:'Updated priorities reviewed',manager_reason:'Manual regression ownership supports the new priority.',jd_reason:'Qualification baseline unchanged.',evidence_ids:['profile-strength-1'],questions:['What testing did you personally own?']};
+   const result={manager_score:9,jd_score:8,confidence:'medium',summary:'Updated priorities reviewed',manager_reason:'Manual regression ownership supports the new priority.',jd_reason:'Qualification baseline unchanged.',evidence_ids:['profile-strength-1'],questions:['What testing did you personally own?']};
    window.reviewRows={'job-a':[{job_id:'job-a',candidate_id:'candidate-a',revision:'a1',status:'ready',reason:'Job requirements changed',result},{job_id:'job-a',candidate_id:'candidate-b',revision:'b1',status:'processing',reason:'Job requirements changed'}],'job-b':[{job_id:'job-b',candidate_id:'candidate-other',revision:'other',status:'ready',reason:'Other job',result}]};
    window.requests=[];window.testSaved=clone(window.fixture);
    window.AncalagonData={create:()=>({
@@ -29,8 +29,8 @@ const dir=path.resolve(__dirname,'..');
      const t=Object.values(window.reviewRows).flat().find(t=>t.candidate_id===id);if(t.revision!==revision)throw Error('Stale revision');
      const c=s.candidates.find(c=>c.id===id);
      if(decision==='approve'){
-      const old=c.managerScore;c.managerScore=t.result.manager_score;c.rec='Strong Consideration';
-      c.aiReview={source:'hybrid_reevaluation',verdict:'Needs Adjustment',correctedScore:c.managerScore,contextSignature:window.AncalagonContext.signature(window.AncalagonContext.build(s.jobs.find(j=>j.id===c.jobId),c,s.feedback,s.interviewOutcomes)),history:[{previousScore:old,newScore:c.managerScore,reasons:[t.result.manager_reason],appliedAt:Date.now()}]};
+      const old=c.managerScore;c.managerScore=t.result.manager_score;c.jdScore=t.result.jd_score;c.rec='Strong Consideration';
+      c.aiReview={source:'hybrid_reevaluation',verdict:'Needs Adjustment',correctedScore:c.managerScore,correctedJDScore:c.jdScore,contextSignature:window.AncalagonContext.signature(window.AncalagonContext.build(s.jobs.find(j=>j.id===c.jobId),c,s.feedback,s.interviewOutcomes)),history:[{previousScore:old,newScore:c.managerScore,reasons:[t.result.manager_reason],appliedAt:Date.now()}]};
       t.status='approved';
      }else t.status=decision==='ignore'?'ignored':'queued';
      window.testSaved=clone(s);window.fixture=clone(s);return {status:t.status};
@@ -55,6 +55,7 @@ const dir=path.resolve(__dirname,'..');
   assert.equal(await page.inputValue('#workspaceNote'),'Unsaved note stays here');
   assert.equal(await page.inputValue('#submissionDraft'),'Unsaved recruiter draft stays here');
   assert.equal(await page.evaluate(()=>window.testSaved.candidates[2].managerScore),7);
+  assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].jdScore),8);
   // Simulate the worker completing another candidate independently of browser AI.
   await page.evaluate(()=>{const rows=window.reviewRows['job-a'];rows[1].status='ready';rows[1].result=rows[0].result;});
   await page.locator('.rf-nav [data-page="job-review"]').click();
