@@ -9,7 +9,7 @@
   <meta name="description" content="Ancalagon recruiting intelligence dashboard for jobs, candidates, manager feedback, interview outcomes, pipeline tracking, and fit analysis.">
   <link rel="icon" type="image/png" href="assets/ancalagon.png">
   <link rel="apple-touch-icon" href="assets/ancalagon.png">
-  <link rel="stylesheet" href="assets/app.css?v=20260911-workflow">
+  <link rel="stylesheet" href="assets/app.css?v=20260914-dashboard-assessments">
 </head>
 <body class="rf-auth-pending">
 <div class="rf-auth-gate" id="authGate" aria-live="polite">
@@ -70,7 +70,6 @@
         <button data-page="benchmarks"><span>★</span><span>Benchmarks</span></button>
         <button data-page="criteria"><span>◫</span><span>Evaluation Criteria</span></button>
         <button data-page="feedback"><span>◌</span><span>Manager Feedback</span></button>
-        <button data-page="job-review"><span>↻</span><span id="jobReviewNav">Assessment Updates</span></button>
         <button data-page="insights"><span>◈</span><span>Hiring Insights</span></button>
         <div class="rf-navgroup-label">Manage</div>
         <button data-page="jobs"><span>▣</span><span>Jobs</span></button>
@@ -100,6 +99,17 @@
       </section>
       <section class="rf-page active" id="page-dashboard">
         <div class="rf-top"><div><h1>Ancalagon Dashboard</h1><p>Evaluate candidates against what this hiring manager actually responds to.</p></div><div class="rf-actions"><button class="rf-btn primary" id="addCandidateBtn">+ Add Candidate</button><button class="rf-btn" id="exportBtn">Export Report</button></div></div>
+        <details class="rf-card rf-assessment-updates" id="jobAssessmentPanel" data-state="loading">
+          <summary>
+            <span class="rf-assessment-dot" aria-hidden="true"></span>
+            <span class="rf-assessment-heading"><strong>Automatic assessments</strong><span id="jobReviewSummary" class="rf-sub" role="status" aria-live="polite">Checking for updates…</span></span>
+            <span class="rf-assessment-toggle">Review updates <span aria-hidden="true">⌄</span></span>
+          </summary>
+          <div class="rf-assessment-body">
+            <p class="rf-sub">Saved criteria and approved shared preferences automatically review this job’s candidates. Candidate feedback updates that person’s assessment. Review each AI proposal before applying it.</p>
+            <div id="jobAssessmentUpdates"></div>
+          </div>
+        </details>
         <details class="rf-card rf-job-guide" id="jobGuide" open><summary><div><div class="rf-kicker">Search setup</div><h3>Build stronger recommendations step by step</h3></div><span class="rf-pill rf-blue" id="jobGuideProgress">0 of 6 complete</span><span class="rf-guide-toggle">⌄</span></summary><div class="rf-guide-body"><p class="rf-sub">Complete these steps as your search develops. Ancalagon will keep track for you.</p><div class="rf-guide-steps" id="jobGuideSteps"></div></div></details>
         <div class="rf-grid rf-metrics">
           <div class="rf-card rf-metric"><div class="rf-icon">★</div><div><div class="rf-kicker">Top Candidate</div><div class="rf-value" id="topName">—</div><div class="rf-sub" id="topScore">Loading active candidates…</div></div></div>
@@ -155,7 +165,7 @@
       <section class="rf-page" id="page-feedback">
         <div class="rf-sectiontitle"><div><h2>Hiring Manager Feedback</h2><p>Add feedback and preserve it as context for future evaluations.</p></div></div>
         <div class="rf-grid rf-two">
-          <div class="rf-card"><form class="rf-form" id="feedbackForm"><input type="hidden" id="feedbackEditIndex"><div><label for="feedbackCandidate">Candidate</label><select id="feedbackCandidate"></select></div><div><label for="feedbackText">Quick feedback</label><textarea id="feedbackText" maxlength="10000" placeholder="e.g. Strong technically, but unclear how much they owned personally" required></textarea><p class="rf-sub">A short note is enough. We'll save your words first, then draft an interpretation using this job's context. You can correct it.</p></div><details id="feedbackDetails"><summary>Optional details</summary><div class="rf-form"><div><label for="feedbackType">Feedback type</label><select id="feedbackType"><option selected>General note</option><option>Positive signal</option><option>Concern</option><option>Interview decision</option></select></div><div><label for="feedbackOutcome">Outcome</label><select id="feedbackOutcome"><option selected>Neutral / no signal</option><option>Interview</option><option>Positive / move forward</option><option>Pass</option></select></div><div><label for="feedbackScope">Applies to</label><select id="feedbackScope"><option value="candidate">This candidate only</option><option value="job">Reusable manager preference</option></select></div><div><label for="feedbackSignal">Preference to review</label><input id="feedbackSignal" maxlength="220" placeholder="A job-related preference"></div><p class="rf-sub">Shared preferences require approval. An explicit outcome can affect this candidate's Manager Fit.</p></div></details><div class="rf-actions"><button class="rf-btn primary" type="submit" id="feedbackSubmitBtn">Save note</button><button class="rf-btn rf-hidden" type="button" id="cancelFeedbackEdit">Cancel edit</button></div><div class="rf-note">AI interpretations do not change scores. Re-evaluate candidates when you are ready to review a score update.</div></form></div>
+          <div class="rf-card"><form class="rf-form" id="feedbackForm"><input type="hidden" id="feedbackEditIndex"><div><label for="feedbackCandidate">Candidate</label><select id="feedbackCandidate"></select></div><div><label for="feedbackText">Quick feedback</label><textarea id="feedbackText" maxlength="10000" placeholder="e.g. Strong technically, but unclear how much they owned personally" required></textarea><p class="rf-sub">A short note is enough. We'll save your words first, then draft an interpretation using this job's context. You can correct it.</p></div><details id="feedbackDetails"><summary>Optional details</summary><div class="rf-form"><div><label for="feedbackType">Feedback type</label><select id="feedbackType"><option selected>General note</option><option>Positive signal</option><option>Concern</option><option>Interview decision</option></select></div><div><label for="feedbackOutcome">Outcome</label><select id="feedbackOutcome"><option selected>Neutral / no signal</option><option>Interview</option><option>Positive / move forward</option><option>Pass</option></select></div><div><label for="feedbackScope">Applies to</label><select id="feedbackScope"><option value="candidate">This candidate only</option><option value="job">Reusable manager preference</option></select></div><div><label for="feedbackSignal">Preference to review</label><input id="feedbackSignal" maxlength="220" placeholder="A job-related preference"></div><p class="rf-sub">Shared preferences require approval. An explicit outcome can affect this candidate's Manager Fit.</p></div></details><div class="rf-actions"><button class="rf-btn primary" type="submit" id="feedbackSubmitBtn">Save note</button><button class="rf-btn rf-hidden" type="button" id="cancelFeedbackEdit">Cancel edit</button></div><div class="rf-note">Save your note to update this candidate’s assessment automatically. Review the proposed scores on the candidate or job dashboard.</div></form></div>
           <div class="rf-card"><h3>Saved Feedback</h3><div id="feedbackList"></div></div>
         </div>
         <div class="rf-card rf-preference-card"><div class="rf-cardhead"><div><h3>Manager Preference Profile</h3><p class="rf-sub">Review what Ancalagon should learn for this search. Nothing proposed changes rankings until you approve it.</p></div><span class="rf-pill rf-blue" id="preferenceConfidence">Low confidence</span></div><div id="managerPreferenceProfile"></div></div>
@@ -174,12 +184,6 @@
         <div class="rf-card"><div class="rf-kanban" id="pipelineBoard"></div></div>
       </section>
 
-      <section class="rf-page" id="page-job-review">
-        <div class="rf-sectiontitle"><div><h2>What changed across this job</h2><p>Updated assessments based on the latest job requirements and manager feedback.</p></div></div>
-        <p class="rf-note">Changes to criteria and approved shared preferences automatically review the candidate pool. Candidate-only feedback stays specific to that person. Review each AI proposal before applying it.</p>
-        <p id="jobReviewSummary" class="rf-sub" aria-live="polite">Loading assessment updates…</p>
-        <div id="jobAssessmentUpdates"></div>
-      </section>
       <section class="rf-page" id="page-insights">
         <div class="rf-sectiontitle"><div><h2>Hiring Insights</h2><p>Learn what the manager values, then decide whether those insights should update candidate evaluations.</p></div></div>
         <div class="rf-analysis-flow"><div class="rf-analysis-step" id="analysisStepOne"><span class="rf-step-number">1</span><div><strong>Analyze hiring patterns</strong><p>Review criteria, approved manager preferences, and interview decisions.</p></div><button class="rf-btn primary" id="runHybridAnalysis" type="button">✦ Analyze Hiring Patterns</button></div><div class="rf-analysis-connector">→</div><div class="rf-analysis-step" id="analysisStepTwo"><span class="rf-step-number">2</span><div><strong>Update candidate evaluations</strong><p>Create reviewable score proposals using the latest analyzed evidence.</p></div><button class="rf-btn" id="reevaluateCandidates" type="button" disabled title="Analyze hiring patterns first">↻ Update Candidate Evaluations</button></div></div>
@@ -285,11 +289,11 @@
   <script src="assets/quality.js?v=20260911-quick-feedback"></script>
   <script src="assets/quality-ui.js?v=20260911-quick-feedback"></script>
   <script src="assets/feedback.js?v=20260914-speed"></script>
-  <script src="assets/job-review.js?v=20260914-job-review"></script>
+  <script src="assets/job-review.js?v=20260914-dashboard-assessments"></script>
   <script src="assets/candidate-automation.js?v=20260914-job-review"></script>
   <script src="assets/candidate-workspace.js?v=20260914-job-review"></script>
   <script src="assets/criteria-automation.js?v=20260914-speed"></script>
-  <script src="assets/app.js?v=20260914-job-review"></script>
+  <script src="assets/app.js?v=20260914-dashboard-assessments"></script>
 </div>
 </body>
 </html>
