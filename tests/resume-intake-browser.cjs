@@ -61,6 +61,8 @@ const dir=path.resolve(__dirname,'..');
   await page.locator('#workspaceIntake details summary').click();
   assert.match(await page.locator('#workspaceIntake blockquote').textContent(),/Owned manual regression/);
   assert.equal(await page.locator('#fullRanking tr').count(),0,'unreviewed scores stay out of rankings');
+  assert.match(await page.locator('#pipelineBoard').textContent(),/Awaiting assessment review/);
+  assert.doesNotMatch(await page.locator('#pipelineBoard').textContent(),/0.0\/10/);
   await page.locator('#workspaceIntake [data-intake-approve]').click();
   await page.waitForFunction(()=>window.testSaved.candidates[0].managerScore===8.7);
   assert.equal(await page.locator('#fullRanking tr').count(),1);
