@@ -278,3 +278,69 @@
 .rf-home-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:24px 0;color:var(--rf-muted,#92a5be);font-size:12px}.rf-home-notice{padding:12px 16px;margin-bottom:16px;border:1px solid #aa824d;border-radius:10px;line-height:1.6;font-size:13px}.rf-home-notice button{margin-left:8px}
 @media(max-width:900px){.rf-home-steps{grid-template-columns:1fr}.rf-home-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.rf-home-heading{align-items:flex-start;gap:12px;flex-direction:column}.rf-home-heading h1{font-size:29px}.rf-home-hero{padding:22px}.rf-home-hero h2{font-size:26px}.rf-home-continue{flex-direction:column;align-items:flex-start;padding:22px}.rf-home-continue h2{font-size:25px}.rf-home-footer{align-items:flex-start;flex-direction:column}}
+
+/* Keep each page centred on the task in front of the recruiter. */
+#rf-app .rf-main:before{opacity:.025}#rf-app .rf-main:after{opacity:.12}
+#rf-app .rf-page.active{animation:none}
+#rf-app .rf-card,#rf-app .rf-card:hover{box-shadow:none;transform:none}
+#rf-app .rf-btn.primary{box-shadow:none}
+#rf-app .rf-nav button{box-shadow:none;font-weight:550}
+#rf-app .rf-nav button.active{box-shadow:none;background:rgba(90,155,230,.12);border-color:transparent;border-left-color:var(--rf-blue);color:inherit}
+#rf-app .rf-nav button.active:after,#rf-app .rf-brand:after{display:none}
+.rf-nav-tools{margin-top:10px;border-top:1px solid var(--rf-border);padding-top:6px}
+.rf-nav-tools>summary{cursor:pointer;color:var(--rf-muted);font-size:12px;font-weight:650;padding:12px 10px;list-style-position:inside}
+.rf-nav-tools>summary:focus-visible{outline:2px solid var(--rf-blue);outline-offset:2px;border-radius:8px}
+.rf-nav-tools[open]>summary{color:inherit}.rf-nav-tools button{width:100%;margin-top:3px;font-size:12px}
+.rf-nav-help{margin-top:24px;padding-top:14px;border-top:1px solid var(--rf-border)}
+.rf-breadcrumbs{display:flex;align-items:center;gap:10px;margin:-8px 0 18px;color:var(--rf-muted);font-size:12px;min-height:22px;min-width:0}
+.rf-breadcrumbs button,.rf-breadcrumbs>[aria-current]{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%;font-size:12px;min-width:0}
+.rf-breadcrumbs>[aria-current]{color:inherit}.rf-breadcrumbs>span[aria-hidden]{flex-shrink:0;opacity:.5}
+#rf-app[data-page="home"] .rf-breadcrumbs{display:none}
+#rf-app[data-context="job"] .rf-userbar>div{display:none}
+#rf-app .rf-globalbar{box-shadow:none}.rf-globalbar .rf-sync-status i{box-shadow:none}
+#rf-app .rf-supporting-details{margin-top:20px;padding:0;background:transparent;border:1px solid var(--rf-border)}
+.rf-supporting-details>summary{padding:17px 20px;cursor:pointer;font-size:13px;color:var(--rf-muted);font-weight:650}
+.rf-supporting-details[open]>summary{color:inherit;border-bottom:1px solid var(--rf-border)}
+.rf-supporting-body{padding:20px}.rf-supporting-body>.rf-card{margin:0;border:0;padding:0;background:transparent}
+.rf-supporting-body>.rf-grid,.rf-supporting-body>.rf-dash-overview,.rf-supporting-body>.rf-dash-bottom{margin-bottom:16px}
+#rf-app .rf-dashboard-shortlist{margin:18px 0}
+#rf-app #page-dashboard>.rf-metrics{gap:0;border-block:1px solid var(--rf-border);margin:20px 0;background:transparent;grid-template-columns:repeat(4,minmax(0,1fr))}
+#rf-app #page-dashboard>.rf-metrics>.rf-card{border:0;border-radius:0;padding:18px 16px;background:none;box-shadow:none}
+#rf-app #page-dashboard>.rf-metrics .rf-icon{display:none}
+#rf-app #page-dashboard>.rf-metrics .rf-value{font-size:23px;color:inherit;background:none;-webkit-text-fill-color:currentColor}
+#rf-app #page-dashboard>.rf-metrics .rf-sub{font-size:11px}
+#rf-app .rf-assessment-dot,#rf-app .rf-ai-status i{animation:none;box-shadow:none}
+#rf-app .rf-assessment-updates[data-state="ready"]{box-shadow:none}
+#rf-app .rf-supporting-details .rf-card-primary{box-shadow:none}
+#page-jobs>.rf-grid{grid-template-columns:1fr}#jobEditor{margin-top:0}#jobEditor>.rf-supporting-body{max-width:850px}
+#rf-app #learnWelcome{display:none}
+#rf-app .rf-resume-drop{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 18px;padding:14px 16px;background:transparent;border-color:var(--rf-border);margin-bottom:10px}
+#rf-app .rf-resume-drop label{margin:0;gap:3px}#rf-app .rf-resume-drop label strong{font-size:15px}#rf-app .rf-resume-drop label span{font-size:12px}
+#resumeUploadNote{grid-column:1/-1;margin:4px 0 0;font-size:12px}
+#addCandidatePanel>.rf-cardhead{display:none}#manualCandidateEntry>summary{font-size:12px;color:var(--rf-muted)}
+.rf-detail-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:12px;max-width:440px}
+.rf-candidate-stage{display:flex;gap:8px;align-items:center;margin:0!important}.rf-candidate-stage label{white-space:nowrap}
+.rf-candidate-stage .rf-select{min-width:140px;width:160px}.rf-detail-actions .rf-linkbtn{font-size:12px}
+#rf-app #page-detail .rf-workspace-details{background:transparent;box-shadow:none}
+#rf-app #page-detail .rf-workspace-details>summary{font-size:13px;color:var(--rf-muted)}
+#rf-app .rf-candidate{transition:border-color .15s ease;background:transparent}
+#rf-app .rf-candidate:hover{border-color:var(--rf-blue)}
+#rf-app .rf-candidate .rf-score-ring{background:none;box-shadow:none;width:auto;height:auto;border:0;border-radius:0}
+#rf-app .rf-candidate .rf-score-ring:before{display:none}#rf-app .rf-candidate .rf-score-ring strong{font-size:27px}
+#rf-app .rf-candidate .rf-fitline{display:none}
+@media(max-width:1000px){#rf-app #page-dashboard>.rf-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rf-detail-actions{justify-content:flex-start;max-width:none}}
+@media(max-width:560px){.rf-breadcrumbs{gap:7px;margin-top:0;font-size:11px}.rf-breadcrumbs button,.rf-breadcrumbs>[aria-current]{max-width:42%;font-size:11px}.rf-supporting-body{padding:14px}.rf-supporting-details>summary{padding:15px}#rf-app .rf-resume-drop{grid-template-columns:1fr}#rf-app .rf-globalbar{min-height:60px}#rf-app[data-context="workspace"] .rf-globalbar{flex-wrap:nowrap}#page-detail>.rf-sectiontitle{flex-direction:column;gap:14px}.rf-detail-actions{width:100%;gap:10px}.rf-candidate-stage .rf-select{width:150px}#rf-app .rf-metric .rf-value{font-size:20px}}
+@media(prefers-reduced-motion:reduce){#rf-app *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+#rf-app #page-dashboard>.rf-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+#rf-app #page-dashboard>.rf-metrics>.rf-card:first-child{display:none}
+#rf-app .rf-candidate-stage{width:auto;flex:0 1 auto}#rf-app .rf-candidate-stage .rf-select{width:160px!important;min-width:140px}
+@media(max-width:560px){#rf-app #page-dashboard>.rf-metrics{grid-template-columns:1fr}.rf-detail-actions{justify-content:flex-start}}
+.rf-job-actions{gap:16px;flex-shrink:0}.rf-job-actions>.rf-linkbtn{font-size:12px}
+.rf-job-menu{position:relative}.rf-job-menu>summary{cursor:pointer;color:var(--rf-muted);font-size:12px;padding:8px;list-style:none}.rf-job-menu>summary::-webkit-details-marker{display:none}.rf-job-menu>summary:after{content:' ⌄'}
+.rf-job-menu-items{position:absolute;z-index:30;right:0;top:100%;min-width:150px;display:grid;gap:4px;padding:10px;border:1px solid var(--rf-border);border-radius:10px;background:#0d1c2d}
+.rf-job-menu-items .rf-linkbtn{text-align:left;padding:9px;font-size:12px}.rf-job-menu-items .danger{color:#f0a5af}
+#rf-app[data-theme="violet"] .rf-job-menu-items{background:#1b1230}#rf-app[data-theme="emerald"] .rf-job-menu-items{background:#092820}#rf-app[data-theme="light"] .rf-job-menu-items{background:#fff}
+#rf-app .rf-feedback-interpretation textarea{display:block;box-sizing:border-box;width:100%;min-height:100px;padding:12px;margin:8px 0;border:1px solid var(--rf-border);border-radius:10px;background:transparent;color:inherit;font:inherit;resize:vertical}
+#rf-app[data-theme="light"] .rf-form label,#rf-app[data-theme="light"] .rf-workspace-details>summary,#rf-app[data-theme="light"] .rf-supporting-details>summary{color:#40536d}
+#rf-app[data-theme="light"] .rf-linkbtn{color:#2466a6}
+@media(max-width:560px){.rf-job-actions{flex-wrap:wrap;gap:12px}#jobList .rf-recent{align-items:flex-start;flex-direction:column;gap:12px}}
