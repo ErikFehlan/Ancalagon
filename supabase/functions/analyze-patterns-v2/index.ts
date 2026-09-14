@@ -210,7 +210,7 @@ ANALYSIS RULES
 - Any proposed criterion must exactly match a criterion in current_weights.
 - Suggested weights are advisory; the application requires human approval.`;
 
-    const autoIntake=isResumeAnalysis && evidence.auto_intake===true;
+    const autoIntake=isResumeAnalysis && Boolean(evidence.auto_intake);
     // Retry validation once inside this request; no extra click or duplicate intake.
     let repairCode='';
     for(let attempt=0;attempt<(autoIntake?2:1);attempt++){
