@@ -226,3 +226,11 @@
 .rf-assessment-item .rf-actions,#workspaceEvaluation .rf-actions{margin-top:16px}
 .rf-assessment-item details>summary,#workspaceEvaluation details>summary{cursor:pointer}
 @media(max-width:560px){.rf-assessment-updates{padding:16px}.rf-assessment-updates>summary{flex-wrap:wrap}.rf-assessment-heading{flex-basis:calc(100% - 24px)}.rf-assessment-toggle{margin-left:21px}.rf-assessment-item .rf-actions .rf-btn{flex:1 1 150px}}
+
+.rf-resume-drop{padding:24px;border:1px dashed var(--rf-blue,#67a4ff);border-radius:12px;margin-bottom:18px;background:rgba(90,140,200,.08)}
+.rf-resume-drop.dragging{background:rgba(90,140,200,.2)}
+.rf-resume-drop label{display:grid;gap:7px;margin-bottom:16px;cursor:pointer}.rf-resume-drop label strong{font-size:20px}.rf-resume-drop label span{font-size:13px;color:var(--rf-muted)}
+.rf-resume-drop input{max-width:100%}#manualCandidateEntry>summary{cursor:pointer;padding:12px 0}
+.rf-intake-list{display:grid;gap:8px;margin-bottom:16px}.rf-intake-status{display:flex;justify-content:space-between;gap:12px;text-align:left;padding:14px;border:1px solid rgba(120,150,190,.3);border-radius:10px;background:rgba(90,140,200,.08);color:inherit;cursor:pointer}.rf-intake-status span{font-size:13px}
+.rf-intake-brief{margin-bottom:18px}.rf-intake-brief blockquote{margin:8px 0 16px;padding-left:12px;border-left:2px solid var(--rf-blue);color:var(--rf-muted)}.rf-intake-brief details>summary{cursor:pointer}.rf-intake-brief p,.rf-intake-brief li{line-height:1.6;overflow-wrap:anywhere}.rf-intake-brief .rf-actions{margin-top:16px}.rf-candidate-score[hidden],[hidden].rf-intake-list{display:none}
+@media(max-width:560px){.rf-intake-status{flex-direction:column}.rf-resume-drop{padding:16px}}

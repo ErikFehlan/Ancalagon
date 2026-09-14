@@ -124,3 +124,13 @@ test('source timestamps stay consistent with worker context after database updat
  const restored=await f.service.load();
  assert.equal(restored.feedback[0].updatedAt,123);assert.equal(restored.interviewOutcomes[0].updatedAt,456);assert.equal(restored.candidates[0].screeningInsight.createdAt,123);
 });
+
+test('intake metadata and pending status round-trip without redundant writes; source reads stay scoped',async()=>{
+ const f=fixture(),state=await f.service.load();
+ state.candidates.push({id:'intake',jobId:'job',name:'Resume',short:'Resume',strengths:[],concerns:[],tags:[],jdScore:0,managerScore:0,resumeIntake:{hash:'abc',fileName:'Resume.txt',phase:'processing',stored:true,updatedAt:123}});
+ await f.service.flush(state);const restored=await f.service.load();
+ assert.equal(restored.candidates[0].resumeIntake.phase,'processing');assert.equal(restored.candidates[0].resumeIntake.hash,'abc');
+ const count=f.calls.length;await f.service.flush(restored);assert.equal(f.calls.length,count);
+ f.rows.candidate_documents=[{workspace_id:'workspace',job_id:'job',candidate_id:'intake',extracted_text:'Correct resume',created_at:'2026-01-01'},{workspace_id:'other',job_id:'job',candidate_id:'intake',extracted_text:'PRIVATE',created_at:'2026-02-01'}];
+ assert.equal(await f.service.loadResumeText(restored.candidates[0]),'Correct resume');
+});
