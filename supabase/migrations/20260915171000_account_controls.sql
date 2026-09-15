@@ -53,6 +53,8 @@ begin
  if exists(select from storage.objects where coalesce(owner_id,owner::text)=p_user::text
    and not(bucket_id='resumes' and split_part(name,'/',1)=any(ids::text[]))) then
   raise exception 'Your account owns files outside a private workspace. Contact the administrator before deleting your account.' using errcode='PT409';end if;
+ -- Revoke application-admin access too: an already issued JWT may outlive Auth deletion.
+ delete from public.app_admins where lower(trim(email))=(select lower(trim(email)) from auth.users where id=p_user);
  insert into public.account_deletions(user_id,workspace_ids) values(p_user,ids);
 end$$;
 create or replace function public.claim_account_deletions(p_user uuid default null) returns setof public.account_deletions
