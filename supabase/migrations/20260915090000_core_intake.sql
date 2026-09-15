@@ -110,7 +110,7 @@ begin
   update public.resume_intake_tasks set status='cancelled',lease_id=null,lease_until=null,result=null,updated_at=now() where candidate_id=p_candidate and status<>'approved';return;
  end if;
  insert into public.resume_intake_tasks(candidate_id,job_id,workspace_id,revision,input,next_run_at)
- values(c.id,c.job_id,c.workspace_id,public.resume_intake_revision(payload),payload,now()+interval '3 seconds')
+ values(c.id,c.job_id,c.workspace_id,public.resume_intake_revision(payload),payload,now())
  on conflict(candidate_id) do update set revision=excluded.revision,input=excluded.input,status='queued',attempts=0,next_run_at=excluded.next_run_at,
   lease_id=null,lease_until=null,result=null,error_code=null,updated_at=now()
  where resume_intake_tasks.revision is distinct from excluded.revision or resume_intake_tasks.status='cancelled';
@@ -185,6 +185,13 @@ begin
  update public.resume_intake_tasks set status=case when p_error is null then 'ready' when attempts>=3 then 'failed' else 'queued' end,
  result=case when p_error is null then p_result else null end,error_code=left(p_error,80),next_run_at=now()+interval '20 seconds'*power(2,attempts),
  lease_id=null,lease_until=null,updated_at=now() where candidate_id=p_candidate;
+ -- Fill the released slot immediately, including work from another job. A
+ -- global claim still enforces the two-task limit and excludes closed jobs.
+ if (select count(*) from public.resume_intake_tasks where status='processing' and lease_until>=now())<2
+  and exists(select 1 from public.resume_intake_tasks pending join public.jobs j on j.id=pending.job_id and j.workspace_id=pending.workspace_id
+    where j.status='active' and pending.status='queued' and pending.attempts<3 and pending.next_run_at<=now()) then
+  perform public.wake_job_reassessments(null);
+ end if;
  return true;
 end $$;
 

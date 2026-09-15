@@ -86,8 +86,10 @@ const resumeSchema = {
 
 const intakeSchema = (sourceIds:string[]) => ({
   ...resumeSchema,
-  required: [...resumeSchema.required, 'manager_score', 'jd_reason', 'manager_reason', 'resume_evidence'],
-  properties: {...resumeSchema.properties,
+  // Evidence claims already supply strengths; the app derives recommendation
+  // from the reviewed score. Do not spend generation time writing them twice.
+  required: [...resumeSchema.required.filter(key=>!['strengths','recommendation'].includes(key)), 'manager_score', 'jd_reason', 'manager_reason', 'resume_evidence'],
+  properties: {...Object.fromEntries(Object.entries(resumeSchema.properties).filter(([key])=>!['strengths','recommendation'].includes(key))),
     manager_score: {type:'number',minimum:0,maximum:10},
     ...Object.fromEntries(['name','role','primary_signal','jd_reason','manager_reason'].map(key=>[key,{type:'string',minLength:1,maxLength:2000}])),
     concerns:{type:'array',items:{type:'string',minLength:1,maxLength:800},maxItems:6},

@@ -8,7 +8,7 @@
     return saved+'The assessment service could not finish after automatic retries. Try the assessment again.';
   }
   function create(api){
-    let timer=null,polling=false,disposed=false;
+    let timer=null,polling=false,disposed=false,activeSince=null;
     const requests=new Map(),errors=new Set();
     const valid=c=>api.valid(c)&&global.AncalagonIntake.pending(c);
     function plan(ms=2500){if(disposed)return;clearTimeout(timer);timer=setTimeout(()=>void poll(),ms);timer?.unref?.();}
@@ -27,7 +27,7 @@
     async function poll(){
       if(disposed||polling)return;
       const candidates=api.candidates().filter(valid);
-      if(!candidates.length)return;
+      if(!candidates.length){activeSince=null;return;}
       if(global.document?.hidden){plan(8000);return;}
       polling=true;let working=false;const changed=[];
       try{
@@ -75,7 +75,11 @@
       }catch(e){
         if(changed.length){if(api.changedMany)api.changedMany(changed);else changed.forEach(c=>api.changed(c));}
         if(!errors.has('poll')){api.toast(e.message||'Assessment updates are temporarily unavailable. Retrying automatically.','error');errors.add('poll');}
-      }finally{polling=false;plan(working?2500:8000);}
+      }finally{
+        polling=false;
+        if(working){activeSince??=Date.now();plan(Date.now()-activeSince<30000?1000:2500);}
+        else {activeSince=null;plan(8000);}
+      }
     }
     function resume(){for(const c of api.candidates().filter(valid))void request(c);plan(300);}
     function dispose(){disposed=true;clearTimeout(timer);}

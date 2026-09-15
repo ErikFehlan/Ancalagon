@@ -85,3 +85,15 @@ test('a saved failure updates to a useful message without re-uploading or restar
  const r=remote.create({valid:()=>true,candidates:()=>[c],loadRemote:async()=>task,persist:async()=>saves++,changed:()=>{},toast:()=>{}});
  try{await r.poll();assert.match(c.resumeIntake.error,/Your resume is saved/);assert.match(c.resumeIntake.error,/verified against the resume/);assert.equal(saves,1);await r.poll();assert.equal(saves,1);}finally{r.dispose();}
 });
+test('active intake checks promptly, backs off for slow work, and slows after completion',async()=>{
+ const timers={set:global.setTimeout,clear:global.clearTimeout,now:Date.now},delays=[];let now=1000;
+ const c={id:'c',jobId:'j',resumeIntake:{phase:'queued',error:''}},task={candidate_id:'c',job_id:'j',revision:'r',status:'processing'};
+ global.setTimeout=(_fn,ms)=>{delays.push(ms);return {unref(){}};};global.clearTimeout=()=>{};Date.now=()=>now;
+ const r=remote.create({valid:()=>true,candidates:()=>[c],loadRemote:async()=>task,persist:async()=>{},changed:()=>{},toast:()=>{}});
+ try{
+  await r.poll();assert.equal(delays.at(-1),1000);
+  now+=31000;await r.poll();assert.equal(delays.at(-1),2500);
+  task.status='failed';await r.poll();assert.equal(delays.at(-1),8000);
+  task.status='queued';await r.poll();assert.equal(delays.at(-1),1000,'new work gets a fresh prompt-update window');
+ }finally{r.dispose();global.setTimeout=timers.set;global.clearTimeout=timers.clear;Date.now=timers.now;}
+});

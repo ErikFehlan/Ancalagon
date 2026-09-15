@@ -15,7 +15,6 @@ insert into candidate_documents(workspace_id,job_id,candidate_id,storage_path,fi
  from candidates where job_id='00000000-0000-0000-0000-000000000111';
 do $$begin
  if (select count(*) from resume_intake_tasks)<>2 then raise exception 'Saved documents not queued';end if;
- if exists(select 1 from claim_resume_intakes()) then raise exception 'Debounce failed';end if;
  if has_function_privilege('authenticated','public.claim_resume_intakes(uuid)','EXECUTE') or has_function_privilege('authenticated','public.resume_intake_input(uuid)','EXECUTE') then raise exception 'Private worker function exposed';end if;
  if has_table_privilege('authenticated','public.resume_intake_tasks','UPDATE') then raise exception 'Client can fabricate result';end if;
 end$$;
@@ -23,7 +22,7 @@ create temp table intake_before as select * from resume_intake_tasks;
 update candidates set role='Synthetic QA',primary_signal='Generated summary' where id='00000000-0000-0000-0000-000000000121';
 select enqueue_resume_intake('00000000-0000-0000-0000-000000000121');
 do $$begin if exists(select 1 from resume_intake_tasks t join intake_before b using(candidate_id) where t.revision<>b.revision) then raise exception 'Generated output changed intake revision';end if;end$$;
-update resume_intake_tasks set next_run_at=now()-interval '1 second';
+-- No artificial clock advance: a saved resume is immediately claimable.
 create temp table intake_leases as select * from claim_resume_intakes();
 do $$begin if (select count(*) from intake_leases)<>2 or exists(select 1 from claim_resume_intakes()) then raise exception 'Lease concurrency failed';end if;end$$;
 insert into manager_feedback(id,workspace_id,job_id,candidate_id,feedback_text) values('00000000-0000-0000-0000-000000000131','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000121','Candidate-specific manual testing ownership verified');
@@ -82,6 +81,31 @@ do $$begin
  if not can_access_resume_path('00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000111/00000000-0000-0000-0000-000000000121/source.txt') then raise exception 'Owner cannot access source';end if;
  if can_access_resume_path('00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000012/00000000-0000-0000-0000-000000000121/source.txt') then raise exception 'Mixed job storage path allowed';end if;
  begin update candidate_documents set storage_path='wrong/path' where candidate_id='00000000-0000-0000-0000-000000000121';raise exception 'Mixed document scope allowed';exception when check_violation then null;end;
+end$$;
+-- A completed intake immediately dispatches the next batch without a cron tick.
+create table public.intake_dispatches(id bigserial primary key,body jsonb);
+create or replace function net.http_post(url text,headers jsonb,body jsonb,timeout_milliseconds integer) returns bigint language sql as $$insert into public.intake_dispatches(body) values(body) returning id$$;
+delete from vault.decrypted_secrets where name in ('job_reassessment_url','job_reassessment_secret');
+insert into vault.decrypted_secrets values('job_reassessment_url','https://worker.invalid'),('job_reassessment_secret','test-only');
+insert into candidates(id,job_id,workspace_id,role) values
+ ('00000000-0000-0000-0000-000000000123','00000000-0000-0000-000000000111','00000000-0000-0000-0000-000000000001','Resume awaiting analysis'),
+ ('00000000-0000-0000-0000-000000000124','00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000001','Resume awaiting analysis');
+insert into candidate_assessments(workspace_id,job_id,candidate_id,assessment_type,evidence)
+ select workspace_id,job_id,id,'manual_correction','{"resume_intake":{"phase":"uploading","backend":"durable-v1"}}' from candidates where id in ('00000000-0000-0000-0000-000000000123','00000000-0000-0000-0000-000000000124');
+insert into candidate_documents(workspace_id,job_id,candidate_id,storage_path,file_name,extracted_text)
+ select workspace_id,job_id,id,workspace_id||'/'||job_id||'/'||id||'/source.txt','Synthetic.txt','Synthetic Candidate. Owned manual regression testing for billing systems and documented defects.'
+ from candidates where id in ('00000000-0000-0000-0000-000000000123','00000000-0000-0000-0000-000000000124');
+update resume_intake_tasks set status='queued',attempts=0,next_run_at=now() where candidate_id='00000000-0000-0000-0000-000000000122';
+create temp table batch_leases as select * from claim_resume_intakes();
+truncate intake_dispatches;
+do $$declare t record;r jsonb;begin
+ if (select count(*) from batch_leases)<>2 or exists(select 1 from claim_resume_intakes()) then raise exception 'Intake concurrency limit changed';end if;
+ select * into t from batch_leases order by candidate_id limit 1;
+ select result into r from resume_intake_tasks where candidate_id='00000000-0000-0000-0000-000000000121';
+ if not finish_resume_intake(t.candidate_id,t.revision,t.lease_id,r) then raise exception 'First batch did not complete';end if;
+ if (select count(*) from intake_dispatches where body='{}'::jsonb)<>1 then raise exception 'Next batch waits for scheduler';end if;
+ if (select count(*) from claim_resume_intakes())<>1 then raise exception 'Released slot was not filled immediately';end if;
+ if (select count(*) from resume_intake_tasks where status='processing')<>2 then raise exception 'Batch refill exceeded concurrency';end if;
 end$$;
 delete from jobs where id='00000000-0000-0000-0000-000000000111';
 do $$begin
