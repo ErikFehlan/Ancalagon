@@ -48,6 +48,13 @@ jobs:
           createdb -h localhost -U postgres workspace_home_test
           psql -h localhost -U postgres -d workspace_home_test -f tests/workspace-home.sql
 
+      - name: Test admin-only resources and downloads
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres admin_tools_test
+          psql -h localhost -U postgres -d admin_tools_test -f tests/admin-tools.sql
+
       - name: Test durable intake, stale evidence, and document isolation
         env:
           PGPASSWORD: postgres

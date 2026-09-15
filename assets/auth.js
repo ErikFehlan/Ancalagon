@@ -27,6 +27,7 @@
   }
 
   function showGuest() {
+    window.dispatchEvent(new CustomEvent('ancalagon:auth-cleared'));
     body.classList.remove('rf-auth-pending', 'rf-authenticated');
     body.classList.add('rf-auth-guest');
     gate.removeAttribute('aria-hidden');
@@ -76,6 +77,11 @@
     }
 
     if (session.access_token === appliedAccessToken && window.ancalagonAuth?.workspace) return;
+
+    const previousUser = window.ancalagonAuth?.session?.user?.id;
+    if (previousUser && previousUser !== session.user.id) {
+      window.dispatchEvent(new CustomEvent('ancalagon:auth-cleared'));
+    }
 
     try {
       const workspace = await workspaceForUser(client);
@@ -313,4 +319,3 @@
     applySession(client, data.session);
   });
 })();
-

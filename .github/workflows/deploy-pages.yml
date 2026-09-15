@@ -29,6 +29,7 @@ jobs:
       - name: Validate JavaScript
         run: |
           node --check assets/app.js
+          node --check assets/admin-tools.js
           node --check assets/home.js
           node --check assets/tutorial.js
           node --check assets/tutorial-ui.js
@@ -67,6 +68,7 @@ jobs:
           node tests/core-browser.cjs
           node tests/recruiter-browser.cjs
           node tests/tutorial-browser.cjs
+          node tests/admin-tools-browser.cjs
 
       - name: Save tutorial review screenshots
         if: always()
@@ -93,7 +95,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Prepare personal Home and tutorial progress before publishing
+      - name: Prepare personal Home, tutorial progress, and admin tools before publishing
         run: node scripts/workspace-home-backend.mjs
 
   core-backend:
@@ -114,11 +116,15 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Stage only public application files
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+          cp -R assets _site/assets
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
