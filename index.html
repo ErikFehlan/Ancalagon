@@ -9,7 +9,7 @@
   <meta name="description" content="Ancalagon recruiting intelligence dashboard for jobs, candidates, manager feedback, interview outcomes, pipeline tracking, and fit analysis.">
   <link rel="icon" type="image/png" href="assets/ancalagon.png">
   <link rel="apple-touch-icon" href="assets/ancalagon.png">
-  <link rel="stylesheet" href="assets/app.css?v=20260915-phase2">
+  <link rel="stylesheet" href="assets/app.css?v=20260915-candidate">
   <link rel="stylesheet" href="assets/tutorial.css?v=20260915-tutorial">
   <link rel="stylesheet" href="assets/themes.css?v=20260915-logo-contrast">
   <link rel="stylesheet" href="assets/settings.css?v=20260915-settings">
@@ -449,7 +449,7 @@
       </section>
 
       <section class="rf-page" id="page-detail">
-        <div class="rf-sectiontitle"><div><button class="rf-linkbtn" id="backCandidates">← Back to candidates</button><h2 id="detailName" tabindex="-1" style="margin-top:8px"></h2><p id="detailRole"></p></div><div id="detailActions" class="rf-detail-actions"><span id="detailRec" class="rf-pill rf-blue"></span><button type="button" class="rf-linkbtn" id="recordCandidateOutcome">Record interview outcome</button></div></div>
+        <div class="rf-sectiontitle rf-candidate-heading"><div><button class="rf-linkbtn" id="backCandidates">← Back to candidates</button><h2 id="detailName" tabindex="-1" style="margin-top:8px"></h2><p id="detailRole"></p></div><div id="detailActions" class="rf-detail-actions"><span id="detailRec" class="rf-pill rf-blue"></span><button type="button" class="rf-linkbtn" id="recordCandidateOutcome">Record interview outcome</button></div></div>
         <div id="candidateWorkspace"></div><details class="rf-card rf-workspace-details"><summary>Scores, evidence, and activity</summary>
         <div class="rf-detail"><div class="rf-card"><div class="rf-formrow"><div><div class="rf-kicker">JD Fit</div><div class="rf-scorebox" id="detailJDScore"></div></div><div><div class="rf-kicker">Manager Fit</div><div class="rf-scorebox" id="detailManagerScore"></div></div></div><div class="rf-sub" id="detailConfidence" style="margin-top:10px"></div><div id="detailScreenEvidence"></div><div style="margin-top:14px"><label class="rf-kicker">Pipeline stage</label><select id="detailStage" class="rf-search" style="width:100%;margin-top:6px"><option>Sourced</option><option>Screened</option><option>Submitted</option><option>Interviewing</option><option>Offer</option><option>Hired</option><option>Rejected</option><option>Withdrew</option></select></div><h3 style="margin-top:18px">Why they fit</h3><ul id="detailStrengths"></ul><h3 style="margin-top:18px">Screening Questions</h3><ul id="detailQuestions"></ul></div><div class="rf-card"><h3>Concerns / Questions</h3><ul id="detailConcerns"></ul><div id="detailKnockouts" style="margin-top:14px"></div><h3 style="margin-top:20px">Primary signal</h3><p id="detailSignal" style="font-size:13px;line-height:1.55"></p><h3 style="margin-top:20px">Activity Timeline</h3><div class="rf-timeline" id="detailTimeline"></div></div></div>
         <div class="rf-card rf-readiness-card"><div class="rf-cardhead"><div><div class="rf-kicker">Decision support</div><h3>Submission Readiness</h3><p class="rf-sub">A requirement-by-requirement view of what is proven, missing, or still needs to be screened.</p></div><button class="rf-btn" id="copySubmissionSummary" type="button">Copy Submission Summary</button></div><div class="rf-readiness-hero" id="submissionReadiness"></div><div class="rf-tablewrap"><table class="rf-table rf-evidence-table"><thead><tr><th>Requirement</th><th>Priority</th><th>Status</th><th>Supporting evidence</th></tr></thead><tbody id="requirementEvidenceRows"></tbody></table></div></div>
@@ -481,7 +481,7 @@
   <script src="assets/job-review.js?v=20260914-focus"></script>
   <script src="assets/candidate-automation.js?v=20260914-job-review"></script>
   <script src="assets/quick-notes.js?v=20260914-focus"></script>
-  <script src="assets/candidate-workspace.js?v=20260915-settings"></script>
+  <script src="assets/candidate-workspace.js?v=20260915-candidate"></script>
   <script src="assets/criteria-automation.js?v=20260914-speed"></script>
   <script src="assets/home.js?v=20260915-tutorial"></script>
 <script src="assets/focus-ui.js?v=20260915-admin"></script>
@@ -491,7 +491,7 @@
 <script src="assets/admin-tools.js?v=20260915-settings"></script>
 <script src="assets/settings.js?v=20260915-settings"></script>
 <script src="assets/settings-ui.js?v=20260915-settings"></script>
-<script src="assets/app.js?v=20260915-intake"></script>
+<script src="assets/app.js?v=20260915-candidate"></script>
 </div>
 </body>
 </html>
