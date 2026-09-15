@@ -71,3 +71,17 @@ test('an account change during a source read discards the outstanding result',as
   text:async()=>{valid=false;return text;},context:()=>({}),signature:()=> 's',changed:()=>{},toast:()=>{}});
  try{await r.poll();assert.equal(saves,0);assert.equal(c.name,'Example');}finally{r.dispose();}
 });
+test('durable failures retain only allowlisted verification categories',async()=>{
+ const {processIntakes}=await import('../supabase/functions/reassess-job/intake.mjs');
+ for(const [issue,expected] of [['unmatched_quote','verification_unmatched_quote'],['invalid_evidence','verification_invalid_evidence'],['PRIVATE RESUME','verification_failed']]){
+  const calls=[];
+  await processIntakes([{candidate_id:'c',revision:'r',lease_id:'l',input:input()}],{analyze:async()=>new Response(JSON.stringify({error:'PRIVATE TOKEN',validation_issue:issue}),{status:502}),rpc:async(_name,args)=>calls.push(args)});
+  assert.equal(calls[0].p_error,expected);assert.doesNotMatch(JSON.stringify(calls),/PRIVATE/);
+ }
+});
+test('a saved failure updates to a useful message without re-uploading or restarting work',async()=>{
+ const c={id:'c',jobId:'j',resumeIntake:{phase:'error',remoteRevision:'r',stored:true,error:'Old generic error'}};let saves=0;
+ const task={candidate_id:'c',job_id:'j',revision:'r',status:'failed',error_code:'verification_unmatched_quote'};
+ const r=remote.create({valid:()=>true,candidates:()=>[c],loadRemote:async()=>task,persist:async()=>saves++,changed:()=>{},toast:()=>{}});
+ try{await r.poll();assert.match(c.resumeIntake.error,/Your resume is saved/);assert.match(c.resumeIntake.error,/verified against the resume/);assert.equal(saves,1);await r.poll();assert.equal(saves,1);}finally{r.dispose();}
+});

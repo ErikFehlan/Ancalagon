@@ -15,14 +15,18 @@ export async function processIntakes(tasks,{rpc,analyze}){
     try{
       const prepared=prepareIntake(task.input);
       const response=await analyze(new Request('https://internal.invalid/resume-intake',{method:'POST',body:JSON.stringify(prepared.payload)}));
-      if(!response.ok)throw Error(response.status===429?'ai_rate_limit':response.status===502?'verification_failed':'ai_unavailable');
+      if(!response.ok){
+        const failure=await response.json().catch(()=>({}));
+        const issue=['invalid_score','invalid_profile','invalid_concerns','invalid_questions','invalid_tags','invalid_evidence','unmatched_quote','unsupported_score','incomplete_output','invalid_json'].includes(failure?.validation_issue)?failure.validation_issue:null;
+        throw Error(response.status===429?'ai_rate_limit':response.status===502?(issue?'verification_'+issue:'verification_failed'):'ai_unavailable');
+      }
       const result=await response.json();
       const accepted=await rpc('finish_resume_intake',{p_candidate:task.candidate_id,p_revision:task.revision,p_lease:task.lease_id,
         p_result:{...result,context_signature:prepared.signature},p_error:null});
       return accepted?'ready':'superseded';
     }catch(error){
       const message=error instanceof Error?error.message:'';
-      const code=['invalid_scope','invalid_resume','input_too_large','ai_rate_limit','verification_failed','ai_unavailable'].includes(message)?message:'processing_failed';
+      const code=['invalid_scope','invalid_resume','input_too_large','ai_rate_limit','verification_failed','ai_unavailable'].includes(message)||/^verification_(invalid_score|invalid_profile|invalid_concerns|invalid_questions|invalid_tags|invalid_evidence|unmatched_quote|unsupported_score|incomplete_output|invalid_json)$/.test(message)?message:'processing_failed';
       try{await rpc('finish_resume_intake',{p_candidate:task.candidate_id,p_revision:task.revision,p_lease:task.lease_id,p_result:null,p_error:code});}catch{/* The lease expires and the scheduler retries. */}
       return 'retry_or_attention';
     }
