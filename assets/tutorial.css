@@ -1,0 +1,116 @@
+#rf-app #ancalagon-tutorial { --at-bg: light-dark(#f5f7fb,#0b1423); --at-panel: light-dark(#ffffff,#111f32); --at-rail: light-dark(#edf2f8,#0d192b); --at-text: light-dark(#16263c,#e7edf7); --at-muted: light-dark(#53637b,#a3b2c8); --at-line: light-dark(#dbe3ed,#293a50); --at-primary: light-dark(#135ac3,#72b9ff); --at-onprimary: light-dark(#ffffff,#09203d); --at-soft: light-dark(#e9f2ff,#172e4b); --at-good: light-dark(#21634d,#8bd5b7); --at-goodbg: light-dark(#e9f6f0,#17362e); --at-warn: light-dark(#845500,#ebc16f); --at-warnbg: light-dark(#fff5dc,#352c1c); color:var(--at-text); background:var(--at-bg); font:14px/1.5 Inter,Arial,sans-serif; border:1px solid var(--at-line); border-radius:14px; overflow:hidden; width:100%; }
+    #rf-app #ancalagon-tutorial * { box-sizing:border-box; }
+    #rf-app #ancalagon-tutorial [hidden] { display:none !important; }
+    #rf-app #ancalagon-tutorial h1,#rf-app #ancalagon-tutorial h2,#rf-app #ancalagon-tutorial h3,#rf-app #ancalagon-tutorial p { margin:0; }
+    #rf-app #ancalagon-tutorial h1 { font-size:30px; line-height:1.16; font-weight:600; letter-spacing:-.8px; }
+    #rf-app #ancalagon-tutorial h2 { font-size:21px; line-height:1.3; font-weight:600; letter-spacing:-.3px; }
+    #rf-app #ancalagon-tutorial h3 { font-size:15px; font-weight:600; }
+    #rf-app #ancalagon-tutorial button,#rf-app #ancalagon-tutorial input,#rf-app #ancalagon-tutorial textarea { font:inherit; }
+    #rf-app #ancalagon-tutorial button { cursor:pointer; }
+    #rf-app #ancalagon-tutorial button:disabled { cursor:default; opacity:.48; }
+    #rf-app #ancalagon-tutorial button,#rf-app #ancalagon-tutorial summary { touch-action:manipulation; }
+    #rf-app #ancalagon-tutorial .at-header { min-height:65px; background:var(--at-rail); display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 23px; border-bottom:1px solid var(--at-line); }
+    #rf-app #ancalagon-tutorial .at-brand { font-family:Georgia,serif; font-size:24px; letter-spacing:-.7px; }
+    #rf-app #ancalagon-tutorial .at-brand span { color:var(--at-muted); font-size:16px; }
+    #rf-app #ancalagon-tutorial .at-preview { color:var(--at-muted); font-size:12px; }
+    #rf-app #ancalagon-tutorial .at-shell { display:grid; grid-template-columns:165px minmax(0,1fr); }
+    #rf-app #ancalagon-tutorial .at-sidebar { background:var(--at-rail); border-right:1px solid var(--at-line); padding:22px 12px; display:flex; flex-direction:column; gap:6px; }
+    #rf-app #ancalagon-tutorial .at-nav { width:100%; border:0; border-radius:7px; background:transparent; color:var(--at-muted); text-align:left; display:flex; align-items:center; gap:9px; padding:11px 12px; }
+    #rf-app #ancalagon-tutorial .at-nav[aria-current="page"] { color:var(--at-text); background:var(--at-soft); }
+    #rf-app #ancalagon-tutorial .at-nav:hover { background:var(--at-soft); }
+    #rf-app #ancalagon-tutorial .at-sidebar-caption { font-size:12px; color:var(--at-muted); padding:32px 12px 6px; }
+    #rf-app #ancalagon-tutorial .at-tagline { margin-top:auto; padding:36px 12px 4px; color:var(--at-muted); font-family:Georgia,serif; font-size:14px; }
+    #rf-app #ancalagon-tutorial .at-main { min-width:0; padding:27px; }
+    #rf-app #ancalagon-tutorial .at-eyebrow { font-size:11px; text-transform:uppercase; letter-spacing:1.4px; color:var(--at-primary); font-weight:600; margin-bottom:10px; }
+    #rf-app #ancalagon-tutorial .at-muted { color:var(--at-muted); }
+    #rf-app #ancalagon-tutorial .at-small { font-size:12px; }
+    #rf-app #ancalagon-tutorial .at-stack { display:grid; gap:16px; }
+    #rf-app #ancalagon-tutorial .at-space { margin-top:22px; }
+    #rf-app #ancalagon-tutorial .at-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    #rf-app #ancalagon-tutorial .at-between { justify-content:space-between; }
+    #rf-app #ancalagon-tutorial .at-action { display:inline-flex; justify-content:center; align-items:center; gap:8px; padding:10px 15px; min-height:42px; border-radius:7px; border:1px solid var(--at-line); background:var(--at-panel); color:var(--at-text); font-weight:500; }
+    #rf-app #ancalagon-tutorial .at-action:hover:not(:disabled) { border-color:var(--at-primary); }
+    #rf-app #ancalagon-tutorial .at-primary { background:var(--at-primary); color:var(--at-onprimary); border-color:var(--at-primary); }
+    #rf-app #ancalagon-tutorial .at-link { background:none; border:0; color:var(--at-primary); padding:7px 0; text-align:left; display:inline-flex; gap:6px; align-items:center; }
+    #rf-app #ancalagon-tutorial .at-hero { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr); gap:25px; align-items:center; padding:24px 0 26px; }
+    #rf-app #ancalagon-tutorial .at-hero p { margin-top:15px; color:var(--at-muted); }
+    #rf-app #ancalagon-tutorial .at-hero .at-row { margin-top:23px; }
+    #rf-app #ancalagon-tutorial .at-panel { border:1px solid var(--at-line); border-radius:10px; padding:21px; background:var(--at-panel); min-width:0; }
+    #rf-app #ancalagon-tutorial .at-practice-peek { padding:19px; background:var(--at-panel); border:1px solid var(--at-line); border-radius:10px; }
+    #rf-app #ancalagon-tutorial .at-peek-person { display:flex; gap:10px; align-items:center; padding:13px 0; border-bottom:1px solid var(--at-line); }
+    #rf-app #ancalagon-tutorial .at-avatar { width:34px; height:34px; flex-shrink:0; border-radius:9px; background:var(--at-soft); color:var(--at-primary); display:grid; place-items:center; font-size:12px; font-weight:600; }
+    #rf-app #ancalagon-tutorial .at-peek-tip { display:flex; gap:8px; align-items:flex-start; color:var(--at-muted); font-size:12px; padding-top:13px; }
+    #rf-app #ancalagon-tutorial .at-peek-tip i,#rf-app #ancalagon-tutorial .at-peek-tip svg { flex-shrink:0; margin-top:2px; }
+    #rf-app #ancalagon-tutorial .at-route { list-style:none; padding:18px 0; margin:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); border-top:1px solid var(--at-line); border-bottom:1px solid var(--at-line); gap:12px; }
+    #rf-app #ancalagon-tutorial .at-route li { font-size:12px; color:var(--at-muted); }
+    #rf-app #ancalagon-tutorial .at-route span { display:block; font-size:11px; color:var(--at-primary); margin-bottom:5px; }
+    #rf-app #ancalagon-tutorial .at-lessons { margin-top:27px; }
+    #rf-app #ancalagon-tutorial .at-lessons h2 { font-size:17px; margin-bottom:10px; }
+    #rf-app #ancalagon-tutorial details { border-bottom:1px solid var(--at-line); }
+    #rf-app #ancalagon-tutorial summary { cursor:pointer; padding:13px 0; font-weight:500; }
+    #rf-app #ancalagon-tutorial details p { padding:0 0 15px; color:var(--at-muted); }
+    #rf-app #ancalagon-tutorial .at-practice-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:19px; }
+    #rf-app #ancalagon-tutorial .at-badge { display:inline-flex; align-items:center; gap:6px; border-radius:5px; padding:4px 8px; background:var(--at-soft); color:var(--at-primary); font-size:11px; font-weight:500; }
+    #rf-app #ancalagon-tutorial .at-success { background:var(--at-goodbg); color:var(--at-good); }
+    #rf-app #ancalagon-tutorial .at-warning { background:var(--at-warnbg); color:var(--at-warn); }
+    #rf-app #ancalagon-tutorial .at-steps { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; list-style:none; padding:0; margin:0 0 25px; }
+    #rf-app #ancalagon-tutorial .at-step { display:flex; flex-direction:column; align-items:flex-start; gap:7px; background:none; color:var(--at-muted); border:0; width:100%; text-align:left; padding:0; font-size:11px; }
+    #rf-app #ancalagon-tutorial .at-step-mark { height:4px; border-radius:3px; width:100%; background:var(--at-line); }
+    #rf-app #ancalagon-tutorial .at-step[aria-current="step"] { color:var(--at-primary); font-weight:600; }
+    #rf-app #ancalagon-tutorial .at-step[aria-current="step"] .at-step-mark,#rf-app #ancalagon-tutorial .at-step.at-done .at-step-mark { background:var(--at-primary); }
+    #rf-app #ancalagon-tutorial .at-titlebar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    #rf-app #ancalagon-tutorial .at-titlebar p { color:var(--at-muted); margin-top:7px; }
+    #rf-app #ancalagon-tutorial .at-coach { background:var(--at-soft); border-radius:8px; padding:13px 15px; display:flex; align-items:flex-start; gap:11px; margin-bottom:18px; }
+    #rf-app #ancalagon-tutorial .at-coach svg { color:var(--at-primary); flex-shrink:0; margin-top:3px; }
+    #rf-app #ancalagon-tutorial .at-coach p { font-size:13px; }
+    #rf-app #ancalagon-tutorial .at-fields { display:grid; gap:15px; }
+    #rf-app #ancalagon-tutorial label { display:grid; gap:6px; font-size:13px; font-weight:500; }
+    #rf-app #ancalagon-tutorial input,#rf-app #ancalagon-tutorial textarea { width:100%; max-width:100%; border:1px solid var(--at-line); border-radius:7px; padding:10px 12px; color:var(--at-text); background:var(--at-bg); font-size:14px; line-height:1.5; }
+    #rf-app #ancalagon-tutorial textarea { resize:vertical; }
+    #rf-app #ancalagon-tutorial .at-field-hint { color:var(--at-muted); font-size:12px; font-weight:400; }
+    #rf-app #ancalagon-tutorial .at-bottom { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:20px; }
+    #rf-app #ancalagon-tutorial .at-upload { text-align:center; display:grid; justify-items:center; gap:13px; padding:32px 18px; }
+    #rf-app #ancalagon-tutorial .at-upload-icon { display:grid; place-items:center; width:44px; height:44px; color:var(--at-primary); background:var(--at-soft); border-radius:11px; }
+    #rf-app #ancalagon-tutorial .at-file { display:flex; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid var(--at-line); }
+    #rf-app #ancalagon-tutorial .at-file:last-child { border-bottom:0; }
+    #rf-app #ancalagon-tutorial .at-file-info { flex:1; min-width:0; overflow-wrap:anywhere; }
+    #rf-app #ancalagon-tutorial .at-file-icon { color:var(--at-muted); flex-shrink:0; }
+    #rf-app #ancalagon-tutorial .at-scores { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:18px 0; }
+    #rf-app #ancalagon-tutorial .at-score { padding:13px; border-radius:7px; background:var(--at-bg); }
+    #rf-app #ancalagon-tutorial .at-score-label { font-size:12px; color:var(--at-muted); }
+    #rf-app #ancalagon-tutorial .at-score-value { font-size:27px; letter-spacing:-.7px; font-variant-numeric:tabular-nums; margin-top:2px; }
+    #rf-app #ancalagon-tutorial .at-score-value small { color:var(--at-muted); font-size:12px; letter-spacing:0; }
+    #rf-app #ancalagon-tutorial .at-score p { color:var(--at-muted); font-size:12px; margin-top:2px; }
+    #rf-app #ancalagon-tutorial .at-evidence { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:16px; }
+    #rf-app #ancalagon-tutorial .at-evidence p { font-size:13px; color:var(--at-muted); margin-top:5px; }
+    #rf-app #ancalagon-tutorial .at-source { background:var(--at-bg); border:1px solid var(--at-line); border-radius:7px; padding:13px; margin-top:10px; }
+    #rf-app #ancalagon-tutorial .at-source blockquote { margin:8px 0 0; color:var(--at-text); font-size:13px; }
+    #rf-app #ancalagon-tutorial .at-source summary { padding:0; color:var(--at-primary); }
+    #rf-app #ancalagon-tutorial .at-source[open] summary { padding-bottom:5px; }
+    #rf-app #ancalagon-tutorial .at-note { border-left:3px solid var(--at-line); padding-left:12px; margin:9px 0 18px; font-size:13px; color:var(--at-muted); overflow-wrap:anywhere; }
+    #rf-app #ancalagon-tutorial .at-divider { border:0; border-top:1px solid var(--at-line); margin:18px 0; }
+    #rf-app #ancalagon-tutorial .at-result { color:var(--at-good); font-size:13px; display:flex; align-items:flex-start; gap:8px; }
+    #rf-app #ancalagon-tutorial .at-complete { padding:25px 0; }
+    #rf-app #ancalagon-tutorial .at-complete-mark { display:grid; place-items:center; width:44px; height:44px; border-radius:50%; color:var(--at-good); background:var(--at-goodbg); margin-bottom:17px; }
+    #rf-app #ancalagon-tutorial .at-checklist { list-style:none; padding:0; margin:22px 0; display:grid; gap:10px; }
+    #rf-app #ancalagon-tutorial .at-checklist li { display:flex; align-items:center; gap:9px; }
+    #rf-app #ancalagon-tutorial .at-checklist svg { color:var(--at-good); flex-shrink:0; }
+    #rf-app #ancalagon-tutorial .at-hidden-status { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media (max-width:760px) { #rf-app #ancalagon-tutorial .at-shell { grid-template-columns:135px minmax(0,1fr); } #rf-app #ancalagon-tutorial .at-main { padding:20px; } #rf-app #ancalagon-tutorial .at-hero { grid-template-columns:1fr; } #rf-app #ancalagon-tutorial .at-practice-peek { display:none; } #rf-app #ancalagon-tutorial .at-nav { padding:10px 8px; font-size:12px; } }
+    @media (max-width:550px) { #rf-app #ancalagon-tutorial .at-shell { display:block; } #rf-app #ancalagon-tutorial .at-sidebar { flex-direction:row; padding:6px 12px; border-right:0; border-bottom:1px solid var(--at-line); } #rf-app #ancalagon-tutorial .at-nav { width:auto; font-size:12px; padding:8px 10px; } #rf-app #ancalagon-tutorial .at-sidebar-caption,#rf-app #ancalagon-tutorial .at-tagline { display:none; } #rf-app #ancalagon-tutorial .at-header { padding:13px 16px; gap:12px; } #rf-app #ancalagon-tutorial .at-brand { font-size:21px; } #rf-app #ancalagon-tutorial .at-preview { font-size:11px; text-align:right; } #rf-app #ancalagon-tutorial .at-main { padding:20px 16px; } #rf-app #ancalagon-tutorial h1 { font-size:27px; } #rf-app #ancalagon-tutorial .at-panel { padding:16px; } #rf-app #ancalagon-tutorial .at-route { grid-template-columns:1fr; gap:8px; } #rf-app #ancalagon-tutorial .at-route li { display:flex; gap:9px; } #rf-app #ancalagon-tutorial .at-route span { margin:0; } #rf-app #ancalagon-tutorial .at-step-label { display:none; } #rf-app #ancalagon-tutorial .at-steps { margin-bottom:20px; } #rf-app #ancalagon-tutorial .at-evidence { grid-template-columns:1fr; gap:14px; } #rf-app #ancalagon-tutorial input,#rf-app #ancalagon-tutorial textarea { font-size:16px; } #rf-app #ancalagon-tutorial .at-bottom .at-primary { max-width:100%; } #rf-app #ancalagon-tutorial .at-file { flex-wrap:wrap; } #rf-app #ancalagon-tutorial .at-file-info { min-width:120px; } }
+    @media (pointer:coarse) { #rf-app #ancalagon-tutorial button,#rf-app #ancalagon-tutorial summary { min-height:44px; } }
+  
+#rf-app #ancalagon-tutorial {border:0; border-radius:0; overflow:visible; background:transparent; color-scheme:dark; max-width:1024px; margin:0 auto;}
+#rf-app[data-theme="light"] #ancalagon-tutorial {color-scheme:light;}
+#rf-app[data-theme="violet"] #ancalagon-tutorial {--at-bg:#160f24;--at-panel:#211633;--at-soft:#32204d;--at-line:#493363;--at-primary:#bc9aff;--at-onprimary:#1d1133;}
+#rf-app[data-theme="emerald"] #ancalagon-tutorial {--at-bg:#071e19;--at-panel:#0b2b23;--at-soft:#123d30;--at-line:#255541;--at-primary:#71d7a5;--at-onprimary:#07231b;}
+#rf-app #ancalagon-tutorial button:focus-visible,#rf-app #ancalagon-tutorial summary:focus-visible {outline:2px solid var(--at-primary);outline-offset:3px;}
+#rf-app #ancalagon-tutorial input:focus-visible,#rf-app #ancalagon-tutorial textarea:focus-visible {outline:2px solid var(--at-primary);outline-offset:1px;}
+#rf-app #ancalagon-tutorial .at-sync {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--at-muted);margin-bottom:14px;}
+#rf-app #ancalagon-tutorial .at-sync-error {color:var(--at-warn);margin-bottom:16px;}
+#rf-app #ancalagon-tutorial .at-sync-error p {margin-bottom:8px;}
+#rf-app #ancalagon-tutorial .at-action {white-space:normal;max-width:100%;}
+#rf-app #ancalagon-tutorial .at-glyph {display:inline-grid;place-items:center;width:16px;flex-shrink:0;color:inherit;}
+#rf-app .rf-home-tutorial {margin:18px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+#rf-app .rf-home-tutorial p {color:var(--rf-muted);font-size:13px;margin:7px 0 0;}
+#rf-app .rf-home-tutorial h2 {font-size:19px;margin:0;}

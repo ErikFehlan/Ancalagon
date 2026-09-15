@@ -17,7 +17,7 @@
       const DEFAULT_HYBRID_SETTINGS={url:'https://zqiqjzxcpznhzjengfff.supabase.co/functions/v1/analyze-patterns-beta',anonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxaXFqenhjcHpuaHpqZW5nZmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NjcwNDEsImV4cCI6MjEwMzM0MzA0MX0.Xbm_rHVt8Ku7GT7YY8PLUqbd8_6sXL4dZf0V6PGs7TA'};
       let hybridState={settings:{...DEFAULT_HYBRID_SETTINGS},analyses:{}};
       let dataService=null,dataReady=false,syncErrorShown=false;
-      let home=null,workspaceLoadError="";
+      let home=null,tutorial=null,workspaceLoadError="";
       const candidateFilters=new Map();let candidateListJob=null,lastJobOptions=null;let jobListFilter='active';
       const focusUI=window.AncalagonFocus.create({root,navigate:page=>showPage(page)});focusUI.init();
       const analyticsSessionId=crypto.randomUUID();
@@ -631,7 +631,7 @@ function renderJobs(){
         if(!jobs.length&&!['home','jobs','job-picker','learn','backend','admin-usage'].includes(name))name='home';
         const navigation=navigationToken??focusUI.begin();if(name!=='detail')window.AncalagonWorkspace?.leave();intake.render();
         if(jobs.length&&!['home','jobs','job-picker','learn','backend','admin-usage','detail'].includes(name))recalibrateAll();if(name==='jobs')renderJobs();
-        if(name==='home'){renderHome();void home?.refresh();}if(name==='job-picker')renderJobPicker();if(name==='dashboard')void jobReview.refresh();
+        if(name==='learn')tutorial?.open();if(name==='home'){renderHome();void home?.refresh();}if(name==='job-picker')renderJobPicker();if(name==='dashboard')void jobReview.refresh();
         root.querySelectorAll('.rf-page').forEach(p=>p.classList.toggle('active',p.id==='page-'+name));root.querySelector('.rf-sidebar').classList.remove('open');
         const candidate=name==='detail'?candidateForRef(root.querySelector('#reviewCandidateId').value):null;
         if(candidate){renderSubmissionReadiness(candidate);window.AncalagonWorkspace.render(candidate);}
@@ -658,7 +658,7 @@ function renderJobs(){
         const server=`import express from 'express';\nimport multer from 'multer';\nimport pdf from 'pdf-parse';\nimport mammoth from 'mammoth';\nimport OpenAI from 'openai';\nimport pg from 'pg';\nimport { z } from 'zod';\n\nconst app=express();\nconst upload=multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024}});\nconst openai=new OpenAI({apiKey:process.env.OPENAI_API_KEY});\nconst db=new pg.Pool({connectionString:process.env.DATABASE_URL});\nconst model=process.env.OPENAI_MODEL||'${model}';\n\nconst Evaluation=z.object({name:z.string(),title:z.string().nullable().optional(),score:z.number().min(0).max(10),recommendation:z.string(),criteria:z.record(z.number()),strengths:z.array(z.string()),concerns:z.array(z.string()),primary_signal:z.string(),screening_questions:z.array(z.string())});\n\nasync function extractResume(file:any){\n  const name=(file.originalname||'').toLowerCase();\n  if(name.endsWith('.pdf')) return (await pdf(file.buffer)).text;\n  if(name.endsWith('.docx')) return (await mammoth.extractRawText({buffer:file.buffer})).value;\n  return file.buffer.toString('utf8');\n}\n\nasync function evaluateResume(resumeText:string){\n  const prompt=\`${prompt.replace(/`/g,'\\`')}\`;\n  const response=await openai.responses.create({model,input:[{role:'system',content:prompt},{role:'user',content:'RESUME\\n'+resumeText}],text:{format:{type:'json_object'}}});\n  return Evaluation.parse(JSON.parse(response.output_text));\n}\n\napp.post('/api/analyze-resume',upload.single('resume'),async(req,res)=>{\n  try{if(!req.file)return res.status(400).json({error:'resume file required'});const text=await extractResume(req.file);const evaluation=await evaluateResume(text);const q=await db.query('insert into candidates(name,title,resume_text,score,recommendation,primary_signal,strengths,concerns,screening_questions,criteria) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning *',[evaluation.name,evaluation.title||null,text,evaluation.score,evaluation.recommendation,evaluation.primary_signal,JSON.stringify(evaluation.strengths),JSON.stringify(evaluation.concerns),JSON.stringify(evaluation.screening_questions),JSON.stringify(evaluation.criteria)]);res.json(q.rows[0]);}catch(err:any){res.status(500).json({error:err.message||'analysis failed'});}\n});\n\napp.get('/api/candidates',async(_req,res)=>{const q=await db.query('select * from candidates order by score desc nulls last, created_at desc');res.json(q.rows)});\napp.post('/api/feedback',express.json(),async(req,res)=>{const {candidate_id,feedback_type,feedback_text}=req.body;const q=await db.query('insert into manager_feedback(candidate_id,feedback_type,feedback_text) values($1,$2,$3) returning *',[candidate_id,feedback_type,feedback_text]);res.json(q.rows[0])});\n\napp.listen(Number(process.env.PORT||3000),()=>console.log('Resume Fit backend running'));\n`;
         return {pkg,env,schema,prompt,server};
       }
-      function renderHome(){if(!home)return;const host=root.querySelector('#workspaceHome'),focused=host.contains(document.activeElement)?{...document.activeElement.dataset}:null;window.AncalagonHome.render(host,home.view(),{name:window.ancalagonAuth?.session?.user?.user_metadata?.display_name?.trim().split(/\s+/)[0]||'',error:workspaceLoadError});if(focused?.homeAction){const button=[...host.querySelectorAll('[data-home-action]')].find(b=>b.dataset.homeAction===focused.homeAction&&b.dataset.job===focused.job&&b.dataset.candidate===focused.candidate);button?.focus({preventScroll:true});}}
+      function renderHome(){if(!home)return;const host=root.querySelector('#workspaceHome'),focused=host.contains(document.activeElement)?{...document.activeElement.dataset}:null;window.AncalagonHome.render(host,home.view(),{name:window.ancalagonAuth?.session?.user?.user_metadata?.display_name?.trim().split(/\s+/)[0]||'',error:workspaceLoadError,tutorial:tutorial?.summary()});if(focused?.homeAction){const button=[...host.querySelectorAll('[data-home-action]')].find(b=>b.dataset.homeAction===focused.homeAction&&b.dataset.job===focused.job&&b.dataset.candidate===focused.candidate);button?.focus({preventScroll:true});}}
       function homeOpen(jobId,candidateId,page='dashboard'){
         const job=jobs.find(j=>j.id===jobId);if(!job){showPage('job-picker');return;}
         window.AncalagonWorkspace?.leave();activeJobId=job.id;loadActiveJobWeights();renderJobs();recalibrateAll();renderFeedback();renderOutcomes();
@@ -673,6 +673,7 @@ function renderJobs(){
         if(action==='reviews'){void home.refresh();return;}
         if(action==='jobs'){showPage('jobs');return;}
         if(action==='learn'){showPage('learn');return;}
+        if(action==='practice'){showPage('learn');void tutorial?.start();return;}
         if(action==='new'){showPage('jobs');openJobForm();return;}
         if(action==='continue'){const last=home.view().last;if(last)homeOpen(last.job.id,last.candidate?.id,last.page);else showPage('job-picker');return;}
         if(action==='note'){homeOpen(job,candidate);root.querySelector('#workspaceNote')?.focus();return;}
@@ -683,9 +684,13 @@ function renderJobs(){
       async function initializeWorkspace(auth){
         if(dataReady||!auth?.session||!auth?.workspace)return;
         dataService=window.AncalagonData.create(auth);workspaceLoadError='';home?.dispose();home=window.AncalagonHome.create({state:stateSnapshot,load:()=>dataService.loadHome?.()||null,visit:()=>dataService.visitHome?.(),save:location=>dataService.saveHome?.(location),reviews:()=>dataService.loadHomeReviews?.()||[],changed:()=>{if(root.querySelector('#page-home').classList.contains('active'))renderHome();}});
+        tutorial?.dispose();tutorial=window.AncalagonTutorialUI.mount(root.querySelector('#ancalagon-tutorial'),{
+          load:()=>dataService.loadTutorial(),save:(progress,revision)=>dataService.saveTutorial(progress,revision),
+          newJob:()=>{showPage('jobs');openJobForm();},changed:()=>{if(root.querySelector('#page-home').classList.contains('active'))renderHome();}
+        });
         trackProductEvent('signed_in',null);
         loadAdminUsage();
-        window.ancalagonFlush=async()=>{try{if(batch.hasUnsaved()||intake.hasUnsavedFile())throw Error('Wait for the resume uploads to finish or remove failed files from the upload queue.');await window.AncalagonWorkspace?.flushNotes();await dataService.flush(stateSnapshot());await home?.flush();}catch(error){setSyncStatus('error');showToast('Your latest changes have not saved. Retry before signing out.','error');throw error;}};
+        window.ancalagonFlush=async()=>{try{if(batch.hasUnsaved()||intake.hasUnsavedFile())throw Error('Wait for the resume uploads to finish or remove failed files from the upload queue.');await window.AncalagonWorkspace?.flushNotes();await dataService.flush(stateSnapshot());await home?.flush();await tutorial?.flush();}catch(error){setSyncStatus('error');showToast('Your latest changes have not saved. Retry before signing out.','error');throw error;}};
         jobs.splice(0);candidates.splice(0);feedback.splice(0);interviewOutcomes.splice(0);activeJobId=null;
         try{
           const remote=await dataService.load();
@@ -694,7 +699,7 @@ function renderJobs(){
             hybridState.analyses=Object.fromEntries(remote.jobs.filter(job=>job.patternAnalysis).map(job=>[job.id,job.patternAnalysis]));
           }
           dataReady=true;
-          renderInitialState();void home.load();setSyncStatus('saved');candidateAutomation.resume(candidates);intake.resume();
+          renderInitialState();void home.load();void tutorial.load();setSyncStatus('saved');candidateAutomation.resume(candidates);intake.resume();
         }catch(error){
           console.error('Workspace initialization failed',error);
           jobs.splice(0);candidates.splice(0);feedback.splice(0);interviewOutcomes.splice(0);activeJobId=null;
@@ -708,7 +713,7 @@ function renderJobs(){
       root.querySelector('#retrySync').addEventListener('click',retrySync);
       window.addEventListener('offline',()=>setSyncStatus('offline'));
       window.addEventListener('online',retrySync);
-      window.addEventListener('beforeunload',event=>{if(dataService?.hasPendingChanges?.()||window.AncalagonWorkspace?.hasDrafts()||intake.hasUnsavedFile()||batch.hasUnsaved()){event.preventDefault();event.returnValue=''}});
+      window.addEventListener('beforeunload',event=>{if(tutorial?.hasPending()||dataService?.hasPendingChanges?.()||window.AncalagonWorkspace?.hasDrafts()||intake.hasUnsavedFile()||batch.hasUnsaved()){event.preventDefault();event.returnValue=''}});
       root.querySelectorAll('[data-new-job]').forEach(b=>b.addEventListener('click',()=>{showPage('jobs');openJobForm();}));
       root.querySelector('#recordCandidateOutcome').addEventListener('click',()=>{const id=root.querySelector('#reviewCandidateId').value;showPage('outcomes');root.querySelector('#outcomeCandidate').value=id;root.querySelector('#outcomeStage').focus();});
       root.querySelector('#mobileNavToggle').addEventListener('click',()=>root.querySelector('.rf-sidebar').classList.toggle('open'));

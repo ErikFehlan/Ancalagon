@@ -293,6 +293,22 @@
       const {error}=await client.from('workspace_home').update(location).eq('user_id',userId).eq('workspace_id',workspaceId).or('last_opened_at.is.null,last_opened_at.lte.'+location.last_opened_at);
       if(error)throw error;
     }
+    async function loadTutorial() {
+      const {data,error}=await client.from('workspace_home').select('tutorial_progress,tutorial_revision').eq('user_id',userId).eq('workspace_id',workspaceId).maybeSingle();
+      if(error)throw error;return {state:data?.tutorial_progress||null,revision:data?.tutorial_revision||0};
+    }
+    async function saveTutorial(progress,revision) {
+      await visitHome();
+      const {data,error}=await client.from('workspace_home').update({tutorial_progress:progress,tutorial_revision:revision+1}).eq('user_id',userId).eq('workspace_id',workspaceId).eq('tutorial_revision',revision).select('tutorial_revision').maybeSingle();
+      if(error)throw error;
+      if(data)return {revision:data.tutorial_revision};
+      // A lost response may have committed this exact snapshot. Do not duplicate
+      // it, or overwrite progress written by another tab.
+      const latest=await loadTutorial();
+      const canonical=value=>JSON.stringify(value,Object.keys(progress).sort());
+      if(latest.state&&canonical(latest.state)===canonical(progress))return {revision:latest.revision};
+      const conflict=Error('Tutorial progress changed in another tab.');conflict.code='TUTORIAL_CONFLICT';throw conflict;
+    }
     async function loadHomeReviews() {
       const results=await Promise.all(['job_reassessment_tasks','resume_intake_tasks'].map(table=>client.from(table).select('candidate_id,job_id,status').eq('workspace_id',workspaceId).in('status',['ready','queued','processing','failed'])));
       for(const r of results)if(r.error)throw r.error;
@@ -425,7 +441,7 @@
       return path;
     }
 
-    return { requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
+    return { requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadTutorial, saveTutorial, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };

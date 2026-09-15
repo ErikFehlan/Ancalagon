@@ -10,6 +10,7 @@
   <link rel="icon" type="image/png" href="assets/ancalagon.png">
   <link rel="apple-touch-icon" href="assets/ancalagon.png">
   <link rel="stylesheet" href="assets/app.css?v=20260915-phase2">
+  <link rel="stylesheet" href="assets/tutorial.css?v=20260915-tutorial">
 </head>
 <body class="rf-auth-pending">
 <div class="rf-auth-gate" id="authGate" aria-live="polite">
@@ -221,19 +222,118 @@
         </div>
       </section>
 
-      <section class="rf-page" id="page-learn" aria-labelledby="learnTitle">
-        <div class="rf-sectiontitle"><div><h2 id="learnTitle">Learn Ancalagon</h2><p>From your first search to a better-informed shortlist.</p></div><button class="rf-btn" type="button" data-goto="jobs">Go to Jobs</button></div>
-        <div class="rf-card rf-learn-hero"><span class="rf-pill rf-blue">5-minute getting started</span><h3>Your first search, step by step</h3><p>Start with the job and what the manager needs. Add a candidate, capture what you learn, then review the evidence before deciding what to do next.</p><ol><li><strong>Create a job.</strong> Add the description and the manager's priorities.</li><li><strong>Add a candidate.</strong> Review the extracted resume evidence and initial scores.</li><li><strong>Leave a quick note.</strong> A short observation is enough to start.</li><li><strong>Review the interpretation.</strong> Correct anything that misses your meaning.</li><li><strong>Re-evaluate when ready.</strong> Review a proposed score update before applying it.</li></ol><button class="rf-btn primary" type="button" data-goto="jobs">Start with a job</button><p class="rf-sub">This guide uses fictional examples. Reading it does not add records or run AI analysis. Buttons open the real workspace, where you choose what to save.</p></div>
-        <div class="rf-learn-guides">
-          <details class="rf-card"><summary>1. Set up a search</summary><p>Open Jobs and choose New Job. Enter the title and job description, then add any known manager priorities, screening criteria, and knockout rules. Save Job to open its dashboard.</p><p>Example: “QA Analyst — needs strong manual testing and clear defect documentation.” You can refine the criteria as you learn more.</p><p>After login, Home offers a setup guide or a shortcut to your last job or candidate. Choose All jobs to switch searches. Use Active job at the top to switch searches. Feedback and candidates belong to their job.</p><button class="rf-btn" type="button" data-goto="jobs">Open Jobs</button></details>
-          <details class="rf-card"><summary>2. Add a candidate and understand the scores</summary><p>Open Candidates and choose Add Candidate. Upload a readable PDF, DOCX, or TXT resume, or enter the profile yourself. Check the extracted information before saving.</p><p><strong>JD Fit</strong> measures alignment with the job requirements. <strong>Manager Fit</strong> incorporates available screening evidence, candidate feedback, approved preferences, and approved score corrections. Open the candidate to inspect the explanation.</p><p>A score supports your review; it is not a hiring decision. Missing evidence is a question to investigate. If resume analysis uses a fallback because AI is unavailable, review that result carefully.</p><button class="rf-btn" type="button" data-learn-page="candidates">Open Candidates</button></details>
-          <details class="rf-card"><summary>3. Give useful feedback in a few words</summary><p>In Manager Feedback, select the candidate, enter Quick feedback, and choose Save note. Leave Optional details closed unless you need an outcome or reusable preference.</p><div class="rf-note"><strong>Fictional example</strong><p>Your note: “Strong tester, unclear how much automation they owned.”</p><p>Possible interpretation: “Testing strength is noted; personal ownership of automation needs clarification.” This does not establish that the candidate lacks automation skills.</p></div><p>Your original words save before the AI request. The interpretation is a draft; use Correct interpretation to clarify your meaning. If AI is unavailable, check the save status and retry interpretation later.</p><button class="rf-btn" type="button" data-learn-page="feedback">Open Quick feedback</button></details>
-          <details class="rf-card"><summary>4. Learn from feedback and re-evaluate</summary><p>Keep individual observations candidate-specific. When feedback describes a job-related preference that should apply across the search, open Optional details, select Reusable manager preference, and write the preference to review. Approve it only when it reflects what the manager actually wants.</p><p>In Hiring Insights, Run Hybrid Analysis reviews the supplied evidence for patterns and proposes changes. It does not automatically re-score every candidate. Use Re-evaluate Candidates to generate candidate score proposals, inspect their reasons, and apply the ones you accept.</p><p>When requirements or feedback change, an earlier evaluation can become outdated. Re-evaluate with the latest context. Use Benchmarks to add or remove reference candidates for this job.</p><button class="rf-btn" type="button" data-learn-page="insights">Open Hiring Insights</button></details>
-          <details class="rf-card"><summary>5. Track outcomes and finish a search</summary><p>Open a candidate from the Pipeline to update their stage. Use Interview Activity to record the decision and what the interviewer liked or questioned.</p><p>Moving a candidate to Hired closes the job. For an internal hire or a placement by another firm, open Jobs, choose Close, and select the reason. Use Reopen if the search resumes. Closing a job preserves its history.</p><button class="rf-btn" type="button" data-learn-page="pipeline">Open Pipeline</button><button class="rf-btn" type="button" data-goto="jobs">Manage jobs</button></details>
+<section class="rf-page" id="page-learn" aria-labelledby="learnTitle">
+<div id="ancalagon-tutorial">
+<div class="at-sync"><span id="at-sync-status" role="status" aria-live="polite">Loading practice progress…</span></div>
+<div class="at-sync-error" id="at-sync-error" hidden><p id="at-sync-problem" role="alert"></p><button type="button" class="at-action" data-action="sync-retry">Retry sync</button></div>
+      <section data-view="learn">
+        <div class="at-eyebrow">Learn Ancalagon</div>
+        <div class="at-hero">
+          <div>
+            <h1 id="learnTitle">Your first search,<br>with a little guidance.</h1>
+            <p>Work through a sample job, review the evidence, and prepare a shortlist you can explain.</p>
+            <div class="at-row"><button type="button" class="at-action at-primary" data-action="start"><span data-start-label>Start practice</span><span class="at-glyph" aria-hidden="true">→</span></button><span class="at-small at-muted">5 steps · at your pace</span></div><button type="button" class="at-link" data-action="new-job">Start with my own job →</button>
+            <p class="at-small">Fictional data. Practice creates no real jobs or candidates and runs no AI analysis.</p>
+          </div>
+          <div class="at-practice-peek" aria-label="Sample search preview">
+            <div class="at-small at-muted">YOUR PRACTICE SEARCH</div><h3 style="margin-top:6px">QA Engineer</h3>
+            <div class="at-peek-person"><span class="at-avatar">JL</span><div>Jordan Lee<div class="at-small at-muted">Ready to review</div></div></div>
+            <div class="at-peek-person"><span class="at-avatar">AR</span><div>Alex Rivera<div class="at-small at-muted">Ready to review</div></div></div>
+            <div class="at-peek-tip"><span class="at-glyph" aria-hidden="true">?</span><span>Learn one action at a time, right where the work happens.</span></div>
+          </div>
         </div>
-        <details class="rf-card rf-workspace-details"><summary>Try one real recruiting workflow</summary><p>Choose one active job and one candidate you have permission to evaluate. Complete this exercise without a walkthrough from the person who invited you.</p><ol><li>Note your start time. Create or open the job, then add the candidate.</li><li>Open the candidate workspace. Identify the strongest evidence and the question you would ask next. Record the time to this first useful result.</li><li>Save a short observation from your actual review or call. Check whether the interpretation preserves your meaning; correct it if needed.</li><li>Review whether a new evaluation is needed. If you apply a score proposal, inspect the reasons in Approved evaluation changes.</li><li>Edit, save, and copy the submission summary. Check the save indicator, then refresh and confirm your work remains.</li></ol><p>Tell your beta coordinator: What required help? What did you have to rewrite? How did the time compare with your normal process? Would you use this for your next candidate? No feedback is sent automatically.</p></details><div class="rf-card rf-learn-rules"><h3>What changes automatically?</h3><div class="rf-learn-table"><table><thead><tr><th scope="col">Action</th><th scope="col">What happens</th></tr></thead><tbody><tr><td>Type a neutral quick note</td><td>Saves automatically after a pause and requests an AI draft. The draft does not change scores.</td></tr><tr><td>Set an explicit feedback outcome</td><td>Move forward or Pass can adjust this candidate's Manager Fit.</td></tr><tr><td>Approve a reusable preference</td><td>Can adjust Manager Fit where candidate evidence matches it.</td></tr><tr><td>Run Hybrid Analysis</td><td>Produces insights and proposals. Suggested weighting changes need approval.</td></tr><tr><td>Re-evaluate candidates</td><td>Produces score proposals for you to review and apply.</td></tr><tr><td>Reassess &amp; Mark Screened</td><td>Applies the screening assessment when the action succeeds.</td></tr><tr><td>Move a candidate to Hired</td><td>Closes the job and preserves its records.</td></tr></tbody></table></div></div>
+        <ol class="at-route" aria-label="Practice outline"><li><span>01</span>Set up a search</li><li><span>02</span>Add resumes</li><li><span>03</span>Review evidence</li><li><span>04</span>Capture feedback</li><li><span>05</span>Build a shortlist</li></ol>
+        <div class="at-lessons" id="at-quick-answers"><h2>Just need a quick answer?</h2>
+          <details><summary>Why are there two fit scores?</summary><p><strong>JD Fit</strong> measures alignment with the job description. <strong>Manager Fit</strong> adds the manager’s priorities and approved feedback. Open the supporting evidence before relying on either score. Missing evidence gives you a question to ask.</p></details>
+          <details><summary>What happens after I save a note?</summary><p>A short note on the candidate saves automatically after a pause. Your original wording is kept. Review the AI’s interpretation and correct it if needed. A fact about one candidate belongs to that candidate; a reusable manager preference needs its own review. Check the proposed changes before approving a new assessment. An explicit Move forward or Pass outcome can also adjust Manager Fit. Approving a reusable preference can affect matching candidates across the job.</p></details>
+          <details><summary>One resume failed. Do I start over?</summary><p>No. Upload resumes on Candidates accepts several files, and each gets its own result. Keep the successful uploads and retry the failed file. If it still cannot be read, try a supported PDF, DOCX, or TXT copy with selectable text.</p></details>
+          <details><summary>How do I close or reopen a search?</summary><p>Use Close job from Jobs and record the reason. Marking a candidate Hired also closes the job. Closed searches keep their history; use the Closed filter to find and reopen one.</p></details>
+          <details><summary>When should I use a reusable manager preference?</summary><p>Use a reusable preference when the feedback describes what this manager wants across the search. Keep observations about one person candidate-specific. Review the proposed preference before approving it; only matching evidence should affect another candidate.</p></details>
+        </div>
+      </section>
+      <section data-view="practice" hidden>
+        <div class="at-practice-head"><span class="at-badge"><span class="at-glyph" aria-hidden="true">◇</span>Practice mode · fictional data</span><button type="button" class="at-link at-small" data-action="leave">Pause tutorial</button></div>
+        <ol class="at-steps" aria-label="Tutorial progress">
+          <li><button type="button" class="at-step" data-step="1" aria-current="step"><span class="at-step-mark"></span><span>01 <span class="at-step-label">Search</span></span></button></li>
+          <li><button type="button" class="at-step" data-step="2" disabled><span class="at-step-mark"></span><span>02 <span class="at-step-label">Resumes</span></span></button></li>
+          <li><button type="button" class="at-step" data-step="3" disabled><span class="at-step-mark"></span><span>03 <span class="at-step-label">Evidence</span></span></button></li>
+          <li><button type="button" class="at-step" data-step="4" disabled><span class="at-step-mark"></span><span>04 <span class="at-step-label">Feedback</span></span></button></li>
+          <li><button type="button" class="at-step" data-step="5" disabled><span class="at-step-mark"></span><span>05 <span class="at-step-label">Shortlist</span></span></button></li>
+        </ol>
+        <section data-stage="1">
+          <div class="at-titlebar"><div><div class="at-eyebrow">Step 1 of 5</div><h2>Give the search a clear starting point.</h2><p>A job brief tells Ancalagon what to look for.</p></div></div>
+          <div class="at-coach"><span class="at-glyph" aria-hidden="true">?</span><p>We’ve filled in a sample role. Notice how the manager’s priority is more specific than the job title.</p></div>
+          <form id="at-job-form" class="at-panel">
+            <div class="at-fields">
+              <label for="at-job-title-input">Job title<input id="at-job-title-input" required maxlength="100" value="QA Engineer"></label>
+              <label for="at-job-description">Job description<textarea id="at-job-description" required maxlength="2000" rows="3">Own regression testing for a web product. Write clear defect reports, collaborate with engineers, and build reliable automated tests.</textarea></label>
+              <label for="at-job-priority">What matters most to this manager?<input id="at-job-priority" required maxlength="300" value="Hands-on ownership of test automation"><span class="at-field-hint">This helps explain Manager Fit alongside the job description.</span></label>
+            </div>
+            <div class="at-bottom"><span class="at-small at-muted">Practice role · example assessments</span><button class="at-action at-primary" type="submit">Create practice job<span class="at-glyph" aria-hidden="true">→</span></button></div>
+          </form>
+        </section>
+        <section data-stage="2" hidden>
+          <div class="at-titlebar"><div><div class="at-eyebrow">Step 2 of 5</div><h2>Add resumes in one batch.</h2><p data-job-title>QA Engineer</p></div></div>
+          <div class="at-coach"><span class="at-glyph" aria-hidden="true">?</span><p id="at-upload-coach">Each resume gets its own status. Let’s try a batch with one file that needs a retry.</p></div>
+          <div class="at-panel">
+            <div class="at-upload" id="at-upload-empty"><span class="at-upload-icon"><span class="at-glyph" aria-hidden="true">+</span></span><h3>Three resumes, one upload</h3><p class="at-muted at-small">In your workspace, choose PDF, DOCX, or TXT files.</p><button type="button" class="at-action at-primary" data-action="upload">Use sample resumes</button></div>
+            <div id="at-upload-results" hidden>
+              <div class="at-file"><span class="at-glyph" aria-hidden="true">▤</span><div class="at-file-info">Jordan_Lee.pdf<div class="at-small at-muted">Candidate created</div></div><span class="at-badge at-success">Ready to review</span></div>
+              <div class="at-file"><span class="at-glyph" aria-hidden="true">▤</span><div class="at-file-info">Alex_Rivera.docx<div class="at-small at-muted">Candidate created</div></div><span class="at-badge at-success">Ready to review</span></div>
+              <div class="at-file"><span class="at-glyph" aria-hidden="true">▤</span><div class="at-file-info">Morgan_Chen.pdf<div class="at-small at-muted" id="at-retry-description">File could not be read</div></div><span id="at-retry-badge" class="at-badge at-warning">Needs retry</span><button type="button" class="at-link" data-action="retry">Retry</button></div>
+              <div class="at-bottom"><span id="at-upload-count" class="at-small at-muted">2 ready · 1 needs attention</span><button type="button" class="at-action at-primary" data-action="to-review">Review ready resumes<span class="at-glyph" aria-hidden="true">→</span></button></div>
+            </div>
+          </div>
+          <button type="button" class="at-link at-space" data-action="back">Back</button>
+        </section>
+        <section data-stage="3" hidden>
+          <div class="at-titlebar"><div><div class="at-eyebrow">Step 3 of 5</div><h2>Check the evidence behind the score.</h2><p>Scores start the review. Source evidence makes it useful.</p></div></div>
+          <div class="at-coach"><span class="at-glyph" aria-hidden="true">?</span><p id="at-review-coach">Open the resume excerpt. For Jordan, automation ownership is a question to ask, not a reason to assume they lack the skill.</p></div>
+          <div class="at-panel" id="at-assessment-panel">
+            <div class="at-row at-between"><div class="at-row"><span class="at-avatar" id="at-candidate-initials">JL</span><div><h3 id="at-candidate-name">Jordan Lee</h3><span class="at-small at-muted" id="at-review-count">Candidate 1 of 3</span></div></div><span class="at-badge">Example assessment</span></div>
+            <div class="at-scores"><div class="at-score"><div class="at-score-label">JD Fit</div><div class="at-score-value"><span id="at-jd-score">7.8</span><small> / 10</small></div><p>Evidence against the job description</p></div><div class="at-score"><div class="at-score-label">Manager Fit</div><div class="at-score-value"><span id="at-manager-score">6.2</span><small> / 10</small></div><p>Evidence against manager priorities</p></div></div>
+            <div class="at-evidence"><div><h3>What’s supported</h3><p id="at-supported">Regression testing and clear defect documentation.</p></div><div><h3>What to ask next</h3><p id="at-unknown">Did Jordan personally build and maintain automated tests?</p></div></div>
+            <details class="at-source" id="at-source"><summary>View resume evidence</summary><span class="at-small at-muted" id="at-source-location">Jordan_Lee.pdf · page 1 · fictional excerpt</span><blockquote id="at-source-quote">“Wrote regression test cases, documented reproducible defects, and partnered with the automation team to extend regression coverage.”</blockquote></details>
+            <div class="at-bottom"><span class="at-small at-muted" id="at-evidence-prompt">Open the source before approving.</span><button type="button" class="at-action at-primary" data-action="approve-assessment" disabled>Approve & next<span class="at-glyph" aria-hidden="true">→</span></button></div>
+          </div>
+          <div class="at-panel at-stack" id="at-reviews-done" hidden><div class="at-result"><span class="at-glyph" aria-hidden="true">✓</span><span id="at-approved-count">3 assessments reviewed</span></div><h3>You’ve got the review rhythm.</h3><p class="at-muted">Check the evidence, approve the assessment, then move to the next candidate. Approval accepts an assessment; it doesn’t make a hiring decision.</p><div><button type="button" class="at-action at-primary" data-action="to-feedback">Continue to feedback<span class="at-glyph" aria-hidden="true">→</span></button></div></div>
+          <button type="button" class="at-link at-space" data-action="back">Back</button>
+        </section>
+        <section data-stage="4" hidden>
+          <div class="at-titlebar"><div><div class="at-eyebrow">Step 4 of 5</div><h2>Add what you learned.</h2><p>A short screening note can fill a gap in the resume.</p></div></div>
+          <div class="at-coach"><span class="at-glyph" aria-hidden="true">?</span><p id="at-feedback-coach">Your practice call answered Jordan’s automation question. Save the note, then check that the interpretation preserves its meaning.</p></div>
+          <div class="at-panel">
+            <div class="at-row"><span class="at-avatar">JL</span><h3>Jordan Lee</h3></div>
+            <form id="at-note-form" class="at-space"><label for="at-note-input">Quick note<textarea id="at-note-input" required maxlength="2000" rows="3">Jordan built the Playwright test suite and maintained it for two releases.</textarea><span class="at-field-hint">Practice with this sample note. Edited text is saved for review; the exercise only scores its supplied example.</span></label><div class="at-bottom"><span class="at-small at-muted">Your original wording is kept.</span><button type="submit" class="at-action at-primary">Save note<span class="at-glyph" aria-hidden="true">→</span></button></div></form>
+            <div id="at-interpretation" hidden class="at-space">
+              <div class="at-result"><span class="at-glyph" aria-hidden="true">✓</span>Original note saved</div><div class="at-note" id="at-original-note"></div>
+              <div class="at-row at-between"><h3>Review the interpretation</h3><span class="at-badge">Jordan only</span></div><p id="at-interpretation-text" class="at-space">Jordan has hands-on experience building and maintaining test automation.</p>
+              <label id="at-edit-wrap" class="at-space" hidden for="at-edit-interpretation">Correct the meaning<textarea id="at-edit-interpretation" required maxlength="2500" rows="3"></textarea></label>
+              <details class="at-space"><summary>Why is this only about Jordan?</summary><p>The note adds evidence about this candidate. It does not change what the hiring manager wants from everyone else.</p></details>
+              <div class="at-bottom"><button type="button" class="at-link" data-action="correct">Correct interpretation</button><button type="button" class="at-action at-primary" data-action="accept-interpretation">Accept interpretation<span class="at-glyph" aria-hidden="true">→</span></button></div>
+            </div>
+            <div id="at-proposal" class="at-space" hidden><span class="at-badge">Example reassessment · awaiting approval</span><h3 class="at-space">Here’s what the new evidence changes.</h3><p class="at-muted at-space" id="at-proposal-reason">Jordan’s automation ownership is now supported by the screening note.</p><div class="at-scores"><div class="at-score"><div class="at-score-label">JD Fit</div><div class="at-score-value" id="at-jd-change">7.8 → 8.4</div></div><div class="at-score"><div class="at-score-label">Manager Fit</div><div class="at-score-value" id="at-manager-change">6.2 → 7.9</div></div></div><div class="at-bottom"><span class="at-small at-muted">These example changes need your approval.</span><button type="button" class="at-action at-primary" data-action="approve-update">Approve update<span class="at-glyph" aria-hidden="true">✓</span></button></div></div>
+            <div id="at-feedback-done" class="at-space at-stack" hidden><div class="at-result"><span class="at-glyph" aria-hidden="true">✓</span>Feedback reviewed and approved</div><p class="at-muted" id="at-feedback-result">Jordan’s assessment now includes the new evidence. The original note remains available.</p><div><button type="button" class="at-action at-primary" data-action="to-shortlist">Build the shortlist<span class="at-glyph" aria-hidden="true">→</span></button></div></div>
+          </div>
+          <button type="button" class="at-link at-space" data-action="back">Back</button>
+        </section>
+        <section data-stage="5" hidden>
+          <div class="at-titlebar"><div><div class="at-eyebrow">Step 5 of 5</div><h2>Make the shortlist easy to explain.</h2><p>Turn the reviewed evidence into a useful candidate summary.</p></div></div>
+          <div class="at-coach"><span class="at-glyph" aria-hidden="true">?</span><p>Review the draft as you would before sharing it. Keep the proof, keep the open question, and make the wording your own.</p></div>
+          <form id="at-draft-form" class="at-panel"><div class="at-row at-between"><div class="at-row"><span class="at-avatar">JL</span><h3>Jordan Lee</h3></div><span class="at-badge">Practice shortlist · 1 candidate</span></div><label class="at-space" for="at-draft">Submission draft<textarea id="at-draft" required maxlength="5000" rows="8"></textarea></label><div class="at-bottom"><span class="at-small at-muted">Saved to your private tutorial progress. Nothing is sent to a client.</span><button type="submit" class="at-action at-primary">Save practice draft<span class="at-glyph" aria-hidden="true">✓</span></button></div></form>
+          <button type="button" class="at-link at-space" data-action="back">Back</button>
+        </section>
+      </section>
+      <section data-view="complete" class="at-complete" hidden>
+        <div class="at-complete-mark"><span class="at-glyph" aria-hidden="true">✓</span></div><div class="at-eyebrow">Practice complete</div><h1>You’re ready for<br>your first search.</h1><p class="at-muted at-space">You’ve worked through the decisions that make a shortlist useful.</p>
+        <ul class="at-checklist"><li><span class="at-glyph" aria-hidden="true">✓</span>Set the role and manager priorities</li><li><span class="at-glyph" aria-hidden="true">✓</span>Added a batch of resumes</li><li><span class="at-glyph" aria-hidden="true">✓</span>Checked sources before approving assessments</li><li><span class="at-glyph" aria-hidden="true">✓</span>Reviewed the meaning of a screening note</li><li><span class="at-glyph" aria-hidden="true">✓</span>Saved a candidate submission draft</li></ul>
+        <div class="at-panel"><h3>Next: use your own job.</h3><p class="at-muted" style="margin-top:7px">Follow the same workflow in your workspace. Return to Learn Ancalagon whenever you need a reminder.</p></div>
+        <div class="at-row at-space"><button type="button" class="at-action at-primary" data-action="new-job">Create my first job<span class="at-glyph" aria-hidden="true">→</span></button><button type="button" class="at-link" data-action="answers">Browse quick answers</button><button type="button" class="at-link" data-action="review-steps">Review the steps</button></div>
       </section>
 
+<div class="at-hidden-status" role="status" aria-live="polite" id="at-status"></div>
+</div>
+</section>
       <section class="rf-page" id="page-backend"><div class="rf-card"><h3>Save status</h3><p id="saveDetails" role="status">No sync confirmed yet in this tab.</p><p class="rf-sub">If a save fails, keep this tab open and use Retry in the top bar. Candidate workspace notes and summary edits are protected from accidental reload while unsaved.</p></div>
         <div class="rf-sectiontitle"><div><h2>Settings</h2><p>Personalize Ancalagon and configure its production connections.</p></div></div>
         <div class="rf-card" style="margin-bottom:16px"><div class="rf-cardhead"><div><h3>Account Security</h3><p class="rf-sub">Create or replace the password for your signed-in account.</p></div><span class="rf-pill rf-blue">Private account</span></div><form class="rf-form" id="passwordForm"><div class="rf-formrow"><div><label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required></div><div><label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></div></div><div class="rf-actions"><button class="rf-btn primary" id="passwordSubmit" type="submit">Set Password</button><span class="rf-sub" id="passwordMessage" role="status">Use at least 8 characters.</span></div></form></div>
@@ -288,7 +388,7 @@
   <div class="rf-modalbackdrop" id="screeningModal" role="dialog" aria-modal="true" aria-labelledby="screeningTitle"><div class="rf-modal rf-screen-modal"><form class="rf-form" id="screeningForm"><div><div class="rf-kicker">Screening insight</div><h3 id="screeningTitle">Add screening evidence</h3><p>Capture only what changes the assessment. Ancalagon will compare this evidence with the job, manager priorities, and current evaluation.</p></div><div class="rf-screen-context"><div>Current JD Fit<strong id="screenCurrentJD">—</strong></div><div>Current Manager Fit<strong id="screenCurrentManager">—</strong></div></div><div class="rf-formrow"><div><label for="screenAbility">Can they do the job?</label><select id="screenAbility" required><option value="">Select an assessment</option><option value="Yes">Yes — evidence supports it</option><option value="Maybe">Maybe — important gaps remain</option><option value="No">No — evidence shows a mismatch</option></select></div><div><label for="screenCulture">Culture / working-style fit</label><select id="screenCulture" required><option value="">Select an assessment</option><option value="Strong">Strong alignment</option><option value="Mixed">Mixed / uncertain</option><option value="Weak">Weak alignment</option></select></div></div><div><label for="screenNotes">What did you learn?</label><textarea id="screenNotes" required maxlength="4000" placeholder="Add concise, job-related evidence from the conversation—skills depth, ownership, communication, motivation, or working style."></textarea><div class="rf-sub" style="margin-top:5px">Do not include protected personal information. Notes are used as evidence, not as an automatic hiring decision.</div></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="screenCancel" type="button">Cancel</button><button class="rf-btn primary" id="screenSubmit" type="submit">✦ Reassess & Mark Screened</button></div></form></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script src="assets/auth.js?v=20260914-focus"></script>
-  <script src="assets/data.js?v=20260915-phase2"></script>
+  <script src="assets/data.js?v=20260915-tutorial"></script>
   <script src="assets/select.js?v=20260910-dark-dropdowns"></script>
   <script src="assets/evidence.js?v=20260911-quick-feedback"></script>
   <script src="assets/context.js?v=20260915-core"></script>
@@ -303,10 +403,12 @@
   <script src="assets/quick-notes.js?v=20260914-focus"></script>
   <script src="assets/candidate-workspace.js?v=20260914-focus"></script>
   <script src="assets/criteria-automation.js?v=20260914-speed"></script>
-  <script src="assets/home.js?v=20260915-phase2"></script>
+  <script src="assets/home.js?v=20260915-tutorial"></script>
 <script src="assets/focus-ui.js?v=20260914-focus"></script>
 <script src="assets/recruiter-workflow.js?v=20260915-phase2"></script>
-<script src="assets/app.js?v=20260915-phase2"></script>
+<script src="assets/tutorial.js?v=20260915-tutorial"></script>
+<script src="assets/tutorial-ui.js?v=20260915-tutorial"></script>
+<script src="assets/app.js?v=20260915-tutorial"></script>
 </div>
 </body>
 </html>
