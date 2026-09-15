@@ -10,7 +10,7 @@ const dir=path.resolve(__dirname,'..');
   await page.route('**/functions/v1/**',r=>r.fulfill({json:{summary:'Specific ownership should be checked.',clarification_question:null}}));
   await page.addInitScript(()=>{
    const job=(id,title)=>({id,title,description:'Hands-on QA testing',criteria:['Must Have | manual testing'],knockouts:[],weights:[],status:'active'});
-   const c=(id,jobId,name)=>({id,jobId,name,short:name,role:'QA Analyst',stage:'Sourced',score:7,jdScore:7,resumeJDScore:7,managerScore:7,originalManagerScore:7,rec:'Consider',signal:'Manual testing and release support',strengths:['Manual testing ownership'],concerns:['Confirm automation scope'],tags:['testing'],screeningQuestions:[],createdAt:1,updatedAt:1});
+   const c=(id,jobId,name)=>({id,jobId,name,short:name,role:'QA Analyst',stage:'Sourced',score:7,jdScore:7,resumeJDScore:7,managerScore:7,originalManagerScore:7,rec:'Consider',signal:'Manual testing and release support',strengths:['Manual testing ownership — Resume: “Built regression test suites for release validation and API coverage.”'],concerns:['Confirm automation scope'],tags:['testing'],screeningQuestions:[],createdAt:1,updatedAt:1});
    window.fixture={jobs:[job('job-a','QA Analyst'),job('job-b','Application Security Engineer')],candidates:Array.from({length:24},(_,i)=>c('c'+i,'job-a','Example Candidate '+String(i).padStart(2,'0'))).concat(c('other','job-b','Other Job Candidate')),feedback:[{id:'f',jobId:'job-a',candidateId:'c0',candidate:'Example Candidate 00',text:'Clarify ownership',type:'General note',outcome:'Neutral / no signal',learningScope:'candidate',interpretation:{text:'Ask which test suites they owned.',source:'ai'},createdAt:1,updatedAt:1}],interviewOutcomes:[]};
    window.AncalagonData={create:()=>({load:async()=>window.fixture,loadHome:async()=>({}),visitHome:async()=>{},saveHome:async()=>{},loadHomeReviews:async()=>[],loadJobReassessments:async()=>[],loadAdminAnalytics:async()=>{throw Error('not admin')},trackEvent:async()=>{},schedule:(s,e,status)=>status('saved'),flush:async()=>{}})};
    window.ancalagonAuth={session:{user:{id:'test'},access_token:'test'},workspace:{id:'test'}};
@@ -33,7 +33,13 @@ const dir=path.resolve(__dirname,'..');
   await page.locator('#candidateSearch').fill('Candidate 00');await page.locator('[data-candidate-id="c0"]').click();await page.locator('#page-detail.active').waitFor();
   assert.equal(await page.locator('.rf-nav [data-page="candidates"]').getAttribute('aria-current'),'page');
   assert.equal(await page.locator('#detailStage').locator('..').isVisible(),true,'stage control remains accessible without opening evidence');
-  assert.equal(await page.locator('#workspaceSubmission').evaluate(e=>e.open),false);await snap('candidate');
+  assert.equal(await page.locator('#workspaceSubmission').evaluate(e=>e.open),false);
+  assert.equal(await page.locator('#workspaceEvidence').textContent(),'Manual testing ownership');
+  assert.equal(await page.locator('#workspaceSource').evaluate(e=>e.open),false);
+  await page.locator('#workspaceSource > summary').click();
+  assert.equal(await page.locator('#workspaceSourceQuote').textContent(),'Built regression test suites for release validation and API coverage.');
+  await page.locator('#workspaceSource > summary').click();
+  await snap('candidate');
   // Background assessment content may grow, but the focused note and caret stay put.
   await page.locator('#workspaceNote').fill('Testing ownership to clarify');
   const editor=await page.locator('#workspaceNote').evaluate(e=>{e.setSelectionRange(7,12);return {top:e.getBoundingClientRect().top,value:e.value,scroll:scrollY,height:document.documentElement.scrollHeight}});

@@ -67,18 +67,20 @@ jobs:
           node tests/resume-intake-browser.cjs
           node tests/streamline-browser.cjs
           node tests/home-browser.cjs
-          node tests/focus-browser.cjs
+          CAPTURE_UI=test-results/focus node tests/focus-browser.cjs
           node tests/core-browser.cjs
           node tests/recruiter-browser.cjs
           node tests/tutorial-browser.cjs
           node tests/admin-tools-browser.cjs
 
-      - name: Save tutorial review screenshots
+      - name: Save UI review screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tutorial-review
-          path: test-results/tutorial-*.png
+          name: ui-review
+          path: |
+            test-results/tutorial-*.png
+            test-results/focus-*.png
           if-no-files-found: ignore
 
   prepare-home:

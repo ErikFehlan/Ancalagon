@@ -361,3 +361,43 @@
 .rf-batch>summary::after{content:'⌄';color:var(--rf-muted)}.rf-batch[open]>summary::after{content:'⌃'}.rf-batch>summary span{margin-left:auto}
 #rf-app[data-theme="light"] .rf-batch{background:rgba(255,255,255,.85);border-color:#d3deea}
 #rf-app[data-theme="light"] .rf-upload-row,#rf-app[data-theme="light"] .rf-queue-summary{border-color:#d3deea}
+
+/* Candidate screening: compact summary, exact source evidence on demand. */
+#page-detail > .rf-candidate-heading{align-items:flex-start;gap:20px;margin-bottom:22px}
+.rf-candidate-heading > div:first-child{flex:1 1 380px;min-width:0}
+#page-detail #detailName{font-size:clamp(22px,2vw,28px);line-height:1.25;letter-spacing:-.025em;overflow-wrap:anywhere;max-width:850px}
+.rf-candidate-heading #backCandidates{padding:0;margin-bottom:6px}
+.rf-candidate-heading .rf-detail-actions{flex:0 1 auto;padding-top:4px}
+#candidateWorkspace .rf-workspace-overview{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:0;padding:22px 24px}
+.rf-brief-heading{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:24px;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--ui-line)}
+.rf-brief-heading > div:first-child{min-width:0;max-width:620px}
+#candidateWorkspace .rf-brief-heading h3{font-size:22px;margin:6px 0}
+#candidateWorkspace .rf-brief-heading p{font-size:13px;color:var(--ui-muted);margin:6px 0 0}
+#workspaceFit{display:flex;flex:0 0 auto;gap:24px;margin:0;font-weight:400}
+.rf-brief-score{display:grid;gap:5px;min-width:84px}
+.rf-brief-score > span{font-size:12px;color:var(--ui-muted)}
+.rf-brief-score > strong{font-size:25px;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--ui-text)}
+.rf-brief-score small{font-size:12px;font-weight:400;color:var(--ui-muted)}
+.rf-brief-evidence{padding-right:24px}
+.rf-brief-uncertainty{border-left:1px solid var(--ui-line);padding-left:24px}
+.rf-workspace-overview h4{margin:0;font-size:13px;font-weight:650;color:var(--ui-muted)}
+#candidateWorkspace .rf-workspace-overview p{line-height:1.65}
+.rf-source-details{margin-top:12px;font-size:12px}
+.rf-source-details > summary{cursor:pointer;color:var(--ui-accent);font-weight:600;padding:3px 0;min-height:24px}
+.rf-source-details blockquote{margin:12px 0 0;padding:12px 14px;background:var(--ui-rail);border-left:2px solid var(--ui-line);border-radius:0 6px 6px 0;font-family:inherit;font-size:13px;font-weight:400;line-height:1.65;letter-spacing:normal;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ui-muted);max-height:220px;overflow-y:auto}
+#candidateWorkspace .rf-screening-work{padding:22px 24px}
+#candidateWorkspace .rf-screening-work .rf-workspace-columns{gap:28px;align-items:start}
+#candidateWorkspace #workspaceNoteForm{gap:8px}
+#candidateWorkspace #workspaceNoteForm label{font-size:15px;font-weight:650;color:var(--ui-text);margin:0}
+#candidateWorkspace #workspaceNote{min-height:132px;font-size:14px;padding:14px}
+#candidateWorkspace .rf-note-controls p{font-size:12px;line-height:1.5;min-width:120px}
+#candidateWorkspace .rf-screen-questions{padding-left:24px;border-left:1px solid var(--ui-line)}
+#candidateWorkspace .rf-screen-questions h3{margin-bottom:14px}
+#candidateWorkspace .rf-screen-questions ol{padding-left:22px}
+#candidateWorkspace .rf-screen-questions li{padding-left:4px}
+#candidateWorkspace .rf-screen-questions li+li{margin-top:12px}
+#candidateWorkspace .rf-screen-questions li::marker{color:var(--ui-muted);font-size:12px}
+#candidateWorkspace .rf-feedback-history{border-color:var(--ui-line);margin-top:18px;padding-top:16px}
+#candidateWorkspace .rf-feedback-history > summary{font-size:12px;color:var(--ui-muted)}
+@media(max-width:1100px){.rf-brief-heading{align-items:flex-start;flex-direction:column;gap:18px}#workspaceFit{gap:32px}}
+@media(max-width:760px){#candidateWorkspace .rf-workspace-overview{grid-template-columns:1fr;padding:18px}.rf-brief-heading{grid-column:auto}.rf-brief-evidence{padding:0 0 18px}.rf-brief-uncertainty{padding:18px 0 0;border-left:0;border-top:1px solid var(--ui-line)}#candidateWorkspace .rf-screening-work{padding:18px}#candidateWorkspace .rf-screen-questions{padding:18px 0 0;border-left:0;border-top:1px solid var(--ui-line)}.rf-candidate-heading > div:first-child{flex-basis:auto;width:100%}}
