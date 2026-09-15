@@ -56,7 +56,7 @@
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) throw new Error('No workspace is assigned to this account.');
+    if (!data) {const {data:deleting}=await client.rpc('get_account_deletion_status');throw new Error(deleting===true?'Account deletion is in progress. Your private workspaces are locked while cleanup finishes.':'No workspace is assigned to this account.');}
     const relatedWorkspace = Array.isArray(data.workspaces)
       ? data.workspaces[0]
       : data.workspaces;
@@ -70,6 +70,7 @@
 
   async function applySession(client, session) {
     if (!session) {
+      if(window.ancalagonAuth?.session?.user?.id)window.ancalagonNeedsFreshPage=true;
       appliedAccessToken = null;
       window.ancalagonAuth = { client, session: null, workspace: null };
       showGuest();
@@ -78,10 +79,10 @@
 
     if (session.access_token === appliedAccessToken && window.ancalagonAuth?.workspace) return;
 
+    if(window.ancalagonNeedsFreshPage){window.location.reload();return;}
     const previousUser = window.ancalagonAuth?.session?.user?.id;
-    if (previousUser && previousUser !== session.user.id) {
-      window.dispatchEvent(new CustomEvent('ancalagon:auth-cleared'));
-    }
+    if ((previousUser && previousUser !== session.user.id) || (window.ancalagonPreviousUser && window.ancalagonPreviousUser !== session.user.id)) {window.location.reload();return;}
+    window.ancalagonPreviousUser=session.user.id;
 
     try {
       const workspace = await workspaceForUser(client);
@@ -293,7 +294,13 @@
     status.textContent = 'Password saved. Use it the next time you sign in.';
   });
 
-  signOutButton.addEventListener('click', async function () {
+  document.getElementById('signOutAllDevices')?.addEventListener('click', async function () {
+    const button=document.getElementById('signOutAllDevices'),status=document.getElementById('allDevicesStatus');button.disabled=true;
+    try{await window.ancalagonFlush?.();const {error}=await client.auth.signOut({scope:'global'});if(error)throw error;window.location.reload();}
+    catch(error){status.textContent=error.message||'Sign-out could not finish. Try again.';button.disabled=false;}
+  });
+
+  signOutButton.addEventListener('click' , async function () {
     signOutButton.disabled = true;
     try { await window.ancalagonFlush?.(); } catch (error) { console.warn('Final workspace sync failed', error); signOutButton.disabled = false; return; }
     await client.auth.signOut();

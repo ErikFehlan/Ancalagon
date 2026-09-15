@@ -1,3 +1,4 @@
+import {accountIO,processAccountDeletions} from '../account-controls/cleanup.ts';
 import {processIntakes} from './intake.mjs';
 import {handleAnalysis} from '../analyze-patterns-v2/analysis.ts';
 import {prepare,validate,schema} from './logic.mjs';
@@ -18,6 +19,8 @@ export async function handleReassessment(request:Request){
     if(!r.ok)throw Error('database_unavailable');return r.json();
   }
   let intakeWork:Promise<unknown>|undefined;
+  // Account cleanup has its own durable leases and must not stop recruiting work.
+  const accountCleanup=processAccountDeletions(accountIO(base,key)).catch(()=>[]);
   try{
     // Coalesce the separate record writes from a save. The database lease, not
     // this short delay, provides concurrency control and duplicate protection.
@@ -47,5 +50,5 @@ export async function handleReassessment(request:Request){
     const intakeResults=await intakeWork;
     return json({status:tasks.length||intakeTasks.length?'processed':'idle',results,intakeResults});
   }catch{return json({error:'Worker temporarily unavailable'},503);}
-  finally{if(intakeWork)await intakeWork.catch(()=>null);}
+  finally{if(intakeWork)await intakeWork.catch(()=>null);await accountCleanup;}
 }

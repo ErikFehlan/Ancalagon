@@ -1,0 +1,17 @@
+#page-backend>.rf-card,#page-backend>section,#page-backend>.settings-personal{margin-bottom:18px}
+.settings-personal fieldset{border:0;padding:0;margin:0;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.settings-personal .rf-card{min-width:0}.settings-personal .rf-formrow{margin-top:16px}.settings-personal small,.settings-list small{display:block;color:var(--ui-muted);margin-top:6px;line-height:1.5}
+.settings-check{display:flex!important;align-items:flex-start;gap:12px;margin:18px 0!important;cursor:pointer}.settings-check input[type=checkbox]{width:20px!important;height:20px!important;margin:1px 0 0;flex:none;accent-color:var(--ui-accent)}.settings-check span{line-height:1.5}
+.settings-save{margin-top:18px}.settings-save p{margin-bottom:0}.settings-details{margin-top:22px;padding-top:16px;border-top:1px solid var(--ui-line)}.settings-details summary{cursor:pointer;font-weight:650;padding:10px 0}.settings-details form{margin-top:16px}
+.settings-list{list-style:none;padding:0;margin:14px 0 0}.settings-list li{padding:14px 0;border-bottom:1px solid var(--ui-line);overflow-wrap:anywhere}.settings-notification{display:flex;align-items:center;justify-content:space-between;gap:16px}.settings-notification.unread{border-left:3px solid var(--ui-accent);padding-left:12px}.settings-danger summary{color:var(--ui-text)}
+.settings-notification-shortcut{width:100%;background:var(--ui-panel)!important;white-space:normal}.settings-notification-shortcut span:not(:empty){display:inline-block;border-radius:20px;padding:2px 7px;background:var(--ui-accent);color:var(--ui-on-accent,#fff)}.rf-auth-guest .settings-notification-shortcut,.rf-auth-pending .settings-notification-shortcut{display:none}
+#rf-app[data-density=compact] .rf-card{padding:16px}#rf-app[data-density=compact] .rf-candidate{padding:14px}#rf-app[data-density=compact] .rf-table td{padding-top:9px;padding-bottom:9px}#rf-app[data-density=compact] .rf-recent{padding-top:10px;padding-bottom:10px}
+#rf-app[data-text-size=large]{--reader-font:16px;--reader-small:15px;--reader-heading:24px}#rf-app[data-text-size=larger]{--reader-font:18px;--reader-small:17px;--reader-heading:27px}
+#rf-app:is([data-text-size=large],[data-text-size=larger]) :is(p,li,td,th,label,input,textarea,select,button,.rf-select-button,.rf-nav button,.rf-candidate .role){font-size:var(--reader-font)!important;line-height:1.55}
+#rf-app:is([data-text-size=large],[data-text-size=larger]) :is(small,.rf-sub,.rf-kicker,.rf-pill,.rf-tag){font-size:var(--reader-small)!important;line-height:1.5}
+#rf-app:is([data-text-size=large],[data-text-size=larger]) :is(h2,h3,h4){font-size:var(--reader-heading)!important;line-height:1.3}
+#rf-app[data-reduce-motion=true] *,#rf-app[data-reduce-motion=true] *::before,#rf-app[data-reduce-motion=true] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media(prefers-reduced-motion:reduce){#rf-app *,#rf-app *::before,#rf-app *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(max-width:1100px){.settings-personal fieldset{grid-template-columns:1fr}#rf-app .rf-sidebar{padding-bottom:20px}}
+
+@media(max-width:600px){.settings-personal .rf-formrow{grid-template-columns:1fr}.settings-notification{align-items:flex-start}.settings-list button{flex:none}#exportDocuments .rf-btn{max-width:100%;overflow-wrap:anywhere;white-space:normal}#page-backend .rf-cardhead{flex-wrap:wrap}}

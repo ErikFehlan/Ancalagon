@@ -54,7 +54,7 @@ const names={server:'server.ts',schema:'schema.sql',prompt:'evaluation-prompt.tx
   assert.equal(downloads,0);await context.close();
   ({page,context}=await open('admin'));
   await page.locator('#adminToolsNav').waitFor({state:'visible'});await page.locator('#adminToolsNav').click();
-  await page.locator('#downloadServer').waitFor();assert.equal(await page.locator('#adminToolsContent h3').count(),5);assert.equal(await page.locator('.rf-globaljob').isVisible(),false);
+  await page.locator('#downloadServer').waitFor();assert.equal(await page.locator('#adminToolsContent h3').count(),6);assert.equal(await page.locator('.rf-globaljob').isVisible(),false);
   await page.locator('[data-goto="backend"]').first().click();assert.equal(await page.locator('#page-backend #downloadServer').count(),0);
   await page.locator('#adminToolsNav').click();await page.locator('#backendProject').fill('example-project');await page.locator('#backendModel').fill('example-model');
   for(const id of ['downloadServer','downloadSchema','downloadPrompt','downloadPackage','downloadEnv']){

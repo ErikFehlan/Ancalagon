@@ -29,6 +29,8 @@ jobs:
       - name: Validate JavaScript
         run: |
           node --check assets/app.js
+          node --check assets/settings.js
+          node --check assets/settings-ui.js
           node --check assets/admin-tools.js
           node --check assets/home.js
           node --check assets/tutorial.js
@@ -59,6 +61,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Test recruiter browser journey
         run: |
+          node tests/settings-browser.cjs
           node tests/browser-journey.cjs
           node tests/job-review-browser.cjs
           node tests/resume-intake-browser.cjs

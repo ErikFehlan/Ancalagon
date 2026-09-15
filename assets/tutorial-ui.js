@@ -96,7 +96,7 @@
   function source(){if(q('#at-source').open&&!q('#at-assessment-panel').hidden){session.update('source');q('[data-action="approve-assessment"]').disabled=false;q('#at-evidence-prompt').textContent='Source checked · ready for your review';}}
   root.addEventListener('click',onClick);root.addEventListener('input',input);root.addEventListener('submit',onSubmit);q('#at-source').addEventListener('toggle',source);
   render();
-  return {load,start,open:()=>render(),flush:session.flush,hasPending:session.hasPending,
+  return {load,start,restart:async()=>{if(!session.view().loaded&&!await load())return;session.update('restart');await session.flush();page='practice';render(true);},quickGuides:()=>{page='learn';render();const summary=q('#at-quick-answers summary');summary.parentElement.open=true;summary.focus();},open:()=>render(),flush:session.flush,hasPending:session.hasPending,
    summary:()=>{const v=session.view();return {started:v.state.started,complete:v.state.complete,step:v.state.step,loaded:v.loaded};},
    dispose(){disposed=true;session.dispose();root.removeEventListener('click',onClick);root.removeEventListener('input',input);root.removeEventListener('submit',onSubmit);q('#at-source').removeEventListener('toggle',source);}};
  }

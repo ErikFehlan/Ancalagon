@@ -61,7 +61,7 @@
     if(global.AncalagonFocus)global.AncalagonFocus.updatePanel(wrap,feedbackHTML,bind);else{wrap.innerHTML=feedbackHTML;bind();}
     const history=api.root.querySelector('#workspaceScoreHistory');
     const changes=candidate.aiReview?.history||[];
-    if(history)history.innerHTML=changes.length?changes.slice(-3).reverse().map(h=>`<div class="rf-workspace-note"><strong>${Number(h.previousScore).toFixed(1)} → ${Number(h.newScore).toFixed(1)} Manager Fit</strong><p>${escape((h.reasons||[]).join(' '))}</p><span class="rf-sub">Approved ${escape(new Date(h.appliedAt).toLocaleString())}</span></div>`).join(''):'<p class="rf-sub">No approved AI re-evaluation changes yet. Saving a quick note does not automatically change the score.</p>';
+    if(history)history.innerHTML=changes.length?changes.slice(-3).reverse().map(h=>`<div class="rf-workspace-note"><strong>${Number(h.previousScore).toFixed(1)} → ${Number(h.newScore).toFixed(1)} Manager Fit</strong><p>${escape((h.reasons||[]).join(' '))}</p><span class="rf-sub">Approved ${escape(api.formatDate?api.formatDate(h.appliedAt):new Date(h.appliedAt).toLocaleString())}</span></div>`).join(''):'<p class="rf-sub">No approved AI re-evaluation changes yet. Saving a quick note does not automatically change the score.</p>';
   }
   function renderEvaluation(candidate){
     const wrap=api.root.querySelector('#workspaceEvaluation');if(!wrap)return;

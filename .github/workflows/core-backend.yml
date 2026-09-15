@@ -25,8 +25,8 @@ jobs:
       - name: Check core code and authenticated handlers
         run: |
           node --test tests/*.test.js
-          deno check supabase/functions/reassess-job/index.ts supabase/functions/analyze-patterns-beta/index.ts supabase/functions/analyze-patterns-v2/index.ts
-          deno test --allow-env tests/analysis-latency.test.ts tests/resume-intake-backend.test.ts tests/job-reassessment-worker.test.ts
+          deno check supabase/functions/account-controls/index.ts supabase/functions/reassess-job/index.ts supabase/functions/analyze-patterns-beta/index.ts supabase/functions/analyze-patterns-v2/index.ts
+          deno test --allow-env tests/account-controls.test.ts tests/analysis-latency.test.ts tests/resume-intake-backend.test.ts tests/job-reassessment-worker.test.ts
       - name: Check database transactions and permissions
         env:
           PGPASSWORD: postgres
@@ -58,11 +58,13 @@ jobs:
         run: |
           node scripts/job-reassessment-backend.mjs prepare
           node scripts/core-backend.mjs
+          node scripts/account-controls-backend.mjs
       - name: Deploy authenticated analysis and durable worker
         run: |
           supabase functions deploy analyze-patterns-v2 --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy analyze-patterns-beta --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy reassess-job --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy account-controls --project-ref "$SUPABASE_PROJECT_REF"
       - name: Verify worker transport and activate scheduler
         run: node scripts/job-reassessment-backend.mjs activate
       - name: Verify live account and document isolation

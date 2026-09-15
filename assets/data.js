@@ -457,7 +457,20 @@
       return path;
     }
 
-    return { requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadTutorial, saveTutorial, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, isAppAdmin, loadAdminTools, loadAdminStarterFile, uploadResume, loadResumeText, workspaceId };
+    async function settingsRPC(name,args) {const {data,error}=await client.rpc(name,args);if(error)throw error;return data;}
+    const loadSettings=()=>settingsRPC('get_user_settings');
+    const saveSettings=(settings,revision)=>settingsRPC('save_user_settings',{p_settings:settings,p_revision:revision});
+    async function loadNotifications(){const {data,error}=await client.from('user_notifications').select('*').eq('user_id',userId).eq('workspace_id',workspaceId).order('created_at',{ascending:false}).limit(50);if(error)throw error;return data||[];}
+    const markNotificationsRead=ids=>settingsRPC('mark_notifications_read',{p_ids:ids});
+    async function loadSupportRequests(admin=false){if(admin)return settingsRPC('get_admin_support_requests');let query=client.from('support_requests').select('*');if(!admin)query=query.eq('user_id',userId);const {data,error}=await query.order('created_at',{ascending:false}).limit(50);if(error)throw error;return data||[];}
+    const submitSupportRequest=(id,subject,description)=>settingsRPC('submit_support_request',{p_id:id,p_subject:subject,p_description:description});
+    const reviewSupportRequest=(id,status)=>settingsRPC('review_support_request',{p_id:id,p_status:status});
+    const exportAccountData=()=>settingsRPC('get_account_export');
+    const loadPersonalUsage=()=>settingsRPC('get_personal_usage');
+    async function downloadResume(path){const {data,error}=await client.storage.from('resumes').download(path);if(error)throw error;return data;}
+    async function deleteAccount(password){const {data,error}=await client.functions.invoke('account-controls',{body:{action:'delete_account',password,confirmation:'DELETE'}});if(error){let details;try{details=await error.context?.json();}catch{}throw Error(details?.error||'Could not confirm deletion status. If your account is still available, try again.');}if(!['complete','pending'].includes(data?.status))throw Error('Deletion was not confirmed. Try again.');return data;}
+
+    return { loadSettings, saveSettings, loadNotifications, markNotificationsRead, loadSupportRequests, submitSupportRequest, reviewSupportRequest, exportAccountData, loadPersonalUsage, downloadResume, deleteAccount, requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadTutorial, saveTutorial, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, isAppAdmin, loadAdminTools, loadAdminStarterFile, uploadResume, loadResumeText, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };
