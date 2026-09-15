@@ -83,7 +83,8 @@ assert.equal(await page.evaluate(()=>window.testSaved.jobs[0].status),'closed');
 const saved=await page.evaluate(()=>window.testSaved);
 await page.addInitScript(state=>{window.reloadFixture=state},saved);
 await page.reload();await page.locator('#page-home.active').waitFor();
-assert.match(await page.locator('#jobPickerGrid').textContent(),/Reliability test/);
+assert.match(await page.locator('#jobPickerGrid').textContent(),/No active jobs/);
+assert.equal(await page.evaluate(()=>window.reloadFixture.jobs[0].title),'Reliability test');
 assert.deepEqual(await page.evaluate(()=>window.reloadFixture.candidates[0].feedbackEvaluation.proposal),pendingProposal);
 assert.equal(await page.locator('#qualityLab').isVisible(),false);
 // A pending proposal survives reload and can be dismissed directly on the candidate.

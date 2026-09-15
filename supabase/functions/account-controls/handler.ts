@@ -26,7 +26,7 @@ export async function handleAccountControls(request:Request){
   await fetch(base+'/auth/v1/logout?scope=local',{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+verified.access_token},signal:AbortSignal.timeout(10000)});
   const enqueue=await fetch(base+'/rest/v1/rpc/begin_account_deletion',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({p_user:user.id}),signal:AbortSignal.timeout(15000)});
   if(!enqueue.ok){const error=await enqueue.json().catch(()=>({}));return json({error:error.code==='PT409'?error.message:'Deletion could not be requested. Please try again.'},error.code==='PT409'?409:503);}
-  const completed=await processAccountDeletions(accountIO(base,key),user.id).catch(()=>[]);
+  const completed=await processAccountDeletions(accountIO(base,key),user.id).catch(():string[]=>[]);
   return json({status:completed.includes(user.id)?'complete':'pending'},completed.includes(user.id)?200:202);
  }catch{return json({error:'Account controls could not finish. Please try again.'},503);}
 }
