@@ -1,15 +1,15 @@
 const {chromium}=require('playwright'),fs=require('fs'),http=require('http'),path=require('path'),assert=require('assert/strict');
 const root=path.resolve(__dirname,'..');
 (async()=>{
- const server=http.createServer((req,res)=>{const name=req.url.split('?')[0],file=path.join(root,name==='/'?'index.html':name);try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.png')?'image/png':'text/html');res.end(fs.readFileSync(file));}catch{res.writeHead(404);res.end();}}).listen(0,'127.0.0.1');
+ const server=http.createServer((req,res)=>{const name=req.url.split('?')[0],file=path.join(root,name==='/'?'index.html':name);try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.png')?'image/png':'text/html');let content=fs.readFileSync(file);if(file.endsWith('index.html'))content=content.toString().replace(/<script[^>]+src="https:\/\/[^"]+"[^>]*><\/script>/g,'');res.end(content);}catch{res.writeHead(404);res.end();}}).listen(0,'127.0.0.1');
  let browser,page;const errors=[];
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.TEST_CHROME});
   page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>errors.push(e.message));
-  await page.route('https://**',r=>r.abort());
+  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
   await page.addInitScript(()=>{
    window.authCalls=[];window.authState=null;
-   window.supabase={createClient:()=>({auth:{
+   window.supabase={createClient:()=>({__homepageTest:true,auth:{
     getSession:async()=>({data:{session:null},error:null}),
     onAuthStateChange:callback=>{window.authState=callback;return {data:{subscription:{unsubscribe(){}}}};},
     signInWithPassword:async input=>{window.authCalls.push({kind:'signin',email:input.email});return {error:{message:'Invalid credentials'}};},
@@ -18,6 +18,7 @@ const root=path.resolve(__dirname,'..');
    }})};
   });
   const url='http://127.0.0.1:'+server.address().port+'/';await page.goto(url);await page.locator('body.rf-auth-guest').waitFor();
+  assert.equal(await page.evaluate(()=>window.ancalagonSupabase?.__homepageTest),true,'Only the in-memory auth fixture may handle this test');
   assert.equal(await page.locator('#rf-app').isVisible(),false);assert.equal(await page.locator('#an-title').isVisible(),true);
   assert.match(await page.locator('.an-demo-toolbar').textContent(),/sample data/);
   assert.equal(await page.locator('[role="tabpanel"]:visible').count(),1);
