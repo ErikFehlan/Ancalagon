@@ -1,7 +1,8 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const recruiter=require('../assets/recruiter-workflow.js'),intake=require('../assets/resume-intake.js'),remote=require('../assets/resume-remote.js'),home=require('../assets/home.js');
 const tick=()=>new Promise(r=>setImmediate(r));
-async function settled(batch){for(let n=0;n<100;n++){if(!batch.view().some(i=>['waiting','reading','saving'].includes(i.state)))return;await tick();}throw Error('Batch did not settle');}
+// Native resume hashing can outlast 100 immediate turns on a busy CI runner.
+async function settled(batch){const deadline=Date.now()+2000;while(Date.now()<deadline){if(!batch.view().some(i=>['waiting','reading','saving'].includes(i.state)))return;await new Promise(resolve=>setTimeout(resolve,2));}throw Error('Batch did not settle: '+JSON.stringify(batch.view()));}
 const file=name=>({name,size:100});
 test('a failed file does not block later files; retry retains original job and frees saved files',async()=>{
  let job={id:'a',title:'QA'},fail=true;const calls=[],batch=recruiter.createBatch({job:()=>job,workspace:()=> 'w',toast:()=>{},upload:async(f,o)=>{calls.push([f.name,o.jobId,o.open]);if(f.name==='bad.txt'&&fail)throw Error('Upload interrupted');return {id:f.name};}});

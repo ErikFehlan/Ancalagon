@@ -30,6 +30,8 @@ jobs:
         run: |
           node --check assets/app.js
           node --check assets/home.js
+          node --check assets/tutorial.js
+          node --check assets/tutorial-ui.js
           node --check assets/focus-ui.js
           node --check assets/select.js
           node --check assets/auth.js
@@ -64,6 +66,15 @@ jobs:
           node tests/focus-browser.cjs
           node tests/core-browser.cjs
           node tests/recruiter-browser.cjs
+          node tests/tutorial-browser.cjs
+
+      - name: Save tutorial review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutorial-review
+          path: test-results/tutorial-*.png
+          if-no-files-found: ignore
 
   prepare-home:
     if: github.ref == 'refs/heads/main'
@@ -82,7 +93,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Prepare personal Home bookmarks before publishing
+      - name: Prepare personal Home and tutorial progress before publishing
         run: node scripts/workspace-home-backend.mjs
 
   core-backend:
