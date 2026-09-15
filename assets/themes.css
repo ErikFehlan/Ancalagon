@@ -59,6 +59,13 @@
   color:var(--ui-text); background:var(--ui-bg); accent-color:var(--ui-accent);
 }
 #rf-app[data-theme] :is(.rf-sidebar,.rf-globalbar) {background:var(--ui-rail); color:var(--ui-text); border-color:var(--ui-line);}
+/* The pale dragon needs a dark backing on bright sidebars. */
+#rf-app:is([data-theme="light"],[data-theme="paper"],[data-theme="sage"]) .rf-logo-crop {
+  background:#13243a;
+  border:1px solid var(--ui-line);
+  filter:none;
+  box-shadow:0 2px 6px rgba(19,36,58,.12);
+}
 #rf-app[data-theme] :is(.rf-card,.rf-modal,.rf-select-menu,.rf-cardmenu,.rf-job-menu-items,.rf-job-choice,.rf-stageitem,.rf-toast) {background:var(--ui-panel); color:var(--ui-text); border-color:var(--ui-line);}
 #rf-app[data-theme] :is(.rf-card:hover,.rf-job-choice:hover,.rf-stageitem:hover) {border-color:var(--ui-accent);}
 #rf-app[data-theme] :is(.rf-stage,.rf-batch,.rf-note,.rf-home-hero,.rf-home-continue,.rf-home-tutorial,.rf-admin-breakdown>div) {background:var(--ui-rail); color:var(--ui-text); border-color:var(--ui-line);}
