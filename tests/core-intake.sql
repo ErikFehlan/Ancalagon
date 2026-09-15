@@ -60,6 +60,18 @@ do $$declare result jsonb;rev text;begin
  if (result#>>'{candidate,manager_score}')::numeric<>8.5 then raise exception 'Lost approval response could not recover';end if;
 end$$;
 reset role;
+-- Recover only the pre-release, unreviewed legacy verification failure.
+update resume_intake_tasks set status='failed',error_code='verification_failed',attempts=3,updated_at='2026-09-15T16:00:00Z'
+ where candidate_id='00000000-0000-0000-0000-000000000122';
+\ir ../supabase/maintenance/20260915_retry_intakes.sql
+do $$begin
+ if (select status<>'queued' or attempts<>0 or error_code is not null from resume_intake_tasks where candidate_id='00000000-0000-0000-0000-000000000122') then raise exception 'Legacy intake did not recover';end if;
+ if (select status<>'approved' from resume_intake_tasks where candidate_id='00000000-0000-0000-0000-000000000121') then raise exception 'Recovery changed a reviewed assessment';end if;
+end$$;
+update resume_intake_tasks set status='failed',error_code='verification_failed',attempts=3,updated_at='2026-09-15T18:00:00Z'
+ where candidate_id='00000000-0000-0000-0000-000000000122';
+\ir ../supabase/maintenance/20260915_retry_intakes.sql
+do $$begin if (select status<>'failed' from resume_intake_tasks where candidate_id='00000000-0000-0000-0000-000000000122') then raise exception 'Repeated deployment retried a later failure';end if;end$$;
 update jobs set status='closed' where id='00000000-0000-0000-0000-000000000111';
 do $$begin if exists(select 1 from claim_resume_intakes()) then raise exception 'Closed job processed';end if;end$$;
 update jobs set status='active' where id='00000000-0000-0000-0000-000000000111';

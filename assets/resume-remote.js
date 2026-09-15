@@ -1,5 +1,12 @@
 (function(global){
   'use strict';
+  function failureMessage(code){
+    const saved='Your resume is saved. ';
+    if(typeof code==='string'&&code.startsWith('verification_'))return saved+'The AI assessment could not be verified against the resume. Try the assessment again.';
+    if(code==='ai_rate_limit')return saved+'The assessment service is busy. Wait a moment, then try again.';
+    if(code==='input_too_large')return saved+'The resume and job context exceed the assessment limit. Shorten the job description or resume before trying again.';
+    return saved+'The assessment service could not finish after automatic retries. Try the assessment again.';
+  }
   function create(api){
     let timer=null,polling=false,disposed=false;
     const requests=new Map(),errors=new Set();
@@ -41,7 +48,8 @@
             if(task.status==='cancelled')continue;
             const phase=task.status==='failed'?'error':task.status;
             working||=['queued','processing'].includes(phase);
-            if(c.resumeIntake.remoteRevision===task.revision&&c.resumeIntake.phase===phase)continue;
+            const error=phase==='error'?failureMessage(task.error_code):'';
+            if(c.resumeIntake.remoteRevision===task.revision&&c.resumeIntake.phase===phase&&c.resumeIntake.error===error)continue;
             if(phase==='ready'){
               if(byId){
                 task=await api.loadRemote(c.id);
@@ -58,7 +66,7 @@
               Object.assign(c,{name:result.name==='Candidate'?c.name:result.name,short:result.name==='Candidate'?c.name:result.name,role:result.role,
                 signal:result.primary_signal,strengths:result.resume_evidence.map(e=>e.claim+' — Resume: “'+e.quote+'”'),concerns:result.concerns,tags:result.tags,screeningQuestions:result.screening_questions});
               Object.assign(c.resumeIntake,{brief:result,signature,remoteRevision:task.revision,stored:true,phase:'ready',error:'',updatedAt:Date.now()});
-            }else Object.assign(c.resumeIntake,{phase,remoteRevision:task.revision,error:phase==='error'?'The assessment could not finish after automatic retries. Your resume is saved. Try again.':'',updatedAt:Date.now()});
+            }else Object.assign(c.resumeIntake,{phase,remoteRevision:task.revision,error,updatedAt:Date.now()});
             changed.push(c);errors.delete(c.id);
           }catch(e){if(!errors.has(c.id)){api.toast(e.message||'Assessment updates are temporarily unavailable. Retrying automatically.','error');errors.add(c.id);}}
         }

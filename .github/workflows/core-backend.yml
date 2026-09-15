@@ -69,3 +69,5 @@ jobs:
         run: node scripts/job-reassessment-backend.mjs activate
       - name: Verify live account and document isolation
         run: node scripts/core-live-smoke.mjs
+      - name: Recover previously failed resume quotations
+        run: node scripts/recover-resume-intake.mjs
