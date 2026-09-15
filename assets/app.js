@@ -96,7 +96,13 @@
         if(announce)showToast(THEMES[selected]+(saved?' theme applied.':' applied for this visit. Your browser could not save the preference.'),saved?'success':'error');
       }
       function saveHybridState(){if(!dataReady)return;const job=activeJob();if(job)job.patternAnalysis=hybridState.analyses?.[job.id]||null;saveState()}
-      function askConfirm({title='Confirm action',message,confirmText='Delete'}){return new Promise(resolve=>{const modal=root.querySelector('#confirmModal'),accept=root.querySelector('#confirmAccept'),cancel=root.querySelector('#confirmCancel');root.querySelector('#confirmTitle').textContent=title;root.querySelector('#confirmMessage').textContent=message;accept.textContent=confirmText;modal.classList.add('open');const done=value=>{modal.classList.remove('open');accept.onclick=null;cancel.onclick=null;resolve(value)};accept.onclick=()=>done(true);cancel.onclick=()=>done(false);modal.onclick=e=>{if(e.target===modal)done(false)}})}
+      function askConfirm({title='Confirm action',message,confirmText='Delete'}){return new Promise(resolve=>{
+        const modal=root.querySelector('#confirmModal'),accept=root.querySelector('#confirmAccept'),cancel=root.querySelector('#confirmCancel'),previous=document.activeElement;
+        root.querySelector('#confirmTitle').textContent=title;root.querySelector('#confirmMessage').textContent=message;accept.textContent=confirmText;modal.classList.add('open');
+        const done=value=>{modal.classList.remove('open');accept.onclick=null;cancel.onclick=null;modal.onclick=null;modal.removeEventListener('keydown',keys);if(previous?.isConnected)previous.focus({preventScroll:true});resolve(value);};
+        const keys=event=>{if(event.key==='Escape'){event.preventDefault();done(false);}else if(event.key==='Tab'){event.preventDefault();(document.activeElement===cancel?accept:cancel).focus();}};
+        accept.onclick=()=>done(true);cancel.onclick=()=>done(false);modal.onclick=event=>{if(event.target===modal)done(false);};modal.addEventListener('keydown',keys);cancel.focus();
+      });}
       function renderGlobalContext(){
         const select=root.querySelector('#globalJobSelect'),options=jobs.filter(j=>personalPreferences.show_closed||j.status!=='closed'||j.id===activeJobId).map(j=>`<option value="${escapeHTML(j.id)}">${escapeHTML(j.title)}${j.status==='closed'?' · Closed':''}${j.client?' · '+escapeHTML(j.client):''}</option>`).join('');
         if(lastJobOptions!==options){select.innerHTML=options;lastJobOptions=options;}if(select.value!==activeJobId)select.value=activeJobId||'';
@@ -757,7 +763,7 @@ function renderJobs(){
       root.querySelector('#retrySync').addEventListener('click',retrySync);
       window.addEventListener('offline',()=>setSyncStatus('offline'));
       window.addEventListener('online',retrySync);
-      window.addEventListener('beforeunload',event=>{if(tutorial?.hasPending()||dataService?.hasPendingChanges?.()||window.AncalagonWorkspace?.hasDrafts()||intake.hasUnsavedFile()||batch.hasUnsaved()){event.preventDefault();event.returnValue=''}});
+      window.addEventListener('beforeunload',event=>{if(settings?.view().dirty||tutorial?.hasPending()||dataService?.hasPendingChanges?.()||window.AncalagonWorkspace?.hasDrafts()||intake.hasUnsavedFile()||batch.hasUnsaved()){event.preventDefault();event.returnValue=''}});
       root.querySelectorAll('[data-new-job]').forEach(b=>b.addEventListener('click',()=>{showPage('jobs');openJobForm();}));
       root.querySelector('#recordCandidateOutcome').addEventListener('click',()=>{const id=root.querySelector('#reviewCandidateId').value;showPage('outcomes');root.querySelector('#outcomeCandidate').value=id;root.querySelector('#outcomeStage').focus();});
       root.querySelector('#mobileNavToggle').addEventListener('click',()=>root.querySelector('.rf-sidebar').classList.toggle('open'));

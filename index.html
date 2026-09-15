@@ -85,6 +85,7 @@
           <button class="rf-hidden" id="adminUsageNav" data-page="admin-usage"><span aria-hidden="true">◉</span><span>Usage Analytics</span></button>
         </div>
       </nav>
+      <button class="rf-btn settings-notification-shortcut" type="button" id="notificationShortcut" aria-label="Notifications">Notifications <span id="notificationCount"></span></button>
       <div class="rf-bench"><h4>Active benchmarks</h4><div class="rf-note">No benchmarks yet</div></div>
     </aside>
 
@@ -460,7 +461,7 @@
     </main>
   </div>
 
-  <button class="rf-btn settings-notification-shortcut" type="button" id="notificationShortcut" aria-label="Notifications">Notifications <span id="notificationCount"></span></button>
+
   <div class="rf-toast-region" id="toastRegion" aria-live="polite"></div>
   <div class="rf-modalbackdrop" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle"><div class="rf-modal"><h3 id="confirmTitle">Confirm action</h3><p id="confirmMessage"></p><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="confirmCancel" type="button">Cancel</button><button class="rf-btn danger" id="confirmAccept" type="button">Delete</button></div></div></div>
   <div class="rf-modalbackdrop" id="closeJobModal" role="dialog" aria-modal="true" aria-labelledby="closeJobTitle"><div class="rf-modal"><form class="rf-form" id="closeJobForm"><div><div class="rf-kicker">Job lifecycle</div><h3 id="closeJobTitle">Close job</h3><p>Close the search without deleting its candidates, feedback, or hiring intelligence.</p></div><div><label for="closeJobReason">Why is this job closing?</label><select id="closeJobReason" required><option value="Filled Internally">Filled internally</option><option value="Filled by Another Firm">Filled by another firm</option><option value="Cancelled">Position cancelled</option><option value="On Hold">Position placed on hold</option></select></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="closeJobCancel" type="button">Cancel</button><button class="rf-btn primary" type="submit">Close Job</button></div></form></div></div>
