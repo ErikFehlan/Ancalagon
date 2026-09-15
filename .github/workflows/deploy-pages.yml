@@ -61,6 +61,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Test recruiter browser journey
         run: |
+          node tests/settings-browser.cjs
           node tests/browser-journey.cjs
           node tests/job-review-browser.cjs
           node tests/resume-intake-browser.cjs
@@ -71,7 +72,6 @@ jobs:
           node tests/recruiter-browser.cjs
           node tests/tutorial-browser.cjs
           node tests/admin-tools-browser.cjs
-          node tests/settings-browser.cjs
 
       - name: Save tutorial review screenshots
         if: always()
