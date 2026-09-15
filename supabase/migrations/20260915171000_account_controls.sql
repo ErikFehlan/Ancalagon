@@ -81,7 +81,7 @@ end$$;
 create or replace function public.get_account_deletion_status() returns boolean
 language sql security definer set search_path='' as $$select exists(select from public.account_deletions where user_id=auth.uid());$$;
 create or replace function public.get_account_export() returns jsonb
-language plpgsql security definer set search_path='' as $$
+language plpgsql stable security definer set search_path='' as $$
 declare ids uuid[];result jsonb;t text;rows jsonb;
 begin
  if auth.uid() is null or not exists(select from auth.users where id=auth.uid()) then raise exception 'Sign in required' using errcode='42501';end if;
