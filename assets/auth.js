@@ -200,6 +200,16 @@
 
   document.getElementById('signInTab').addEventListener('click', function () { setAuthMode('signin'); });
   document.getElementById('createAccountTab').addEventListener('click', function () { setAuthMode('create'); });
+  document.querySelectorAll('[data-auth-mode]').forEach(function (link) {
+    link.addEventListener('click', function (event) {
+      event.preventDefault();
+      const mode = link.dataset.authMode === 'create' ? 'create' : 'signin';
+      if (authMode !== mode) setAuthMode(mode);
+      document.getElementById('authAccess').scrollIntoView({ block: 'start', behavior: 'instant' });
+      (mode === 'create' ? nameInput : emailInput).focus({ preventScroll: true });
+    });
+  });
+
 
   form.addEventListener('submit', async function (event) {
     event.preventDefault();

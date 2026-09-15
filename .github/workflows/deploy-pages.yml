@@ -38,6 +38,7 @@ jobs:
           node --check assets/focus-ui.js
           node --check assets/select.js
           node --check assets/auth.js
+          node --check assets/landing.js
           node --check assets/data.js
           node --check assets/scoring.js
           node --check assets/evidence.js
@@ -61,6 +62,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Test recruiter browser journey
         run: |
+          node tests/landing-browser.cjs
           node tests/settings-browser.cjs
           node tests/browser-journey.cjs
           node tests/job-review-browser.cjs
@@ -81,6 +83,7 @@ jobs:
           path: |
             test-results/tutorial-*.png
             test-results/focus-*.png
+            test-results/landing-*.png
           if-no-files-found: ignore
 
   prepare-home:
