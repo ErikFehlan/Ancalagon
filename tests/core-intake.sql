@@ -84,11 +84,11 @@ do $$begin
 end$$;
 -- A completed intake immediately dispatches the next batch without a cron tick.
 create table public.intake_dispatches(id bigserial primary key,body jsonb);
-create or replace function net.http_post(url text,headers jsonb,body jsonb,timeout_milliseconds integer) returns bigint language sql as $$insert into public.intake_dispatches(body) values(body) returning id$$;
+create or replace function net.http_post(url text,headers jsonb,body jsonb,timeout_milliseconds integer) returns bigint language sql as $$insert into public.intake_dispatches(body) values($3) returning id$$;
 delete from vault.decrypted_secrets where name in ('job_reassessment_url','job_reassessment_secret');
 insert into vault.decrypted_secrets values('job_reassessment_url','https://worker.invalid'),('job_reassessment_secret','test-only');
 insert into candidates(id,job_id,workspace_id,role) values
- ('00000000-0000-0000-0000-000000000123','00000000-0000-0000-000000000111','00000000-0000-0000-0000-000000000001','Resume awaiting analysis'),
+ ('00000000-0000-0000-0000-000000000123','00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000001','Resume awaiting analysis'),
  ('00000000-0000-0000-0000-000000000124','00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000001','Resume awaiting analysis');
 insert into candidate_assessments(workspace_id,job_id,candidate_id,assessment_type,evidence)
  select workspace_id,job_id,id,'manual_correction','{"resume_intake":{"phase":"uploading","backend":"durable-v1"}}' from candidates where id in ('00000000-0000-0000-0000-000000000123','00000000-0000-0000-0000-000000000124');
