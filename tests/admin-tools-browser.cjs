@@ -78,7 +78,7 @@ const names={server:'server.ts',schema:'schema.sql',prompt:'evaluation-prompt.tx
   revoked=false;await page.reload();await page.locator('#adminToolsNav').waitFor({state:'visible'});
   holdTools=true;await page.locator('#adminToolsNav').click();
   const deadline=Date.now()+2000;while(!held&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,10));assert.ok(held);
-  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('ancalagon:auth-cleared')));held();holdTools=false;
+  await page.evaluate(()=>{window.ancalagonAuth.session=null;window.dispatchEvent(new CustomEvent('ancalagon:auth-cleared'));});held();holdTools=false;
   await page.waitForTimeout(100);assert.equal(await page.locator('#adminToolsContent').textContent(),'');assert.equal(await page.locator('#adminToolsNav').isVisible(),false);
   assert.deepEqual(errors,[]);await context.close();
   console.log('Admin tools passed: regular-user exclusion, guarded navigation, admin-only sections and downloads, role revocation, retry, stale-response clearing, and mobile layout.');

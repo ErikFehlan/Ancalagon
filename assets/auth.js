@@ -78,6 +78,11 @@
 
     if (session.access_token === appliedAccessToken && window.ancalagonAuth?.workspace) return;
 
+    const previousUser = window.ancalagonAuth?.session?.user?.id;
+    if (previousUser && previousUser !== session.user.id) {
+      window.dispatchEvent(new CustomEvent('ancalagon:auth-cleared'));
+    }
+
     try {
       const workspace = await workspaceForUser(client);
       const workspaceChanged = window.ancalagonAuth?.workspace?.id !== workspace.id;
