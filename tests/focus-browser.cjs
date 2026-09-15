@@ -74,7 +74,7 @@ const dir=path.resolve(__dirname,'..');
     for(let p=e;p;p=p.parentElement)chain.unshift(p);
     for(const p of chain){const c=rgb(getComputedStyle(p).backgroundColor),alpha=c[3]??1;bg=bg.map((v,i)=>c[i]*alpha+v*(1-alpha));}
     const fg=rgb(getComputedStyle(e).color),a=luminance(fg),b=luminance(bg);
-    return {selector,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
+    return {theme:document.querySelector('#rf-app').dataset.theme,selector,foreground:fg,background:bg,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
    }));
   },selectors);
   const readable=async selectors=>{const results=await contrast(selectors);assert.ok(results.length);for(const result of results)assert.ok(result.ratio>=4.5,JSON.stringify(result));};

@@ -69,7 +69,8 @@
 #rf-app[data-theme] .rf-nav button span:first-child {color:inherit;}
 #rf-app[data-theme] .rf-nav button:hover {background:var(--ui-soft); color:var(--ui-text);}
 #rf-app[data-theme] .rf-nav button.active {background:var(--ui-soft); color:var(--ui-text); border-color:transparent; border-left-color:var(--ui-accent); box-shadow:none;}
-#rf-app[data-theme] :is(.rf-btn,.rf-select-button) {background:var(--ui-soft); color:var(--ui-text); border-color:var(--ui-line);}
+/* Change foreground and background together when switching between dark and light. */
+#rf-app[data-theme] :is(.rf-btn,.rf-select-button) {background:var(--ui-soft); color:var(--ui-text); border-color:var(--ui-line); transition:transform .16s ease;}
 #rf-app[data-theme] .rf-btn:hover:not(:disabled) {background:var(--ui-panel); border-color:var(--ui-accent);}
 #rf-app[data-theme] .rf-btn.primary {background:var(--ui-accent); color:var(--ui-on-accent); border-color:var(--ui-accent);}
 #rf-app[data-theme] .rf-btn.primary:hover:not(:disabled) {background:var(--ui-accent); filter:brightness(.96);}
