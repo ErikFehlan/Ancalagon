@@ -65,13 +65,15 @@ set role authenticated;
 do $$begin if jsonb_array_length(get_admin_support_requests())<>1 then raise exception 'Admin inbox unavailable';end if;perform review_support_request('00000000-0000-0000-0000-000000000041','resolved');end$$;
 reset role;
 -- Shared workspace guard runs before marking or removing anything.
+insert into app_admins(email) values('a@example.test');
 insert into workspace_members(workspace_id,user_id) select workspace_id,'00000000-0000-0000-0000-000000000002' from ids where user_id='00000000-0000-0000-0000-000000000001';
-do $$begin begin perform begin_account_deletion('00000000-0000-0000-0000-000000000001');raise exception 'Shared workspace deletion accepted';exception when sqlstate 'PT409' then null;end;if exists(select from account_deletions) then raise exception 'Failed request left destructive work';end if;end$$;
+do $$begin begin perform begin_account_deletion('00000000-0000-0000-0000-000000000001');raise exception 'Shared workspace deletion accepted';exception when sqlstate 'PT409' then null;end;if exists(select from account_deletions) then raise exception 'Failed request left destructive work';end if;if not exists(select from app_admins where email='a@example.test') then raise exception 'Blocked deletion changed admin access';end if;end$$;
 delete from workspace_members where user_id='00000000-0000-0000-0000-000000000002' and workspace_id=(select workspace_id from ids where user_id='00000000-0000-0000-0000-000000000001');
 insert into storage.objects(bucket_id,name,owner_id) select 'resumes',workspace_id||'/job/candidate/source.pdf',user_id::text from ids;
 select begin_account_deletion('00000000-0000-0000-0000-000000000001');
 select begin_account_deletion('00000000-0000-0000-0000-000000000001');
 do $$declare task record;files jsonb;begin
+ if exists(select from app_admins where email='a@example.test') then raise exception 'Deleting account retained admin access';end if;
  if(select count(*) from account_deletions)<>1 then raise exception 'Duplicate deletion request';end if;
  select * into task from claim_account_deletions();if task.user_id<>'00000000-0000-0000-0000-000000000001' then raise exception 'Wrong deletion identity';end if;
  files:=account_deletion_files(task.user_id,task.lease_id);if jsonb_array_length(files)<>1 then raise exception 'Deletion files crossed workspace';end if;
