@@ -294,8 +294,9 @@
       if(error)throw error;
     }
     async function loadHomeReviews() {
-      const {data,error}=await client.from('job_reassessment_tasks').select('candidate_id,job_id,status').eq('workspace_id',workspaceId).eq('status','ready');
-      if(error)throw error;return data||[];
+      const results=await Promise.all(['job_reassessment_tasks','resume_intake_tasks'].map(table=>client.from(table).select('candidate_id,job_id,status').eq('workspace_id',workspaceId).in('status',['ready','queued','processing','failed'])));
+      for(const r of results)if(r.error)throw r.error;
+      return results.flatMap((r,i)=>(r.data||[]).map(row=>({...row,source:i?'intake':'reassessment'})));
     }
     async function loadJobReassessments(jobId) {
       const {data,error}=await client.from('job_reassessment_tasks')
@@ -381,6 +382,15 @@
         .eq('workspace_id',workspaceId).eq('candidate_id',candidateId);
       if(error)throw error;return data?.[0]||null;
     }
+    async function loadResumeIntakes(candidateIds) {
+      const ids=[...new Set(candidateIds)],rows=[];
+      for(let i=0;i<ids.length;i+=100){
+        const {data,error}=await client.from('resume_intake_tasks').select('candidate_id,job_id,revision,status,error_code,updated_at')
+          .eq('workspace_id',workspaceId).in('candidate_id',ids.slice(i,i+100));
+        if(error)throw error;rows.push(...(data||[]));
+      }
+      return rows;
+    }
     function reviewResumeIntake(id,revision,state) {return reviewJobReassessment(id,revision,'approve',state,'review_resume_intake');}
     async function loadResumeText(candidate) {
       const {data,error}=await client.from('candidate_documents').select('extracted_text,created_at')
@@ -415,9 +425,8 @@
       return path;
     }
 
-    return { requestResumeIntake, loadResumeIntake, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
+    return { requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };
 })();
-

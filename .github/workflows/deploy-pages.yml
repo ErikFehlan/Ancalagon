@@ -41,6 +41,7 @@ jobs:
           node --check assets/job-review.js
           node --check assets/resume-intake.js
           node --check assets/resume-remote.js
+          node --check assets/recruiter-workflow.js
           node --check assets/candidate-automation.js
           node --check assets/candidate-workspace.js
           node --check assets/quick-notes.js
@@ -62,6 +63,7 @@ jobs:
           node tests/home-browser.cjs
           node tests/focus-browser.cjs
           node tests/core-browser.cjs
+          node tests/recruiter-browser.cjs
 
   prepare-home:
     if: github.ref == 'refs/heads/main'

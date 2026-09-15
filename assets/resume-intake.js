@@ -61,32 +61,34 @@
     const useRemote=()=>!!remote&&(!api.remoteAvailable||api.remoteAvailable());
     const changed=c=>{api.changed(c);render();};
     function set(c,phase,error=''){Object.assign(c.resumeIntake,{phase,error,updatedAt:Date.now()});changed(c);}
-    async function upload(file){
-      const job=api.job();
-      if(extracting){api.toast('The current resume is still being read.','error');return;}
-      if(!job||job.status==='closed'){api.toast('Choose an open job before adding a resume.','error');return;}
-      if(!file||! /\.(pdf|docx|txt)$/i.test(file.name)||file.size>10*1024*1024){api.toast('Choose a PDF, DOCX, or TXT resume up to 10 MB.','error');return;}
-      const jobId=job.id;extracting=true;status('Reading '+file.name+'…');
+    async function upload(file,options={}){
+      const job=api.job(options.jobId),workspace=options.workspaceId||api.workspace();
+      const fail=message=>{if(options.silent)throw Error(message);api.toast(message,'error');};
+      if(extracting){fail('The current resume is still being read.');return;}
+      if(workspace!==api.workspace()||!job||job.status==='closed'){fail('Choose an open job before adding a resume.');return;}
+      if(!file||! /\.(pdf|docx|txt)$/i.test(file.name)||file.size>10*1024*1024){fail('Choose a PDF, DOCX, or TXT resume up to 10 MB.');return;}
+      const jobId=job.id;extracting=true;options.progress?.('reading');status('Reading '+file.name+'…');
       let candidate;
       try{
         const text=await api.extract(file,status);
         if(!text.trim()||text.trim().length<40)throw Error('No usable resume text was found. Try a text-based PDF, DOCX, or TXT file.');
         if(text.length>120000)throw Error('This resume is too long to assess in full. Upload a shorter resume.');
-        if(!api.job(jobId)||api.job(jobId).status==='closed')throw Error('The selected job was closed or removed. Choose an open job.');
-        const key=await identity(api.workspace(),jobId,text);
+        const check=()=>{if(workspace!==api.workspace()||!api.job(jobId)||api.job(jobId).status==='closed')throw Error('The selected job was closed or removed. Reopen it before retrying.');};
+        check();const key=await identity(workspace,jobId,text);check();
         const existing=api.candidates().find(c=>c.jobId===jobId&&(c.id===key.id||c.resumeIntake?.hash===key.hash));
-        if(existing){if(!existing.resumeIntake?.stored&&existing.resumeIntake){files.set(existing.id,{file,text});await storeDocument(existing);enqueue(existing);}else if(existing.resumeIntake?.phase==='error')await retry(existing);api.toast('This resume is already attached to '+existing.short+'.');api.open(existing,true);return existing;}
+        if(existing){options.candidate?.(existing,true);if(!existing.resumeIntake?.stored&&existing.resumeIntake){files.set(existing.id,{file,text});await storeDocument(existing);enqueue(existing);}else if(existing.resumeIntake?.phase==='error')await retry(existing);if(!options.silent)api.toast('This resume is already attached to '+existing.short+'.');if(options.open!==false)api.open(existing,true);return existing;}
         const now=Date.now();
         candidate=api.add({id:key.id,jobId,name:file.name.replace(/\.[^.]+$/,'').slice(0,160),role:'Resume awaiting analysis',score:0,jdScore:0,resumeJDScore:0,managerScore:0,originalManagerScore:0,rec:'Screen First',signal:'Preparing a screening brief.',strengths:[],concerns:[],tags:[],screeningQuestions:[],stage:'Sourced',createdAt:now,updatedAt:now,resumeIntake:{backend:useRemote()?'durable-v1':undefined,hash:key.hash,fileName:file.name,phase:'uploading',updatedAt:now}});
-        files.set(candidate.id,{file,text});changed(candidate);
+        options.candidate?.(candidate,false);options.progress?.('saving');files.set(candidate.id,{file,text});changed(candidate);
         await api.persist();
+        check();
         await storeDocument(candidate);
-        if(!valid(candidate))return;
-        api.toast('Candidate created. Preparing the screening brief.');
-        api.open(candidate);enqueue(candidate);return candidate;
+        check();if(!valid(candidate))throw Error('This candidate was removed during upload.');
+        if(!options.silent)api.toast('Candidate created. Preparing the screening brief.');
+        if(options.open!==false)api.open(candidate);enqueue(candidate);return candidate;
       }catch(e){
         if(candidate&&valid(candidate)){set(candidate,'error',e.message||'Resume intake could not finish.');try{await api.persist();}catch{}}
-        api.toast(e.message||'Resume intake could not finish.','error');
+        if(options.silent)throw e;api.toast(e.message||'Resume intake could not finish.','error');
       }finally{extracting=false;status('Upload a resume to create a candidate and prepare a screening brief automatically.');}
     }
     function status(message){const el=api.root?.querySelector('#resumeUploadNote');if(el)el.textContent=message;}
@@ -183,7 +185,8 @@
       const brief=state.brief,needsReview=pending(c),stale=needsReview&&state.phase==='ready'&&state.signature!==api.signature(context(c));
       if(stale)queueMicrotask(()=>enqueue(c));
       let html='<span class="rf-kicker">Resume screening brief</span>';
-      if(state.phase==='error')html+='<h3>Resume intake needs attention</h3><p>'+escape(state.error)+'</p><button class="rf-btn" type="button" data-intake-retry>Try again</button>';
+      if(needsReview&&api.job(c.jobId)?.status==='closed')html+='<h3>Search closed · assessment paused</h3><p class="rf-sub">Reopen this search from Jobs to resume assessment work. Existing candidate records are retained.</p>';
+      else if(state.phase==='error')html+='<h3>Resume intake needs attention</h3><p>'+escape(state.error)+'</p><button class="rf-btn" type="button" data-intake-retry>Try again</button>';
       else if(state.phase!=='ready')html+='<h3>Preparing your screening brief…</h3><p class="rf-sub">You can keep working. Once your resume is saved, processing continues even if you close this tab. Scores appear after review.</p>';
       else{
         html+='<div class="rf-cardhead"><h3>'+(wrap.id==='workspaceIntake'?'Resume assessment':escape(c.short))+'</h3><span class="rf-pill '+(needsReview?'rf-amber':'rf-green')+'">'+(needsReview?'Awaiting your review':'Reviewed')+'</span></div><p>'+escape(brief.primary_signal)+'</p>';
@@ -202,6 +205,7 @@
       if(wrap.dataset.markup!==html||wrap.dataset.candidate!==c.id){const open=wrap.querySelector('details')?.open;wrap.innerHTML=html;wrap.dataset.markup=html;wrap.dataset.candidate=c.id;if(open&&wrap.querySelector('details'))wrap.querySelector('details').open=true;bind(wrap,c);}
     }
     function render(){
+      if(api.renderQueue){api.renderQueue();return;}
       const wrap=api.root?.querySelector('#resumeIntakeStatus');if(!wrap)return;
       const list=api.candidates().filter(c=>c.jobId===api.job()?.id&&pending(c));
       wrap.hidden=!list.length;
@@ -221,7 +225,8 @@
       });render();
     }
     function hasUnsavedFile(){for(const id of files.keys())if(!api.candidates().some(c=>c.id===id))files.delete(id);return extracting||files.size>0;}
-    return {upload,retry,approve,resume,render,renderCandidate,hasUnsavedFile};
+    function releaseFile(id){files.delete(id);}
+    return {upload,retry,approve,resume,render,renderCandidate,hasUnsavedFile,releaseFile};
   }
   const api={create,validate,identity,pending,normalize,sourceQuote};if(typeof module!=='undefined')module.exports=api;global.AncalagonIntake=api;
 })(typeof window==='undefined'?globalThis:window);

@@ -10,7 +10,10 @@
       if(requests.has(c.id))return requests.get(c.id);
       const operation=(async()=>{
         try{c.resumeIntake.backend='durable-v1';await api.persist();if(!valid(c))return;await api.requestRemote(c.id,retry);errors.delete(c.id);}
-        catch(e){api.toast(e.message||'Your resume is retained. Check the save status and try again.','error');}
+        catch(e){if(valid(c)){
+          Object.assign(c.resumeIntake,{phase:'error',error:e.message||'Assessment could not start. Your resume is saved. Try again.',updatedAt:Date.now()});
+          api.changed?.(c);try{await api.persist();}catch{}api.toast(c.resumeIntake.error,'error');
+        }}
         finally{requests.delete(c.id);plan(300);}
       })();requests.set(c.id,operation);return operation;
     }
@@ -19,12 +22,14 @@
       const candidates=api.candidates().filter(valid);
       if(!candidates.length)return;
       if(global.document?.hidden){plan(8000);return;}
-      polling=true;let working=false;
+      polling=true;let working=false;const changed=[];
       try{
+        const batched=api.loadRemoteBatch?await api.loadRemoteBatch(candidates.map(c=>c.id)):null;
+        const byId=batched?new Map(batched.map(t=>[t.candidate_id,t])):null;
         for(const c of candidates){
           if(requests.has(c.id)||!valid(c))continue;
           try{
-            const task=await api.loadRemote(c.id);
+            let task=byId?byId.get(c.id):await api.loadRemote(c.id);
             if(!valid(c)||!task)continue;
             if(task.candidate_id!==c.id||task.job_id!==c.jobId)throw Error('Assessment scope did not match the candidate.');
             // Another tab may already have reviewed it. Never overwrite that
@@ -38,6 +43,11 @@
             working||=['queued','processing'].includes(phase);
             if(c.resumeIntake.remoteRevision===task.revision&&c.resumeIntake.phase===phase)continue;
             if(phase==='ready'){
+              if(byId){
+                task=await api.loadRemote(c.id);
+                if(!task||task.candidate_id!==c.id||task.job_id!==c.jobId)throw Error('Assessment scope did not match the candidate.');
+                if(task.status!=='ready'||!valid(c))continue;
+              }
               // Comparing before and after the source read also protects edits
               // made while this network request was outstanding.
               const signature=api.signature(api.context(c));
@@ -49,9 +59,14 @@
                 signal:result.primary_signal,strengths:result.resume_evidence.map(e=>e.claim+' — Resume: “'+e.quote+'”'),concerns:result.concerns,tags:result.tags,screeningQuestions:result.screening_questions});
               Object.assign(c.resumeIntake,{brief:result,signature,remoteRevision:task.revision,stored:true,phase:'ready',error:'',updatedAt:Date.now()});
             }else Object.assign(c.resumeIntake,{phase,remoteRevision:task.revision,error:phase==='error'?'The assessment could not finish after automatic retries. Your resume is saved. Try again.':'',updatedAt:Date.now()});
-            await api.persist();api.changed(c);errors.delete(c.id);
+            changed.push(c);errors.delete(c.id);
           }catch(e){if(!errors.has(c.id)){api.toast(e.message||'Assessment updates are temporarily unavailable. Retrying automatically.','error');errors.add(c.id);}}
         }
+        if(changed.length){await api.persist();if(api.changedMany)api.changedMany(changed);else changed.forEach(c=>api.changed(c));}
+        errors.delete('poll');
+      }catch(e){
+        if(changed.length){if(api.changedMany)api.changedMany(changed);else changed.forEach(c=>api.changed(c));}
+        if(!errors.has('poll')){api.toast(e.message||'Assessment updates are temporarily unavailable. Retrying automatically.','error');errors.add('poll');}
       }finally{polling=false;plan(working?2500:8000);}
     }
     function resume(){for(const c of api.candidates().filter(valid))void request(c);plan(300);}

@@ -344,3 +344,20 @@
 #rf-app[data-theme="light"] .rf-form label,#rf-app[data-theme="light"] .rf-workspace-details>summary,#rf-app[data-theme="light"] .rf-supporting-details>summary{color:#40536d}
 #rf-app[data-theme="light"] .rf-linkbtn{color:#2466a6}
 @media(max-width:560px){.rf-job-actions{flex-wrap:wrap;gap:12px}#jobList .rf-recent{align-items:flex-start;flex-direction:column;gap:12px}}
+
+/* Recruiter efficiency: one next action, with file-level details on demand. */
+.rf-home-onboarding{margin-bottom:24px}.rf-home-onboarding .rf-home-steps{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rf-batch{margin-bottom:16px;border:1px solid var(--rf-line);border-radius:12px;background:rgba(15,30,49,.45)}
+.rf-batch>summary{display:flex;justify-content:space-between;gap:12px;cursor:pointer;padding:16px;list-style:revert}
+.rf-batch>summary span{font-size:13px;color:var(--rf-muted)}.rf-batch-body{padding:0 16px 16px}
+.rf-upload-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--rf-line)}
+.rf-upload-row>div:first-child{min-width:0;overflow-wrap:anywhere}.rf-upload-row small{display:block;color:var(--rf-muted);margin-top:5px}.rf-upload-error{color:var(--rf-red,#e87979);font-size:13px}
+.rf-queue-summary{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 16px;border:1px solid var(--rf-line);border-radius:12px}.rf-queue-summary span{display:block;color:var(--rf-muted);font-size:13px;margin-top:5px}
+.rf-job-filters{display:flex;gap:16px;justify-content:space-between;align-items:end;margin:16px 0}.rf-job-filters [role=group]{display:flex;gap:6px}.rf-job-filters label{font-size:12px;min-width:0}.rf-job-filters input{display:block;margin-top:6px;width:100%}
+.rf-job-filters [aria-pressed=true]{border-color:var(--rf-blue);background:rgba(75,140,230,.15)}
+@media(max-width:1100px){.rf-home-onboarding .rf-home-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.rf-home-onboarding .rf-home-steps{grid-template-columns:1fr}.rf-batch>summary,.rf-upload-row,.rf-job-filters{flex-direction:column;align-items:stretch}.rf-queue-summary{flex-wrap:wrap}}
+
+.rf-batch>summary::after{content:'⌄';color:var(--rf-muted)}.rf-batch[open]>summary::after{content:'⌃'}.rf-batch>summary span{margin-left:auto}
+#rf-app[data-theme="light"] .rf-batch{background:rgba(255,255,255,.85);border-color:#d3deea}
+#rf-app[data-theme="light"] .rf-upload-row,#rf-app[data-theme="light"] .rf-queue-summary{border-color:#d3deea}
