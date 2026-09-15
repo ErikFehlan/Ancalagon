@@ -2,10 +2,10 @@ const {chromium}=require('playwright'),fs=require('fs'),http=require('http'),pat
 const root=path.resolve(__dirname,'..');
 (async()=>{
  const server=http.createServer((req,res)=>{const name=req.url.split('?')[0],file=path.join(root,name==='/'?'index.html':name);try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.png')?'image/png':'text/html');res.end(fs.readFileSync(file));}catch{res.writeHead(404);res.end();}}).listen(0,'127.0.0.1');
- let browser;
+ let browser,page;const errors=[];
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.TEST_CHROME});
-  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://**',r=>r.abort());
   await page.addInitScript(()=>{
    window.authCalls=[];window.authState=null;
@@ -42,5 +42,8 @@ const root=path.resolve(__dirname,'..');
   }
   await page.setViewportSize({width:390,height:844});await page.locator('.an-header .an-brand').click();await page.screenshot({path:path.join(root,'test-results/landing-small-screen.png'),fullPage:true});
   assert.deepEqual(errors,[]);console.log('Public homepage passed: product preview, keyboard tabs, sign-in and signup entry points, unchanged recovery URLs and callback, private app hidden, and desktop/small-screen layout.');
+ }catch(error){
+  if(page)console.error('Synthetic homepage state:',JSON.stringify(await page.evaluate(()=>({calls:window.authCalls,mode:document.getElementById('createAccountTab')?.getAttribute('aria-selected'),message:document.getElementById('authMessage')?.textContent,welcomeHidden:document.getElementById('welcomeModal')?.hidden,invalid:[...document.querySelectorAll('#authForm input')].map(e=>({id:e.id,valid:e.checkValidity(),length:e.value.length})),active:document.activeElement?.id}))),errors);
+  throw error;
  }finally{if(browser)await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
