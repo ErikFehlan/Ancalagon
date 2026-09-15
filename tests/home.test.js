@@ -33,11 +33,11 @@ test('missing Home service times out without hiding the workspace or losing a pe
 });
 test('Home data reads and writes are scoped to both the user and workspace, and keep assessments lightweight',async()=>{
  const fs=require('node:fs'),vm=require('node:vm'),calls=[];
- const client={from(table){const entry={table,filters:[]};calls.push(entry);const q={select(columns){entry.columns=columns;return q},eq(k,v){entry.filters.push([k,v]);return q},or(v){entry.versionGuard=v;return q},maybeSingle(){entry.single=true;return q},update(payload){entry.payload=payload;return q},upsert(payload,options){Object.assign(entry,{payload,options});return q},then(resolve){return Promise.resolve({data:entry.single?null:[],error:null}).then(resolve)}};return q;}};
+ const client={from(table){const entry={table,filters:[]};calls.push(entry);const q={select(columns){entry.columns=columns;return q},eq(k,v){entry.filters.push([k,v]);return q},in(k,v){entry.filters.push([k,Array.from(v)]);return q},or(v){entry.versionGuard=v;return q},maybeSingle(){entry.single=true;return q},update(payload){entry.payload=payload;return q},upsert(payload,options){Object.assign(entry,{payload,options});return q},then(resolve){return Promise.resolve({data:entry.single?null:[],error:null}).then(resolve)}};return q;}};
  const context={window:{},console,setTimeout,clearTimeout};vm.runInNewContext(fs.readFileSync('assets/data.js','utf8'),context);
  const service=context.window.AncalagonData.create({client,session:{user:{id:'me'}},workspace:{id:'my-workspace'}});
  await service.loadHome();await service.visitHome();await service.saveHome({last_job_id:'job',last_page:'dashboard',last_opened_at:'2026-09-14T14:00:00.000Z'});await service.loadHomeReviews();
  for(const i of [0,2])assert.deepEqual(calls[i].filters,[['user_id','me'],['workspace_id','my-workspace']]);
  assert.equal(calls[1].payload.user_id,'me');assert.equal(calls[1].payload.workspace_id,'my-workspace');assert.equal(calls[1].options.ignoreDuplicates,true);
- assert.match(calls[2].versionGuard,/last_opened_at.lte.2026-09-14/);assert.equal(calls[3].columns,'candidate_id,job_id,status');assert.deepEqual(calls[3].filters,[['workspace_id','my-workspace'],['status','ready']]);
+ assert.match(calls[2].versionGuard,/last_opened_at.lte.2026-09-14/);assert.equal(calls[3].columns,'candidate_id,job_id,status');for(const call of calls.slice(3)){assert.deepEqual(call.filters,[['workspace_id','my-workspace'],['status',['ready','queued','processing','failed']]]);}assert.equal(calls[4].table,'resume_intake_tasks');
 });

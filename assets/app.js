@@ -18,7 +18,7 @@
       let hybridState={settings:{...DEFAULT_HYBRID_SETTINGS},analyses:{}};
       let dataService=null,dataReady=false,syncErrorShown=false;
       let home=null,workspaceLoadError="";
-      const candidateFilters=new Map();let candidateListJob=null,lastJobOptions=null;
+      const candidateFilters=new Map();let candidateListJob=null,lastJobOptions=null;let jobListFilter='active';
       const focusUI=window.AncalagonFocus.create({root,navigate:page=>showPage(page)});focusUI.init();
       const analyticsSessionId=crypto.randomUUID();
       function makeId(){return globalThis.crypto?.randomUUID?.()||'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16)})}
@@ -57,7 +57,7 @@
       function saveHybridState(){if(!dataReady)return;const job=activeJob();if(job)job.patternAnalysis=hybridState.analyses?.[job.id]||null;saveState()}
       function askConfirm({title='Confirm action',message,confirmText='Delete'}){return new Promise(resolve=>{const modal=root.querySelector('#confirmModal'),accept=root.querySelector('#confirmAccept'),cancel=root.querySelector('#confirmCancel');root.querySelector('#confirmTitle').textContent=title;root.querySelector('#confirmMessage').textContent=message;accept.textContent=confirmText;modal.classList.add('open');const done=value=>{modal.classList.remove('open');accept.onclick=null;cancel.onclick=null;resolve(value)};accept.onclick=()=>done(true);cancel.onclick=()=>done(false);modal.onclick=e=>{if(e.target===modal)done(false)}})}
       function renderGlobalContext(){
-        const select=root.querySelector('#globalJobSelect'),options=jobs.map(j=>`<option value="${escapeHTML(j.id)}">${escapeHTML(j.title)}${j.client?' · '+escapeHTML(j.client):''}</option>`).join('');
+        const select=root.querySelector('#globalJobSelect'),options=jobs.filter(j=>j.status!=='closed'||j.id===activeJobId).map(j=>`<option value="${escapeHTML(j.id)}">${escapeHTML(j.title)}${j.status==='closed'?' · Closed':''}${j.client?' · '+escapeHTML(j.client):''}</option>`).join('');
         if(lastJobOptions!==options){select.innerHTML=options;lastJobOptions=options;}if(select.value!==activeJobId)select.value=activeJobId||'';
         root.querySelectorAll('.rf-jobbadge').forEach(b=>b.remove());
         const page=root.querySelector('.rf-page.active')?.id.replace('page-','')||'home';focusUI.context(page,activeJob(),page==='detail'?candidateForRef(root.querySelector('#reviewCandidateId').value):null);
@@ -83,8 +83,8 @@
       candidates.forEach(c=>{c.jobId=c.jobId||'igs-product-design';ensureScores(c)});
       function activeJob(){return jobs.find(j=>j.id===activeJobId)||jobs[0]}
       let closingJobId=null;
-      function closeJob(jobId,reason,hiredCandidateId=null){const job=jobs.find(j=>j.id===jobId);if(!job)return;job.status='closed';job.closeReason=reason;job.closedAt=Date.now();job.hiredCandidateId=hiredCandidateId;job.updatedAt=Date.now();saveState();renderJobs();renderJobPicker();renderGlobalContext();showToast(`${job.title} closed · ${reason}.`)}
-      function reopenJob(jobId){const job=jobs.find(j=>j.id===jobId);if(!job)return;job.status='active';job.closeReason='';job.closedAt=null;job.hiredCandidateId=null;job.updatedAt=Date.now();saveState();renderJobs();renderJobPicker();renderGlobalContext();showToast(`${job.title} reopened.`)}
+      function closeJob(jobId,reason,hiredCandidateId=null){const job=jobs.find(j=>j.id===jobId);if(!job)return;job.status='closed';job.closeReason=reason;job.closedAt=Date.now();job.hiredCandidateId=hiredCandidateId;job.updatedAt=Date.now();saveState();renderJobs();renderJobPicker();renderGlobalContext();intake.render();jobReview.render();showToast(`${job.title} closed · ${reason}.`)}
+      function reopenJob(jobId){const job=jobs.find(j=>j.id===jobId);if(!job)return;job.status='active';job.closeReason='';job.closedAt=null;job.hiredCandidateId=null;job.updatedAt=Date.now();saveState();renderJobs();renderJobPicker();renderGlobalContext();intake.resume();void jobReview.refresh();showToast(`${job.title} reopened.`)}
       function openCloseJob(jobId){const job=jobs.find(j=>j.id===jobId);if(!job)return;closingJobId=jobId;root.querySelector('#closeJobTitle').textContent=`Close ${job.title}`;root.querySelector('#closeJobModal').classList.add('open');root.querySelector('#closeJobReason').focus()}
       function dismissCloseJob(){root.querySelector('#closeJobModal').classList.remove('open');closingJobId=null}
       async function deleteJob(jobId) {
@@ -368,9 +368,21 @@
         const neutral={...c,role:'',signal:'',tags:[],strengths:[],concerns:[],resumeJDScore:0,resumeIntake:null};
         return evaluationContext(neutral,jobs.find(j=>j.id===c.jobId));
       }
-      function refreshIntakeCandidate(c){
+      function refreshIntakeCandidates(changed){
+        changed.forEach(c=>{c.initials=initialsFor(c.short);recalibrateCandidate(c);});
+        if(changed.some(c=>!window.AncalagonIntake.pending(c)))recalibrateAll();
+        const page=root.querySelector('.rf-page.active')?.id;
+        if(page==='page-candidates')renderCandidates();
+        if(page==='page-home')renderHome();
+        if(page==='page-dashboard')renderMetrics();
+        intake.render();jobReview.render();
+        const current=changed.find(c=>c.id===root.querySelector('#reviewCandidateId').value);
+        if(current)refreshIntakeCandidate(current,true);
+      }
+      function refreshIntakeCandidate(c,detailOnly=false){
         if(!c)return;
-        c.initials=initialsFor(c.short);recalibrateAll();intake.render();jobReview.render();
+        if(!detailOnly){refreshIntakeCandidates([c]);return;}
+
         if(root.querySelector('#reviewCandidateId').value!==c.id)return;
         const pending=window.AncalagonIntake.pending(c);
         root.querySelector('#detailName').textContent=c.short;root.querySelector('#detailRole').textContent=c.role;
@@ -389,17 +401,34 @@
         text:c=>dataService.loadResumeText(c),analyze:analyzeResumeWithHybrid,
         remoteAvailable:()=>!!dataService?.requestResumeIntake,
         requestRemote:(id,retry)=>dataService.requestResumeIntake(id,retry),loadRemote:id=>dataService.loadResumeIntake(id),
+        loadRemoteBatch:ids=>dataService.loadResumeIntakes?dataService.loadResumeIntakes(ids):Promise.all(ids.map(id=>dataService.loadResumeIntake(id))).then(rows=>rows.filter(Boolean)),
+        changedMany:refreshIntakeCandidates,renderQueue:renderRecruiterQueue,
         reviewRemote:(id,revision)=>dataService.reviewResumeIntake(id,revision,stateSnapshot()),
         context:intakeContext,signature:context=>window.AncalagonContext.signature(context),fullContext:c=>evaluationContext(c,jobs.find(j=>j.id===c.jobId)),
         recommendation:recommendationForScore,changed:refreshIntakeCandidate,toast:showToast,track:trackProductEvent,
         open:(c,force=false)=>{if(!c||c.jobId!==activeJobId)return;
           if(force||root.querySelector('#page-candidates').classList.contains('active')){openDetail(c.id);refreshIntakeCandidate(c);}}
       });
-      root.querySelector('#resumeUpload').addEventListener('change',event=>{const file=event.target.files?.[0];event.target.value='';if(file)void intake.upload(file);});
+      const batch=window.AncalagonRecruiter.createBatch({job:activeJob,workspace:()=>window.ancalagonAuth?.workspace?.id,
+        upload:(file,options)=>intake.upload(file,options),release:id=>intake.releaseFile(id),toast:showToast,changed:renderRecruiterQueue});
+      function renderRecruiterQueue(){
+        window.AncalagonRecruiter.renderBatch(root.querySelector('#resumeBatch'),batch.view(),activeJobId);
+        const host=root.querySelector('#resumeIntakeStatus'),q=window.AncalagonRecruiter.queue(candidates,activeJob(),c=>jobReview.canReview(c)||candidateAutomation.canReview(c));
+        host.hidden=!q.ready.length&&!q.working.length&&!q.attention.length;
+        const action=q.ready[0]||q.attention[0];
+        const html='<div class="rf-queue-summary"><div><strong>'+q.ready.length+' ready to review</strong><span>'+q.working.length+' preparing'+(q.attention.length?' · '+q.attention.length+' need attention':'')+'</span></div>'+(action?'<button type="button" class="rf-btn primary" data-queue-open="'+escapeHTML(action.id)+'">'+(q.ready.length?'Review next':'Resolve issue')+'</button>':'')+'</div>';
+        if(host.dataset.markup!==html){host.innerHTML=html;host.dataset.markup=html;}
+      }
+      root.querySelector('#resumeIntakeStatus').addEventListener('click',event=>{const b=event.target.closest('[data-queue-open]');if(b)openDetail(b.dataset.queueOpen);});
+      root.querySelector('#resumeBatch').addEventListener('click',event=>{
+        const retry=event.target.closest('[data-batch-retry]'),dismiss=event.target.closest('[data-batch-dismiss]');
+        if(retry)batch.retry(retry.dataset.batchRetry);if(dismiss)batch.dismiss(dismiss.dataset.batchDismiss);
+      });
+      root.querySelector('#resumeUpload').addEventListener('change',event=>{const files=Array.from(event.target.files||[]);event.target.value='';if(files.length)batch.add(files);});
       const drop=root.querySelector('#resumeDropZone');
       drop.addEventListener('dragover',event=>{event.preventDefault();drop.classList.add('dragging');});
       drop.addEventListener('dragleave',()=>drop.classList.remove('dragging'));
-      drop.addEventListener('drop',event=>{event.preventDefault();drop.classList.remove('dragging');const file=event.dataTransfer.files?.[0];if(file)void intake.upload(file);});
+      drop.addEventListener('drop',event=>{event.preventDefault();drop.classList.remove('dragging');if(event.dataTransfer.files?.length)batch.add(event.dataTransfer.files);});
       const jobReview=window.AncalagonJobReview.create({
         root,beforeReview:prepareAssessmentReview,next:advanceAfterReview,job:activeJob,candidates:()=>candidates,renderIntake:(c,wrap)=>intake.renderCandidate(c,wrap),context:c=>evaluationContext(c,jobs.find(j=>j.id===c.jobId)),
         ready:()=>dataReady&&!!dataService?.loadJobReassessments,
@@ -407,7 +436,7 @@
         persist:()=>dataService.flush(stateSnapshot()),
         request:id=>dataService.requestCandidateReassessment(id),
         review:(id,revision,decision)=>dataService.reviewJobReassessment(id,revision,decision,stateSnapshot()),
-        candidateChanged:()=>window.AncalagonWorkspace?.refreshEvaluation(),
+        candidateChanged:()=>{window.AncalagonWorkspace?.refreshEvaluation();renderRecruiterQueue();},
         approved:c=>{if(c.jobId!==activeJobId)return;recalibrateAll();intake.render();window.AncalagonWorkspace?.refreshIntake();if(root.querySelector('#reviewCandidateId').value===c.id){
           root.querySelector('#detailManagerScore').innerHTML=`${c.managerScore.toFixed(1)}<span>/10</span>`;
           root.querySelector('#detailJDScore').innerHTML=`${c.jdScore.toFixed(1)}<span>/10</span>`;
@@ -462,7 +491,11 @@
 function renderJobs(){
   const list=root.querySelector('#jobList');if(!jobs.length)root.querySelector('#jobEditor').open=true;
 
-  list.innerHTML=jobs.map(j=>`
+  const search=root.querySelector('#jobSearch').value;
+  root.querySelectorAll('[data-job-filter]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.jobFilter===jobListFilter));});
+  const shown=window.AncalagonRecruiter.jobList(jobs,jobListFilter,search);
+  root.querySelector('#jobListCount').textContent=shown.length+' of '+jobs.length+' searches';
+  list.innerHTML=shown.map(j=>`
     <div class="rf-recent">
       <div>
         <strong>${escapeHTML(j.title)} ${j.status==='closed'?'<span class="rf-pill rf-gray" style="margin-left:6px">Closed</span>':'<span class="rf-pill rf-green" style="margin-left:6px">Active</span>'}</strong>
@@ -481,7 +514,7 @@ function renderJobs(){
         </div></details>
       </div>
     </div>
-  `).join('')||'<div class="rf-note">No jobs yet. Use the form to create your first job.</div>';
+  `).join('')||'<div class="rf-note">'+(!jobs.length?'No jobs yet. Use the form to create your first job.':search?'No matching searches. Try another title or client.':jobListFilter==='active'?'No active searches. Start a new job or view your closed searches.':'No closed searches yet.')+'</div>';
 
   list.querySelectorAll('.rf-job-menu button').forEach(b=>b.addEventListener('click',()=>{b.closest('details').open=false;}));
   list.querySelectorAll('[data-activate-job]').forEach(b=>
@@ -511,6 +544,8 @@ function renderJobs(){
   list.querySelectorAll('[data-close-job]').forEach(b=>b.addEventListener('click',()=>openCloseJob(b.dataset.closeJob)));
   list.querySelectorAll('[data-reopen-job]').forEach(b=>b.addEventListener('click',()=>reopenJob(b.dataset.reopenJob)));
 }
+      root.querySelector('#jobSearch').addEventListener('input',renderJobs);
+      root.querySelectorAll('[data-job-filter]').forEach(b=>b.addEventListener('click',()=>{jobListFilter=b.dataset.jobFilter;renderJobs();}));
       function renderJobPicker(){
         const grid=root.querySelector('#jobPickerGrid');
         if(!jobs.length){
@@ -595,6 +630,7 @@ function renderJobs(){
       function showPage(name,{navigationToken}={}){
         if(!jobs.length&&!['home','jobs','job-picker','learn','backend','admin-usage'].includes(name))name='home';
         const navigation=navigationToken??focusUI.begin();if(name!=='detail')window.AncalagonWorkspace?.leave();intake.render();
+        if(jobs.length&&!['home','jobs','job-picker','learn','backend','admin-usage','detail'].includes(name))recalibrateAll();if(name==='jobs')renderJobs();
         if(name==='home'){renderHome();void home?.refresh();}if(name==='job-picker')renderJobPicker();if(name==='dashboard')void jobReview.refresh();
         root.querySelectorAll('.rf-page').forEach(p=>p.classList.toggle('active',p.id==='page-'+name));root.querySelector('.rf-sidebar').classList.remove('open');
         const candidate=name==='detail'?candidateForRef(root.querySelector('#reviewCandidateId').value):null;
@@ -635,10 +671,11 @@ function renderJobs(){
         if(action==='reload'){button.disabled=true;void initializeWorkspace(window.ancalagonAuth);return;}
         if(action==='retry'){void home.load().then(()=>home.flush());return;}
         if(action==='reviews'){void home.refresh();return;}
-        if(action==='jobs'){showPage('job-picker');return;}
+        if(action==='jobs'){showPage('jobs');return;}
         if(action==='learn'){showPage('learn');return;}
         if(action==='new'){showPage('jobs');openJobForm();return;}
         if(action==='continue'){const last=home.view().last;if(last)homeOpen(last.job.id,last.candidate?.id,last.page);else showPage('job-picker');return;}
+        if(action==='note'){homeOpen(job,candidate);root.querySelector('#workspaceNote')?.focus();return;}
         if(action==='job'||action==='candidate')homeOpen(job,candidate);
         if(action==='upload'){homeOpen(job,null,'candidates');openAddCandidate();}
       });
@@ -648,7 +685,7 @@ function renderJobs(){
         dataService=window.AncalagonData.create(auth);workspaceLoadError='';home?.dispose();home=window.AncalagonHome.create({state:stateSnapshot,load:()=>dataService.loadHome?.()||null,visit:()=>dataService.visitHome?.(),save:location=>dataService.saveHome?.(location),reviews:()=>dataService.loadHomeReviews?.()||[],changed:()=>{if(root.querySelector('#page-home').classList.contains('active'))renderHome();}});
         trackProductEvent('signed_in',null);
         loadAdminUsage();
-        window.ancalagonFlush=async()=>{try{await window.AncalagonWorkspace?.flushNotes();await dataService.flush(stateSnapshot());await home?.flush();}catch(error){setSyncStatus('error');showToast('Your latest changes have not saved. Retry before signing out.','error');throw error;}};
+        window.ancalagonFlush=async()=>{try{if(batch.hasUnsaved()||intake.hasUnsavedFile())throw Error('Wait for the resume uploads to finish or remove failed files from the upload queue.');await window.AncalagonWorkspace?.flushNotes();await dataService.flush(stateSnapshot());await home?.flush();}catch(error){setSyncStatus('error');showToast('Your latest changes have not saved. Retry before signing out.','error');throw error;}};
         jobs.splice(0);candidates.splice(0);feedback.splice(0);interviewOutcomes.splice(0);activeJobId=null;
         try{
           const remote=await dataService.load();
@@ -671,7 +708,7 @@ function renderJobs(){
       root.querySelector('#retrySync').addEventListener('click',retrySync);
       window.addEventListener('offline',()=>setSyncStatus('offline'));
       window.addEventListener('online',retrySync);
-      window.addEventListener('beforeunload',event=>{if(dataService?.hasPendingChanges?.()||window.AncalagonWorkspace?.hasDrafts()||intake.hasUnsavedFile()){event.preventDefault();event.returnValue=''}});
+      window.addEventListener('beforeunload',event=>{if(dataService?.hasPendingChanges?.()||window.AncalagonWorkspace?.hasDrafts()||intake.hasUnsavedFile()||batch.hasUnsaved()){event.preventDefault();event.returnValue=''}});
       root.querySelectorAll('[data-new-job]').forEach(b=>b.addEventListener('click',()=>{showPage('jobs');openJobForm();}));
       root.querySelector('#recordCandidateOutcome').addEventListener('click',()=>{const id=root.querySelector('#reviewCandidateId').value;showPage('outcomes');root.querySelector('#outcomeCandidate').value=id;root.querySelector('#outcomeStage').focus();});
       root.querySelector('#mobileNavToggle').addEventListener('click',()=>root.querySelector('.rf-sidebar').classList.toggle('open'));

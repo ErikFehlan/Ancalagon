@@ -36,7 +36,7 @@ const candidate=(id,jobId,name)=>({id,jobId,name,short:name,role:'QA Analyst',st
   }
   let {page,context}=await open('new');
   await page.getByRole('heading',{name:'Get started here',exact:true}).waitFor();
-  assert.equal(await page.locator('.rf-home-steps li').count(),3);
+  assert.equal(await page.locator('.rf-home-steps li').count(),4);
   await page.waitForTimeout(350);if(process.env.CAPTURE_UI)await page.screenshot({path:process.env.CAPTURE_UI+'-new-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(350);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
@@ -55,7 +55,7 @@ const candidate=(id,jobId,name)=>({id,jobId,name,short:name,role:'QA Analyst',st
   ({page,context}=await open('returning'));await page.getByRole('heading',{name:'Pick up where you left off',exact:true}).waitFor();
   assert.equal(await page.locator('[data-home-action="continue"]').count(),0,'existing user gets useful jobs without an invented last visit');
   assert.doesNotMatch(await page.locator('#workspaceHome').textContent(),/My first search/,'accounts never share home content');
-  await page.locator('[data-home-action="candidate"][data-candidate="a"]').click();await page.locator('#page-detail.active').waitFor();assert.equal(await page.locator('#detailName').textContent(),'Alex Example');await page.locator('.rf-nav [data-page="home"]').click();
+  await page.locator('[data-home-action="candidate"][data-candidate="a"]').first().click();await page.locator('#page-detail.active').waitFor();assert.equal(await page.locator('#detailName').textContent(),'Alex Example');await page.locator('.rf-nav [data-page="home"]').click();
   await page.locator('[data-home-action="job"][data-job="job-b"]').click();await page.locator('.rf-nav [data-page="candidates"]').click();await page.locator('[data-candidate-id="b"]').first().click();
   await page.locator('#page-detail.active').waitFor();await page.evaluate(()=>window.ancalagonFlush());
   assert.equal(accounts.returning.home.last_job_id,'job-b');assert.equal(accounts.returning.home.last_candidate_id,'b');
