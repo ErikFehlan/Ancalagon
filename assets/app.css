@@ -363,6 +363,7 @@
 #rf-app[data-theme="light"] .rf-upload-row,#rf-app[data-theme="light"] .rf-queue-summary{border-color:#d3deea}
 
 /* Candidate screening: compact summary, exact source evidence on demand. */
+.rf-assessment-region{display:flow-root}
 #page-detail > .rf-candidate-heading{align-items:flex-start;gap:20px;margin-bottom:22px}
 .rf-candidate-heading > div:first-child{flex:1 1 380px;min-width:0}
 #page-detail #detailName{font-size:clamp(22px,2vw,28px);line-height:1.25;letter-spacing:-.025em;overflow-wrap:anywhere;max-width:850px}

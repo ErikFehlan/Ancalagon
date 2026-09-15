@@ -44,13 +44,13 @@
     const questions=questionsFor(candidate);
     const wrap=api.root.querySelector('#candidateWorkspace'),note=quickNotes.entry(candidate);
     wrap.dataset.workspaceCandidate=candidate.id;
-    wrap.innerHTML=`<div id="workspaceIntake" class="rf-card rf-intake-brief" hidden></div><div id="workspaceEvaluation" class="rf-card" aria-live="polite" hidden></div>
-      <section class="rf-card rf-workspace-overview" aria-labelledby="workspaceBriefTitle"><div class="rf-brief-heading"><div><span class="rf-kicker">Screening brief</span><h3 id="workspaceBriefTitle">${escape(readiness.label)}</h3><p class="rf-sub"></p></div><div id="workspaceFit" class="rf-brief-fit" aria-label="Assessment scores"></div></div><div class="rf-brief-evidence"><h4>Strongest evidence</h4><p id="workspaceEvidence"></p><details id="workspaceSource" class="rf-source-details" hidden><summary>View resume excerpt</summary><blockquote id="workspaceSourceQuote"></blockquote></details></div><div class="rf-brief-uncertainty"><h4>What to verify</h4><p id="workspaceUncertainty"></p></div></section>
+    wrap.innerHTML=`<div class="rf-assessment-region"><div id="workspaceIntake" class="rf-card rf-intake-brief" hidden></div><div id="workspaceEvaluation" class="rf-card" aria-live="polite" hidden></div>
+      <section class="rf-card rf-workspace-overview" aria-labelledby="workspaceBriefTitle"><div class="rf-brief-heading"><div><span class="rf-kicker">Screening brief</span><h3 id="workspaceBriefTitle">${escape(readiness.label)}</h3><p class="rf-sub"></p></div><div id="workspaceFit" class="rf-brief-fit" aria-label="Assessment scores"></div></div><div class="rf-brief-evidence"><h4>Strongest evidence</h4><p id="workspaceEvidence"></p><details id="workspaceSource" class="rf-source-details" hidden><summary>View resume excerpt</summary><blockquote id="workspaceSourceQuote"></blockquote></details></div><div class="rf-brief-uncertainty"><h4>What to verify</h4><p id="workspaceUncertainty"></p></div></section></div>
       <div class="rf-card rf-screening-work"><div class="rf-workspace-columns"><form id="workspaceNoteForm" class="rf-form"><label for="workspaceNote">Screening notes</label><textarea id="workspaceNote" maxlength="10000" placeholder="What did you learn about their skills, ownership, or working style?">${escape(note.text)}</textarea><div class="rf-note-controls"><p id="workspaceNoteStatus" class="rf-sub" role="status"></p><button type="button" class="rf-linkbtn" id="newQuickNote">New note</button><button type="submit" class="rf-btn" id="retryQuickNote" hidden>Retry save</button></div></form><div class="rf-screen-questions"><h3>Ask in your screen</h3><ol id="workspaceQuestions">${questions.map(q=>`<li>${escape(q)}</li>`).join('')}</ol></div></div><details class="rf-feedback-history"><summary>Saved notes &amp; AI insights</summary><div id="workspaceFeedback" aria-live="polite"></div></details></div>
       <details id="workspaceSubmission" class="rf-card rf-workspace-details rf-submission-tools"><summary>Prepare a submission</summary><p class="rf-sub">Edit the draft and check its claims against the evidence before sharing.</p><label for="submissionDraft">Submission summary</label><textarea id="submissionDraft" maxlength="12000">${escape(drafts.get(current)??candidate.submissionDraft?.text??summary(candidate,job,all))}</textarea><div class="rf-actions"><button type="button" class="rf-btn primary" id="saveSubmissionDraft">Save summary</button><button type="button" class="rf-btn" id="workspaceCopy">Copy summary</button><button type="button" class="rf-linkbtn" id="regenerateSubmission">Generate a fresh draft</button></div><p class="rf-sub" id="submissionDraftStatus">${drafts.has(current)?'Unsaved edits':candidate.submissionDraft?'Saved draft — review against the latest feedback.':'Generated draft — edit and save to keep it.'}</p></details>`;
     const id=current,area=wrap.querySelector('#workspaceNote');
     area.addEventListener('input',e=>quickNotes.edit(candidate,e.target.value));
-    area.addEventListener('blur',()=>void quickNotes.flush(candidate));
+    area.addEventListener('blur',()=>{void quickNotes.flush(candidate);wrap.querySelector('.rf-assessment-region').style.minHeight='';});
     wrap.querySelector('#workspaceNoteForm').addEventListener('submit',e=>{e.preventDefault();void quickNotes.flush(candidate);});
     wrap.querySelector('#newQuickNote').addEventListener('click',async()=>{if(await quickNotes.fresh(candidate)&&current===id){area.value='';area.focus();}});
     wrap.querySelector('#submissionDraft').addEventListener('input',e=>{drafts.set(id,e.target.value);wrap.querySelector('#submissionDraftStatus').textContent='Unsaved edits';});
@@ -59,7 +59,13 @@
     wrap.querySelector('#regenerateSubmission').addEventListener('click',()=>{if(!global.confirm('Replace the summary text with a fresh draft from the current evidence?'))return;const text=summary(candidate,job,api.feedback());drafts.set(id,text);wrap.querySelector('#submissionDraft').value=text;wrap.querySelector('#submissionDraftStatus').textContent='Unsaved fresh draft';});
     refreshFeedback();noteStatus(candidate);
   }
-  function preserve(change){return global.AncalagonFocus?global.AncalagonFocus.preserveEditing(api?.root,change):change();}
+  function preserve(change){
+    const region=api?.root.querySelector('.rf-assessment-region');
+    // A shorter status panel cannot be offset by scrolling when the page is at the top.
+    // Hold its space while the recruiter is typing, then release it on blur.
+    if(region&&global.document?.activeElement===api.root.querySelector('#workspaceNote'))region.style.minHeight=region.getBoundingClientRect().height+'px';
+    return global.AncalagonFocus?global.AncalagonFocus.preserveEditing(api?.root,change):change();
+  }
   function refreshFeedback(){return preserve(refreshFeedbackContent);}
   function refreshFeedbackContent(){
     if(!api||!current)return;const candidate=api.candidate(current),wrap=api.root.querySelector('#workspaceFeedback');if(!candidate||!wrap)return;
