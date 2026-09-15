@@ -22,11 +22,12 @@ export async function handleReassessment(request:Request){
   // Account cleanup has its own durable leases and must not stop recruiting work.
   const accountCleanup=processAccountDeletions(accountIO(base,key)).catch(()=>[]);
   try{
-    // Coalesce the separate record writes from a save. The database lease, not
-    // this short delay, provides concurrency control and duplicate protection.
-    await new Promise(resolve=>setTimeout(resolve,3500));
+    // A saved resume can start immediately. Its lease and revision protect
+    // concurrent workers and later edits without delaying every upload.
     const intakeTasks=await rpc('claim_resume_intakes',{p_job:jobId});
     intakeWork=processIntakes(intakeTasks,{rpc,analyze:handleAnalysis});
+    // Job edits still coalesce while resume analysis is already running.
+    await new Promise(resolve=>setTimeout(resolve,3500));
     const tasks=await rpc('claim_job_reassessments',{p_job:jobId});
     const results=await Promise.all(tasks.map(async (task:any)=>{
       try{

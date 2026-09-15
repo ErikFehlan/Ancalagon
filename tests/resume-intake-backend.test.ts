@@ -1,14 +1,14 @@
 import {handleAnalysis} from '../supabase/functions/analyze-patterns-v2/index.ts';
 function assert(value:unknown,message:string):asserts value{if(!value)throw Error(message);}
 const resume='Alex Carter\nQA Analyst\nOwned manual regression testing for billing systems.';
-const analysis={name:'Alex Carter',role:'QA Analyst',score:8,manager_score:8.5,primary_signal:'Relevant manual testing.',jd_reason:'Manual testing demonstrated.',manager_reason:'Ownership matches approved context.',strengths:['Manual testing'],concerns:['Verify automation scope.'],tags:['QA'],screening_questions:['What testing did you personally own?'],resume_evidence:[{claim:'Manual regression',source_id:'resume-1'}]};
+const analysis={name:'Alex Carter',role:'QA Analyst',score:8,manager_score:8.5,primary_signal:'Relevant manual testing.',jd_reason:'Manual testing demonstrated.',manager_reason:'Ownership matches approved context.',concerns:['Verify automation scope.'],tags:['QA'],screening_questions:['What testing did you personally own?'],resume_evidence:[{claim:'Manual regression',source_id:'resume-1'}]};
 Deno.test('automatic intake validates quoted evidence, preserves approved context, and keeps legacy resume clients compatible',async()=>{
  const original=globalThis.fetch;Deno.env.set('OPENAI_API_KEY','test-only');let output:unknown=analysis,auto=true;
  globalThis.fetch=async(_url,init)=>{
   const body=JSON.parse(String(init?.body));
   assert(body.store===false,'resume model storage must be disabled');
   assert(body.input.includes('preference-1'),'approved preference lost');
-  if(auto){const input=JSON.parse(body.input.slice(body.input.indexOf('{')));assert(input.resume_text===undefined&&input.resume_sources[0].text===resume,'server-supplied resume passages missing');assert(body.text.format.schema.required.includes('resume_evidence'),'missing quote schema');assert([2500,3200].includes(body.max_output_tokens),'unbounded intake output');assert(body.instructions.includes('untrusted'),'source instructions not isolated');}
+  if(auto){const input=JSON.parse(body.input.slice(body.input.indexOf('{')));assert(input.resume_text===undefined&&input.resume_sources[0].text===resume,'server-supplied resume passages missing');assert(body.text.format.schema.required.includes('resume_evidence'),'missing quote schema');assert(!('strengths' in body.text.format.schema.properties)&&!('recommendation' in body.text.format.schema.properties),'unused duplicate output requested');assert([2500,3200].includes(body.max_output_tokens),'unbounded intake output');assert(body.instructions.includes('untrusted'),'source instructions not isolated');}
   return new Response(JSON.stringify({output_text:JSON.stringify(output)}),{status:200});
  };
  const request=()=>new Request('https://example.invalid/analysis',{method:'POST',body:JSON.stringify({analysis_type:'resume',auto_intake:auto,job:{title:'QA'},resume_text:resume,evaluation_context:{sources:[{id:'preference-1',text:'Manual testing ownership',scope:'job'}]}})});

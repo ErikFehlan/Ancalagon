@@ -34,6 +34,7 @@ try{
  const path=`${owner.workspace}/${job}/${candidate}/synthetic.txt`;owner.paths.push(path);
  const uploaded=await fetch(base+'/storage/v1/object/resumes/'+path,{method:'POST',headers:{apikey:anon,Authorization:`Bearer ${owner.access}`,'Content-Type':'text/plain'},body:text,signal:AbortSignal.timeout(20000)});
  assert.ok(uploaded.ok,'Owner document upload failed');
+ const intakeStarted=performance.now();
  await req('/rest/v1/candidate_documents',owner.access,'POST',{workspace_id:owner.workspace,job_id:job,candidate_id:candidate,storage_path:path,file_name:'Synthetic.txt',mime_type:'text/plain',file_size:text.length,extracted_text:text,created_by:owner.id});
  await req('/rest/v1/manager_feedback',owner.access,'POST',{id:note,workspace_id:owner.workspace,job_id:job,candidate_id:candidate,feedback_type:'General note',feedback_text:'Synthetic note: verify personal ownership.',created_by:owner.id});
  for(const table of ['jobs','candidates','candidate_documents','candidate_assessments','manager_feedback','screening_insights','interview_outcomes','candidate_benchmarks','resume_intake_tasks','job_reassessment_tasks']){
@@ -51,13 +52,14 @@ try{
  }
  // No browser is open. The database dispatch and scheduler must produce output.
  let task;
- for(let i=0;i<80;i++){
+ for(let i=0;i<480;i++){
   const rows=await req('/rest/v1/resume_intake_tasks?candidate_id=eq.'+candidate,owner.access);task=rows.data[0];
   if(task?.status==='ready')break;
   if(task?.status==='failed')throw Error('Live intake exhausted its automatic retries ('+task.error_code+').');
-  await new Promise(resolve=>setTimeout(resolve,3000));
+  await new Promise(resolve=>setTimeout(resolve,500));
  }
  assert.equal(task?.status,'ready','Intake did not finish without a browser');
+ console.log('SYNTHETIC_INTAKE_METRIC '+JSON.stringify({document_to_ready_ms:Math.round(performance.now()-intakeStarted),attempts:task.attempts}));
  assert.ok(task.result.resume_evidence?.length,'Live AI did not return resume evidence');
  for(const evidence of task.result.resume_evidence)assert.ok(text.includes(evidence.quote),'Live quote not grounded');
  const before=await req('/rest/v1/candidates?id=eq.'+candidate,owner.access);assert.equal(before.data[0].manager_score,null,'Unreviewed AI changed scores');
