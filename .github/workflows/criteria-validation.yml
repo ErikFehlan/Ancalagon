@@ -22,9 +22,9 @@ jobs:
         with:
           deno-version: v2.x
       - name: Check worker types
-        run: deno check supabase/functions/refine-job-criteria/index.ts supabase/functions/analyze-patterns-beta/index.ts supabase/functions/reassess-job/index.ts
+        run: deno check supabase/functions/account-controls/index.ts supabase/functions/refine-job-criteria/index.ts supabase/functions/analyze-patterns-beta/index.ts supabase/functions/reassess-job/index.ts
       - name: Test focused feedback and authentication
-        run: deno test --allow-env tests/analysis-latency.test.ts tests/job-reassessment-worker.test.ts tests/resume-intake-backend.test.ts
+        run: deno test --allow-env tests/account-controls.test.ts tests/analysis-latency.test.ts tests/job-reassessment-worker.test.ts tests/resume-intake-backend.test.ts
       - name: Test queue transactions and permissions
         env:
           PGPASSWORD: postgres
@@ -61,3 +61,10 @@ jobs:
         run: |
           createdb -h localhost -U postgres core_intake
           psql -h localhost -U postgres -d core_intake -f tests/core-intake.sql
+
+      - name: Test settings privacy, notifications, and account controls
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres personal_settings
+          psql -h localhost -U postgres -d personal_settings -f tests/personal-settings.sql
