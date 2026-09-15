@@ -80,6 +80,7 @@
         </details>
         <div class="rf-nav-help">
           <button data-page="learn"><span aria-hidden="true">?</span><span>Learn Ancalagon</span></button>
+          <button class="rf-hidden" hidden id="adminToolsNav" data-page="admin-tools"><span aria-hidden="true">⚙</span><span>Admin Tools</span></button>
           <button class="rf-hidden" id="adminUsageNav" data-page="admin-usage"><span aria-hidden="true">◉</span><span>Usage Analytics</span></button>
         </div>
       </nav>
@@ -336,7 +337,7 @@
 </div>
 </section>
       <section class="rf-page" id="page-backend"><div class="rf-card"><h3>Save status</h3><p id="saveDetails" role="status">No sync confirmed yet in this tab.</p><p class="rf-sub">If a save fails, keep this tab open and use Retry in the top bar. Candidate workspace notes and summary edits are protected from accidental reload while unsaved.</p></div>
-        <div class="rf-sectiontitle"><div><h2>Settings</h2><p>Personalize Ancalagon and configure its production connections.</p></div></div>
+        <div class="rf-sectiontitle"><div><h2>Settings</h2><p>Personalize your workspace and manage your account.</p></div></div>
         <div class="rf-card rf-appearance" id="appearanceSettings">
           <div class="rf-cardhead"><div><h3 id="appearanceHeading">Appearance</h3><p class="rf-sub" id="themeHelp">Make it feel like your workspace. Choose a look below—it applies instantly and is remembered on this device.</p></div><span class="rf-pill rf-blue" id="activeThemeLabel" role="status">Ancalagon Tech</span></div>
           <div class="rf-theme-grid" id="themePicker" role="radiogroup" aria-label="Color theme" aria-describedby="themeHelp">
@@ -385,14 +386,10 @@
         </div>
         <div class="rf-card" style="margin-bottom:16px"><div class="rf-cardhead"><div><h3>Account Security</h3><p class="rf-sub">Create or replace the password for your signed-in account.</p></div><span class="rf-pill rf-blue">Private account</span></div><form class="rf-form" id="passwordForm"><div class="rf-formrow"><div><label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required></div><div><label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></div></div><div class="rf-actions"><button class="rf-btn primary" id="passwordSubmit" type="submit">Set Password</button><span class="rf-sub" id="passwordMessage" role="status">Use at least 8 characters.</span></div></form></div>
 
-        <div class="rf-grid rf-two">
-          <div class="rf-card"><h3>1. Hybrid Engine Connection</h3><div class="rf-form"><div><label for="patternFunctionUrl">Supabase function URL</label><input id="patternFunctionUrl" type="url" placeholder="https://PROJECT.supabase.co/functions/v1/analyze-patterns"></div><div><label for="patternAnonKey">Supabase anon key</label><input id="patternAnonKey" type="password" autocomplete="off" placeholder="Public anon/publishable key"></div><button class="rf-btn primary" id="saveHybridSettings" type="button">Save Connection</button><div class="rf-note">The browser stores only the public Supabase URL and anon key locally. The OpenAI API key stays in Supabase Secrets and is never sent to GitHub Pages.</div><hr style="border:0;border-top:1px solid #26384e;width:100%"><div><label for="backendProject">Project name</label><input id="backendProject" value="ancalagon-backend"></div><div><label for="backendModel">OpenAI model</label><input id="backendModel" value="gpt-4.1-mini"></div></div></div>
-          <div class="rf-card"><h3>2. Starter Files</h3><div class="rf-list"><button class="rf-btn" id="downloadServer">Download server.ts</button><button class="rf-btn" id="downloadSchema">Download schema.sql</button><button class="rf-btn" id="downloadPrompt">Download evaluation-prompt.txt</button><button class="rf-btn" id="downloadPackage">Download package.json</button><button class="rf-btn" id="downloadEnv">Download .env.example</button></div></div>
-        </div>
-        <div class="rf-card" style="margin-top:16px"><h3>3. What the backend will do</h3><div class="rf-priorities"><div class="rf-priority"><span class="rf-check">✓</span><span>Accept PDF, DOCX, or text resumes</span></div><div class="rf-priority"><span class="rf-check">✓</span><span>Extract resume text server-side</span></div><div class="rf-priority"><span class="rf-check">✓</span><span>Score against Geri/Kevin benchmarks and manager feedback</span></div><div class="rf-priority"><span class="rf-check">✓</span><span>Return structured JSON with strengths, concerns, and questions</span></div><div class="rf-priority"><span class="rf-check">✓</span><span>Persist candidates and evaluations in Postgres</span></div><div class="rf-priority"><span class="rf-check">✓</span><span>Expose MCP tools so ChatGPT and this dashboard use the same data</span></div></div></div>
-        <div class="rf-card" style="margin-top:16px"><h3>4. MCP Tools</h3><div class="rf-tablewrap"><table class="rf-table"><thead><tr><th>Tool</th><th>Purpose</th></tr></thead><tbody><tr><td><strong>analyze_resume</strong></td><td>Parse and score a resume against the calibrated rubric.</td></tr><tr><td><strong>analyze_portfolio</strong></td><td>Review a portfolio and update candidate fit.</td></tr><tr><td><strong>create_candidate</strong></td><td>Persist a new candidate profile.</td></tr><tr><td><strong>list_candidates</strong></td><td>Load candidates into the dashboard.</td></tr><tr><td><strong>save_manager_feedback</strong></td><td>Store manager feedback as future scoring context.</td></tr><tr><td><strong>recalculate_candidate</strong></td><td>Re-score when new portfolio or manager data arrives.</td></tr></tbody></table></div></div>
-        <div class="rf-card" style="margin-top:16px"><div class="rf-cardhead"><h3>5. Deployment Checklist</h3><span class="rf-pill rf-blue">Next step</span></div><ol style="padding-left:20px;margin:0;display:grid;gap:9px;font-size:13px;line-height:1.5"><li>Create a Postgres database (Supabase works well).</li><li>Run the generated <strong>schema.sql</strong>.</li><li>Create the backend project and add the generated files.</li><li>Add your <strong>OPENAI_API_KEY</strong> and <strong>DATABASE_URL</strong> to the real environment.</li><li>Run <strong>npm install</strong>, then <strong>npm run dev</strong>.</li><li>Expose the MCP endpoint over HTTPS and connect it to ChatGPT Developer Mode.</li><li>Replace the prototype's local scoring call with the real <strong>analyze_resume</strong> tool.</li></ol></div>
+
       </section>
+
+      <section class="rf-page" id="page-admin-tools"><div class="rf-sectiontitle"><div><h2>Admin Tools</h2><p>Technical setup and deployment resources.</p></div></div><div id="adminToolsContent"></div></section>
 
       <section class="rf-page" id="page-admin-usage">
         <div class="rf-sectiontitle"><div><h2>Usage Analytics</h2><p>Private beta adoption and feature activity. Candidate and resume content is never included.</p></div><button class="rf-btn" id="refreshAdminUsage" type="button">Refresh</button></div>
@@ -434,8 +431,8 @@
   <div class="rf-modalbackdrop" id="closeJobModal" role="dialog" aria-modal="true" aria-labelledby="closeJobTitle"><div class="rf-modal"><form class="rf-form" id="closeJobForm"><div><div class="rf-kicker">Job lifecycle</div><h3 id="closeJobTitle">Close job</h3><p>Close the search without deleting its candidates, feedback, or hiring intelligence.</p></div><div><label for="closeJobReason">Why is this job closing?</label><select id="closeJobReason" required><option value="Filled Internally">Filled internally</option><option value="Filled by Another Firm">Filled by another firm</option><option value="Cancelled">Position cancelled</option><option value="On Hold">Position placed on hold</option></select></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="closeJobCancel" type="button">Cancel</button><button class="rf-btn primary" type="submit">Close Job</button></div></form></div></div>
   <div class="rf-modalbackdrop" id="screeningModal" role="dialog" aria-modal="true" aria-labelledby="screeningTitle"><div class="rf-modal rf-screen-modal"><form class="rf-form" id="screeningForm"><div><div class="rf-kicker">Screening insight</div><h3 id="screeningTitle">Add screening evidence</h3><p>Capture only what changes the assessment. Ancalagon will compare this evidence with the job, manager priorities, and current evaluation.</p></div><div class="rf-screen-context"><div>Current JD Fit<strong id="screenCurrentJD">—</strong></div><div>Current Manager Fit<strong id="screenCurrentManager">—</strong></div></div><div class="rf-formrow"><div><label for="screenAbility">Can they do the job?</label><select id="screenAbility" required><option value="">Select an assessment</option><option value="Yes">Yes — evidence supports it</option><option value="Maybe">Maybe — important gaps remain</option><option value="No">No — evidence shows a mismatch</option></select></div><div><label for="screenCulture">Culture / working-style fit</label><select id="screenCulture" required><option value="">Select an assessment</option><option value="Strong">Strong alignment</option><option value="Mixed">Mixed / uncertain</option><option value="Weak">Weak alignment</option></select></div></div><div><label for="screenNotes">What did you learn?</label><textarea id="screenNotes" required maxlength="4000" placeholder="Add concise, job-related evidence from the conversation—skills depth, ownership, communication, motivation, or working style."></textarea><div class="rf-sub" style="margin-top:5px">Do not include protected personal information. Notes are used as evidence, not as an automatic hiring decision.</div></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="screenCancel" type="button">Cancel</button><button class="rf-btn primary" id="screenSubmit" type="submit">✦ Reassess & Mark Screened</button></div></form></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="assets/auth.js?v=20260914-focus"></script>
-  <script src="assets/data.js?v=20260915-tutorial"></script>
+  <script src="assets/auth.js?v=20260915-admin"></script>
+  <script src="assets/data.js?v=20260915-admin"></script>
   <script src="assets/select.js?v=20260910-dark-dropdowns"></script>
   <script src="assets/evidence.js?v=20260911-quick-feedback"></script>
   <script src="assets/context.js?v=20260915-core"></script>
@@ -451,11 +448,12 @@
   <script src="assets/candidate-workspace.js?v=20260914-focus"></script>
   <script src="assets/criteria-automation.js?v=20260914-speed"></script>
   <script src="assets/home.js?v=20260915-tutorial"></script>
-<script src="assets/focus-ui.js?v=20260914-focus"></script>
+<script src="assets/focus-ui.js?v=20260915-admin"></script>
 <script src="assets/recruiter-workflow.js?v=20260915-phase2"></script>
 <script src="assets/tutorial.js?v=20260915-tutorial"></script>
 <script src="assets/tutorial-ui.js?v=20260915-tutorial"></script>
-<script src="assets/app.js?v=20260915-themes"></script>
+<script src="assets/admin-tools.js?v=20260915-admin"></script>
+<script src="assets/app.js?v=20260915-admin"></script>
 </div>
 </body>
 </html>

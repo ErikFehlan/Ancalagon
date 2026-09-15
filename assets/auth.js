@@ -27,6 +27,7 @@
   }
 
   function showGuest() {
+    window.dispatchEvent(new CustomEvent('ancalagon:auth-cleared'));
     body.classList.remove('rf-auth-pending', 'rf-authenticated');
     body.classList.add('rf-auth-guest');
     gate.removeAttribute('aria-hidden');
@@ -313,4 +314,3 @@
     applySession(client, data.session);
   });
 })();
-

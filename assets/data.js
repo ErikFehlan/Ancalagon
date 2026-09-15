@@ -389,6 +389,22 @@
       return data;
     }
 
+    async function isAppAdmin() {
+      const { data, error } = await client.rpc('is_app_admin');
+      if (error) throw error;
+      return data === true;
+    }
+    async function loadAdminTools() {
+      const { data, error } = await client.rpc('get_admin_tools');
+      if (error) throw error;
+      return data;
+    }
+    async function loadAdminStarterFile(file, model, project) {
+      const { data, error } = await client.rpc('get_admin_starter_file', {p_file:file,p_model:model,p_project:project});
+      if (error) throw error;
+      return data;
+    }
+
     async function requestResumeIntake(candidateId,retry=false) {
       const {error}=await client.rpc('request_resume_intake',{p_candidate:candidateId,p_retry:retry});
       if(error)throw error;
@@ -441,7 +457,7 @@
       return path;
     }
 
-    return { requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadTutorial, saveTutorial, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, uploadResume, loadResumeText, workspaceId };
+    return { requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadTutorial, saveTutorial, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, isAppAdmin, loadAdminTools, loadAdminStarterFile, uploadResume, loadResumeText, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };
