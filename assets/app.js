@@ -13,7 +13,8 @@
       const STATE_VERSION=3;
       const HYBRID_KEY='ancalagon-hybrid-v1';
       const THEME_KEY='ancalagon-theme-v1';
-      const THEMES={tech:'Ancalagon Tech',violet:'Obsidian Violet',emerald:'Emerald Matrix',light:'Executive Light'};
+      const THEMES={tech:'Ancalagon Tech',violet:'Obsidian Violet',emerald:'Emerald Matrix',graphite:'Graphite',ocean:'Midnight Ocean',ember:'Ember',rose:'Rosewood',light:'Executive Light',paper:'Warm Paper',sage:'Soft Sage'};
+      const LIGHT_THEMES=new Set(['light','paper','sage']);
       const DEFAULT_HYBRID_SETTINGS={url:'https://zqiqjzxcpznhzjengfff.supabase.co/functions/v1/analyze-patterns-beta',anonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxaXFqenhjcHpuaHpqZW5nZmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NjcwNDEsImV4cCI6MjEwMzM0MzA0MX0.Xbm_rHVt8Ku7GT7YY8PLUqbd8_6sXL4dZf0V6PGs7TA'};
       let hybridState={settings:{...DEFAULT_HYBRID_SETTINGS},analyses:{}};
       let dataService=null,dataReady=false,syncErrorShown=false;
@@ -53,7 +54,23 @@
       async function extractPdfResume(file,onProgress){const pdfjs=await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs/+esm');pdfjs.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjs.getDocument({data}).promise;const pages=[];const scanned=[];for(let i=1;i<=doc.numPages;i++){onProgress?.(`Reading PDF page ${i} of ${doc.numPages}…`);const page=await doc.getPage(i);const content=await page.getTextContent();const text=content.items.map(x=>x.str||'').join(' ').replace(/\s+/g,' ').trim();pages[i-1]=text;if(text.replace(/\s/g,'').length<150)scanned.push({number:i,page})}if(!scanned.length)return pages.join('\n');await loadBrowserScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');let activeOcrPage=scanned[0].number;const worker=await window.Tesseract.createWorker('eng',1,{logger:message=>{if(message.status==='recognizing text'){const percent=Math.round((message.progress||0)*100);onProgress?.(`OCR scanning page ${activeOcrPage} of ${doc.numPages} — ${percent}%`)}}});try{for(const item of scanned){activeOcrPage=item.number;onProgress?.(`OCR scanning page ${item.number} of ${doc.numPages}…`);const viewport=item.page.getViewport({scale:2.75});const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);const context=canvas.getContext('2d',{willReadFrequently:true});context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);await item.page.render({canvasContext:context,viewport,background:'white'}).promise;const result=await worker.recognize(canvas.toDataURL('image/png'));pages[item.number-1]=(result.data.text||'').trim()}}finally{await worker.terminate()}return pages.join('\n')}
       async function extractLocalResume(file,onProgress){const lower=file.name.toLowerCase();let text;if(file.type==='text/plain'||lower.endsWith('.txt'))text=await file.text();else if(lower.endsWith('.pdf'))text=await extractPdfResume(file,onProgress);else if(lower.endsWith('.docx')){if(!window.mammoth)await loadBrowserScript('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js');if(!window.mammoth?.extractRawText)throw new Error('Could not load the Word resume reader');const result=await window.mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});text=result.value||''}else throw new Error('Unsupported file type');return text}
 
-      function applyTheme(theme,{announce=false}={}){const selected=THEMES[theme]?theme:'tech';root.dataset.theme=selected;document.documentElement.style.colorScheme=selected==='light'?'light':'dark';root.querySelectorAll('[data-theme-choice]').forEach(button=>{const active=button.dataset.themeChoice===selected;button.classList.toggle('active',active);button.setAttribute('aria-checked',String(active))});const label=root.querySelector('#activeThemeLabel');if(label)label.textContent=THEMES[selected];try{localStorage.setItem(THEME_KEY,selected)}catch(e){console.warn('Theme save failed',e)}if(announce)showToast(THEMES[selected]+' theme applied.')}
+      function applyTheme(theme,{announce=false}={}){
+        const selected=Object.hasOwn(THEMES,theme)?theme:'tech';
+        root.dataset.theme=selected;
+        document.documentElement.style.colorScheme=LIGHT_THEMES.has(selected)?'light':'dark';
+        root.querySelectorAll('[data-theme-choice]').forEach(button=>{
+          const active=button.dataset.themeChoice===selected;
+          button.classList.toggle('active',active);
+          button.setAttribute('aria-checked',String(active));
+          button.tabIndex=active?0:-1;
+        });
+        const label=root.querySelector('#activeThemeLabel');if(label)label.textContent=THEMES[selected];
+        const background=getComputedStyle(root).getPropertyValue('--ui-bg').trim();
+        if(background)document.querySelector('meta[name="theme-color"]')?.setAttribute('content',background);
+        let saved=true;
+        try{localStorage.setItem(THEME_KEY,selected)}catch(e){saved=false;console.warn('Theme save failed',e)}
+        if(announce)showToast(THEMES[selected]+(saved?' theme applied.':' applied for this visit. Your browser could not save the preference.'),saved?'success':'error');
+      }
       function saveHybridState(){if(!dataReady)return;const job=activeJob();if(job)job.patternAnalysis=hybridState.analyses?.[job.id]||null;saveState()}
       function askConfirm({title='Confirm action',message,confirmText='Delete'}){return new Promise(resolve=>{const modal=root.querySelector('#confirmModal'),accept=root.querySelector('#confirmAccept'),cancel=root.querySelector('#confirmCancel');root.querySelector('#confirmTitle').textContent=title;root.querySelector('#confirmMessage').textContent=message;accept.textContent=confirmText;modal.classList.add('open');const done=value=>{modal.classList.remove('open');accept.onclick=null;cancel.onclick=null;resolve(value)};accept.onclick=()=>done(true);cancel.onclick=()=>done(false);modal.onclick=e=>{if(e.target===modal)done(false)}})}
       function renderGlobalContext(){
@@ -725,8 +742,22 @@ function renderJobs(){
       });
       root.querySelector('#patternFunctionUrl').value=hybridState.settings?.url||'';
       root.querySelector('#patternAnonKey').value=hybridState.settings?.anonKey||'';
-      applyTheme(localStorage.getItem(THEME_KEY)||'tech');
-      root.querySelectorAll('[data-theme-choice]').forEach(button=>button.addEventListener('click',()=>applyTheme(button.dataset.themeChoice,{announce:true})));
+      let savedTheme='tech';try{savedTheme=localStorage.getItem(THEME_KEY)||'tech'}catch(e){console.warn('Theme preference unavailable',e)}
+      applyTheme(savedTheme);
+      const themeOptions=[...root.querySelectorAll('[data-theme-choice]')];
+      themeOptions.forEach((button,index)=>{
+        button.addEventListener('click',()=>applyTheme(button.dataset.themeChoice,{announce:true}));
+        button.addEventListener('keydown',event=>{
+          let next;
+          if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(index+1)%themeOptions.length;
+          else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(index+themeOptions.length-1)%themeOptions.length;
+          else if(event.key==='Home')next=0;
+          else if(event.key==='End')next=themeOptions.length-1;
+          else return;
+          event.preventDefault();themeOptions[next].focus();
+          applyTheme(themeOptions[next].dataset.themeChoice,{announce:true});
+        });
+      });
       root.querySelector('#saveHybridSettings').addEventListener('click',()=>{hybridState.settings={url:root.querySelector('#patternFunctionUrl').value.trim(),anonKey:root.querySelector('#patternAnonKey').value.trim()};saveHybridState();showToast('Hybrid engine connection saved in this browser.')});
       root.querySelector('#runHybridAnalysis').addEventListener('click',runHybridAnalysis);
       root.querySelector('#runHybridAnalysis').addEventListener('click',()=>trackProductEvent('hybrid_analysis_run'));

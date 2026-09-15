@@ -11,6 +11,7 @@
   <link rel="apple-touch-icon" href="assets/ancalagon.png">
   <link rel="stylesheet" href="assets/app.css?v=20260915-phase2">
   <link rel="stylesheet" href="assets/tutorial.css?v=20260915-tutorial">
+  <link rel="stylesheet" href="assets/themes.css?v=20260915-themes">
 </head>
 <body class="rf-auth-pending">
 <div class="rf-auth-gate" id="authGate" aria-live="polite">
@@ -336,8 +337,54 @@
 </section>
       <section class="rf-page" id="page-backend"><div class="rf-card"><h3>Save status</h3><p id="saveDetails" role="status">No sync confirmed yet in this tab.</p><p class="rf-sub">If a save fails, keep this tab open and use Retry in the top bar. Candidate workspace notes and summary edits are protected from accidental reload while unsaved.</p></div>
         <div class="rf-sectiontitle"><div><h2>Settings</h2><p>Personalize Ancalagon and configure its production connections.</p></div></div>
+        <div class="rf-card rf-appearance" id="appearanceSettings">
+          <div class="rf-cardhead"><div><h3 id="appearanceHeading">Appearance</h3><p class="rf-sub" id="themeHelp">Make it feel like your workspace. Choose a look below—it applies instantly and is remembered on this device.</p></div><span class="rf-pill rf-blue" id="activeThemeLabel" role="status">Ancalagon Tech</span></div>
+          <div class="rf-theme-grid" id="themePicker" role="radiogroup" aria-label="Color theme" aria-describedby="themeHelp">
+            <button class="rf-theme-option" type="button" data-theme-choice="tech" role="radio" aria-checked="true" tabindex="0" aria-label="Ancalagon Tech" aria-describedby="theme-tech-description">
+              <span class="rf-theme-preview" data-palette="tech" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Ancalagon Tech</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-tech-description">Blue and cyan · Dark</small></span>
+            </button>
+            <button class="rf-theme-option" type="button" data-theme-choice="violet" role="radio" aria-checked="false" tabindex="-1" aria-label="Obsidian Violet" aria-describedby="theme-violet-description">
+              <span class="rf-theme-preview" data-palette="violet" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Obsidian Violet</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-violet-description">Purple and lavender · Dark</small></span>
+            </button>
+            <button class="rf-theme-option" type="button" data-theme-choice="emerald" role="radio" aria-checked="false" tabindex="-1" aria-label="Emerald Matrix" aria-describedby="theme-emerald-description">
+              <span class="rf-theme-preview" data-palette="emerald" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Emerald Matrix</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-emerald-description">Green and teal · Dark</small></span>
+            </button>
+            <button class="rf-theme-option" type="button" data-theme-choice="graphite" role="radio" aria-checked="false" tabindex="-1" aria-label="Graphite" aria-describedby="theme-graphite-description">
+              <span class="rf-theme-preview" data-palette="graphite" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Graphite</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-graphite-description">Charcoal and silver · Dark</small></span>
+            </button>
+            <button class="rf-theme-option" type="button" data-theme-choice="ocean" role="radio" aria-checked="false" tabindex="-1" aria-label="Midnight Ocean" aria-describedby="theme-ocean-description">
+              <span class="rf-theme-preview" data-palette="ocean" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Midnight Ocean</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-ocean-description">Deep navy and aqua · Dark</small></span>
+            </button>
+            <button class="rf-theme-option" type="button" data-theme-choice="ember" role="radio" aria-checked="false" tabindex="-1" aria-label="Ember" aria-describedby="theme-ember-description">
+              <span class="rf-theme-preview" data-palette="ember" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Ember</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-ember-description">Warm charcoal and copper · Dark</small></span>
+            </button>
+            <button class="rf-theme-option" type="button" data-theme-choice="rose" role="radio" aria-checked="false" tabindex="-1" aria-label="Rosewood" aria-describedby="theme-rose-description">
+              <span class="rf-theme-preview" data-palette="rose" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Rosewood</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-rose-description">Plum and dusty rose · Dark</small></span>
+            </button>
+            <button class="rf-theme-option" type="button" data-theme-choice="light" role="radio" aria-checked="false" tabindex="-1" aria-label="Executive Light" aria-describedby="theme-light-description">
+              <span class="rf-theme-preview" data-palette="light" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Executive Light</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-light-description">Clean white and blue · Light</small></span>
+            </button>
+            <button class="rf-theme-option" type="button" data-theme-choice="paper" role="radio" aria-checked="false" tabindex="-1" aria-label="Warm Paper" aria-describedby="theme-paper-description">
+              <span class="rf-theme-preview" data-palette="paper" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Warm Paper</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-paper-description">Ivory and terracotta · Light</small></span>
+            </button>
+            <button class="rf-theme-option" type="button" data-theme-choice="sage" role="radio" aria-checked="false" tabindex="-1" aria-label="Soft Sage" aria-describedby="theme-sage-description">
+              <span class="rf-theme-preview" data-palette="sage" aria-hidden="true"><span class="rf-theme-preview-rail"><i></i><i></i><i></i></span><span class="rf-theme-preview-work"><span class="rf-theme-preview-bar"></span><span class="rf-theme-preview-panels"><i></i><i></i></span><span class="rf-theme-preview-action"></span></span></span>
+              <span class="rf-theme-copy"><span class="rf-theme-title"><strong>Soft Sage</strong><span class="rf-theme-check" aria-hidden="true"></span></span><small id="theme-sage-description">Pale green and forest · Light</small></span>
+            </button>
+          </div>
+          <p class="rf-theme-footnote">7 dark themes · 3 light themes. Success, warning, and error colors stay consistent.</p>
+        </div>
         <div class="rf-card" style="margin-bottom:16px"><div class="rf-cardhead"><div><h3>Account Security</h3><p class="rf-sub">Create or replace the password for your signed-in account.</p></div><span class="rf-pill rf-blue">Private account</span></div><form class="rf-form" id="passwordForm"><div class="rf-formrow"><div><label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required></div><div><label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></div></div><div class="rf-actions"><button class="rf-btn primary" id="passwordSubmit" type="submit">Set Password</button><span class="rf-sub" id="passwordMessage" role="status">Use at least 8 characters.</span></div></form></div>
-        <div class="rf-card" style="margin-bottom:16px"><div class="rf-cardhead"><div><h3>Appearance</h3><p class="rf-sub">Choose a curated interface theme. Your selection is saved on this device.</p></div><span class="rf-pill rf-blue" id="activeThemeLabel">Ancalagon Tech</span></div><div class="rf-theme-grid" id="themePicker" role="radiogroup" aria-label="Color theme"><button class="rf-theme-option" type="button" data-theme-choice="tech" role="radio"><span class="rf-theme-swatch" style="background:linear-gradient(135deg,#07111f 45%,#438cff 46%,#45d8f7)"></span><span><strong>Ancalagon Tech</strong><small>Blue and cyan · current default</small></span><i class="rf-theme-check"></i></button><button class="rf-theme-option" type="button" data-theme-choice="violet" role="radio"><span class="rf-theme-swatch" style="background:linear-gradient(135deg,#110b20 45%,#8c6cff 46%,#c17cff)"></span><span><strong>Obsidian Violet</strong><small>Dark purple · cinematic AI</small></span><i class="rf-theme-check"></i></button><button class="rf-theme-option" type="button" data-theme-choice="emerald" role="radio"><span class="rf-theme-swatch" style="background:linear-gradient(135deg,#071814 45%,#27c995 46%,#5be6bc)"></span><span><strong>Emerald Matrix</strong><small>Black, green and teal</small></span><i class="rf-theme-check"></i></button><button class="rf-theme-option" type="button" data-theme-choice="light" role="radio"><span class="rf-theme-swatch" style="background:linear-gradient(135deg,#f5f8fc 45%,#246bd6 46%,#088eb8)"></span><span><strong>Executive Light</strong><small>Clean slate · bright workspace</small></span><i class="rf-theme-check"></i></button></div></div>
+
         <div class="rf-grid rf-two">
           <div class="rf-card"><h3>1. Hybrid Engine Connection</h3><div class="rf-form"><div><label for="patternFunctionUrl">Supabase function URL</label><input id="patternFunctionUrl" type="url" placeholder="https://PROJECT.supabase.co/functions/v1/analyze-patterns"></div><div><label for="patternAnonKey">Supabase anon key</label><input id="patternAnonKey" type="password" autocomplete="off" placeholder="Public anon/publishable key"></div><button class="rf-btn primary" id="saveHybridSettings" type="button">Save Connection</button><div class="rf-note">The browser stores only the public Supabase URL and anon key locally. The OpenAI API key stays in Supabase Secrets and is never sent to GitHub Pages.</div><hr style="border:0;border-top:1px solid #26384e;width:100%"><div><label for="backendProject">Project name</label><input id="backendProject" value="ancalagon-backend"></div><div><label for="backendModel">OpenAI model</label><input id="backendModel" value="gpt-4.1-mini"></div></div></div>
           <div class="rf-card"><h3>2. Starter Files</h3><div class="rf-list"><button class="rf-btn" id="downloadServer">Download server.ts</button><button class="rf-btn" id="downloadSchema">Download schema.sql</button><button class="rf-btn" id="downloadPrompt">Download evaluation-prompt.txt</button><button class="rf-btn" id="downloadPackage">Download package.json</button><button class="rf-btn" id="downloadEnv">Download .env.example</button></div></div>
@@ -408,7 +455,7 @@
 <script src="assets/recruiter-workflow.js?v=20260915-phase2"></script>
 <script src="assets/tutorial.js?v=20260915-tutorial"></script>
 <script src="assets/tutorial-ui.js?v=20260915-tutorial"></script>
-<script src="assets/app.js?v=20260915-tutorial"></script>
+<script src="assets/app.js?v=20260915-themes"></script>
 </div>
 </body>
 </html>

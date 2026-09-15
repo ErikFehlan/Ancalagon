@@ -63,6 +63,56 @@ const dir=path.resolve(__dirname,'..');
   }
   await snap('mobile-light');await page.evaluate(()=>document.querySelector('#rf-app').dataset.theme='violet');await snap('mobile-violet');
   await page.locator('#mobileNavToggle').click();await page.locator('.rf-nav [data-page="home"]').click();assert.equal(await page.locator('#page-home.active').count(),1);assert.equal(await page.locator('.rf-globaljob').isVisible(),false);
-  assert.deepEqual(errors,[]);console.log('Focused UI passed: contextual navigation, collapsed supporting panels, direct actions, per-job filters, list position, stable editor/caret, correction updates, and four mobile themes.');
+  // Use the actual Settings controls: palette, native controls, and tutorial must agree.
+  await page.setViewportSize({width:1440,height:1000});
+  const palettes=['tech','violet','emerald','graphite','ocean','ember','rose','light','paper','sage'];
+  const contrast=async selectors=>page.evaluate(selectors=>{
+   const rgb=value=>value.match(/[\d.]+/g).map(Number);
+   const luminance=c=>c.slice(0,3).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);
+   return selectors.flatMap(selector=>[...document.querySelectorAll(selector)].filter(e=>e.getClientRects().length&&!e.disabled).map(e=>{
+    let bg=[255,255,255],chain=[];
+    for(let p=e;p;p=p.parentElement)chain.unshift(p);
+    for(const p of chain){const c=rgb(getComputedStyle(p).backgroundColor),alpha=c[3]??1;bg=bg.map((v,i)=>c[i]*alpha+v*(1-alpha));}
+    const fg=rgb(getComputedStyle(e).color),a=luminance(fg),b=luminance(bg);
+    return {selector,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
+   }));
+  },selectors);
+  const readable=async selectors=>{const results=await contrast(selectors);assert.ok(results.length);for(const result of results)assert.ok(result.ratio>=4.5,JSON.stringify(result));};
+  for(const theme of palettes){
+   await page.locator('[data-goto="backend"]').first().click();
+   await page.locator('[data-theme-choice="'+theme+'"]').click();
+   assert.equal(await page.locator('#rf-app').getAttribute('data-theme'),theme);
+   assert.equal(await page.locator('#themePicker [aria-checked="true"]').count(),1);
+   assert.equal(await page.locator('#themePicker [tabindex="0"]').count(),1);
+   assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('#rf-app')).colorScheme),['light','paper','sage'].includes(theme)?'light':'dark');
+   await readable(['#appearanceHeading','#themeHelp','.rf-theme-title strong','.rf-theme-option small','#activeThemeLabel','#passwordForm label','#passwordSubmit','#newPassword']);
+   await page.setViewportSize({width:320,height:850});
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,theme+' settings at 320px');
+   assert.equal(await page.locator('#themePicker').evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,theme+' picker overflow');
+   if(['graphite','ocean','paper','sage'].includes(theme))await snap('settings-mobile-'+theme);
+   await page.setViewportSize({width:1440,height:1000});
+   await page.locator('.rf-nav [data-page="learn"]').click();
+   await readable(['#ancalagon-tutorial h1','#ancalagon-tutorial .at-muted','#ancalagon-tutorial .at-primary']);
+   assert.equal(await page.locator('#ancalagon-tutorial').evaluate(e=>getComputedStyle(e).colorScheme),['light','paper','sage'].includes(theme)?'light':'dark');
+   await page.locator('.rf-nav [data-page="candidates"]').click();
+   await page.locator('[data-candidate-id="c0"]').click();
+   await readable(['#detailName','#workspaceNote','.rf-select-button']);
+   const stage=page.locator('#detailStage').locator('..').locator('.rf-select-button');
+   await stage.click();await readable(['.rf-select.open .rf-select-option']);await stage.press('Escape');
+  }
+  await page.locator('[data-goto="backend"]').first().click();
+  await snap('settings-desktop');
+  await page.locator('[data-theme-choice="sage"]').press('ArrowRight');
+  assert.equal(await page.locator('#rf-app').getAttribute('data-theme'),'tech');
+  await page.locator('[data-theme-choice="tech"]').press('End');
+  assert.equal(await page.locator('[data-theme-choice="sage"]').evaluate(e=>document.activeElement===e),true);
+  await page.locator('[data-theme-choice="sage"]').press('Home');
+  await page.locator('[data-theme-choice="paper"]').click();
+  await page.reload();await page.locator('#page-home.active').waitFor();
+  assert.equal(await page.locator('#rf-app').getAttribute('data-theme'),'paper','chosen theme survives reload');
+  await page.evaluate(()=>localStorage.setItem('ancalagon-theme-v1','__proto__'));
+  await page.reload();await page.locator('#page-home.active').waitFor();
+  assert.equal(await page.locator('#rf-app').getAttribute('data-theme'),'tech','unknown saved themes recover to the default');
+  assert.deepEqual(errors,[]);console.log('Focused UI passed: recruiting workflows, ten theme controls, keyboard selection, reload persistence, mobile layout, and readable settings, candidate controls, menus, and tutorial.');
  }finally{if(browser)await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
