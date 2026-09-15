@@ -70,12 +70,16 @@
       const jobId=job.id;extracting=true;options.progress?.('reading');status('Reading '+file.name+'…');
       let candidate;
       try{
-        const text=await api.extract(file,status);
+        const extracted=await api.extract(file,status);
+        const text=typeof extracted==='string'?extracted:extracted.text;
         if(!text.trim()||text.trim().length<40)throw Error('No usable resume text was found. Try a text-based PDF, DOCX, or TXT file.');
         if(text.length>120000)throw Error('This resume is too long to assess in full. Upload a shorter resume.');
         const check=()=>{if(workspace!==api.workspace()||!api.job(jobId)||api.job(jobId).status==='closed')throw Error('The selected job was closed or removed. Reopen it before retrying.');};
-        check();const key=await identity(workspace,jobId,text);check();
-        const existing=api.candidates().find(c=>c.jobId===jobId&&(c.id===key.id||c.resumeIntake?.hash===key.hash));
+        check();const key=await identity(workspace,jobId,text),keys=[key];
+        // Recognize files uploaded before the PDF word-boundary fix as the same candidate.
+        if(typeof extracted?.legacyText==='string'&&extracted.legacyText!==text)keys.push(await identity(workspace,jobId,extracted.legacyText));
+        check();
+        const existing=api.candidates().find(c=>c.jobId===jobId&&keys.some(k=>c.id===k.id||c.resumeIntake?.hash===k.hash));
         if(existing){options.candidate?.(existing,true);if(!existing.resumeIntake?.stored&&existing.resumeIntake){files.set(existing.id,{file,text});await storeDocument(existing);enqueue(existing);}else if(existing.resumeIntake?.phase==='error')await retry(existing);if(!options.silent)api.toast('This resume is already attached to '+existing.short+'.');if(options.open!==false)api.open(existing,true);return existing;}
         const now=Date.now();
         candidate=api.add({id:key.id,jobId,name:file.name.replace(/\.[^.]+$/,'').slice(0,160),role:'Resume awaiting analysis',score:0,jdScore:0,resumeJDScore:0,managerScore:0,originalManagerScore:0,rec:'Screen First',signal:'Preparing a screening brief.',strengths:[],concerns:[],tags:[],screeningQuestions:[],stage:'Sourced',createdAt:now,updatedAt:now,resumeIntake:{backend:useRemote()?'durable-v1':undefined,hash:key.hash,fileName:file.name,phase:'uploading',updatedAt:now}});

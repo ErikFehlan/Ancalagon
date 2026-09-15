@@ -92,3 +92,11 @@ test('approve and next runs only after a successful save and respects newer feed
  f.api.beforeReview=async()=>true;f.failSave();await f.flow.approve(c,{next:true});assert.equal(next,0);assert.equal(intake.pending(c),true);
  await f.flow.approve(c,{next:true});assert.equal(next,1);assert.equal(intake.pending(c),false);assert.equal(c.managerScore,8.7);
 });
+
+test('corrected PDF extraction recognizes a previously saved resume without a duplicate or extra assessment',async()=>{
+ const f=fixture(),legacy=text.replace('testing','test ing'),id=await intake.identity('workspace','a',legacy);
+ const c={id:id.id,jobId:'a',name:'Saved candidate',short:'Saved candidate',resumeIntake:{phase:'ready',hash:id.hash,fileName:'Resume.pdf',stored:true,brief:result}};
+ f.candidates.push(c);f.docs.set(c.id,legacy);f.api.extract=async()=>({text,legacyText:legacy});
+ const found=await f.flow.upload({name:'Resume.pdf',size:200});
+ assert.equal(found,c);assert.equal(f.candidates.length,1);assert.equal(f.calls.length,0);assert.equal(f.docs.get(c.id),legacy);
+});
