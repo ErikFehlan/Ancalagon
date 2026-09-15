@@ -50,7 +50,7 @@
       <details id="workspaceSubmission" class="rf-card rf-workspace-details rf-submission-tools"><summary>Prepare a submission</summary><p class="rf-sub">Edit the draft and check its claims against the evidence before sharing.</p><label for="submissionDraft">Submission summary</label><textarea id="submissionDraft" maxlength="12000">${escape(drafts.get(current)??candidate.submissionDraft?.text??summary(candidate,job,all))}</textarea><div class="rf-actions"><button type="button" class="rf-btn primary" id="saveSubmissionDraft">Save summary</button><button type="button" class="rf-btn" id="workspaceCopy">Copy summary</button><button type="button" class="rf-linkbtn" id="regenerateSubmission">Generate a fresh draft</button></div><p class="rf-sub" id="submissionDraftStatus">${drafts.has(current)?'Unsaved edits':candidate.submissionDraft?'Saved draft — review against the latest feedback.':'Generated draft — edit and save to keep it.'}</p></details>`;
     const id=current,area=wrap.querySelector('#workspaceNote');
     area.addEventListener('input',e=>quickNotes.edit(candidate,e.target.value));
-    area.addEventListener('blur',()=>{void quickNotes.flush(candidate);wrap.querySelector('.rf-assessment-region').style.minHeight='';});
+    area.addEventListener('blur',()=>void quickNotes.flush(candidate));
     wrap.querySelector('#workspaceNoteForm').addEventListener('submit',e=>{e.preventDefault();void quickNotes.flush(candidate);});
     wrap.querySelector('#newQuickNote').addEventListener('click',async()=>{if(await quickNotes.fresh(candidate)&&current===id){area.value='';area.focus();}});
     wrap.querySelector('#submissionDraft').addEventListener('input',e=>{drafts.set(id,e.target.value);wrap.querySelector('#submissionDraftStatus').textContent='Unsaved edits';});
@@ -62,7 +62,7 @@
   function preserve(change){
     const region=api?.root.querySelector('.rf-assessment-region');
     // A shorter status panel cannot be offset by scrolling when the page is at the top.
-    // Hold its space while the recruiter is typing, then release it on blur.
+    // Keep the reserved space for this visit so clicking away from notes cannot move the target.
     if(region&&global.document?.activeElement===api.root.querySelector('#workspaceNote'))region.style.minHeight=region.getBoundingClientRect().height+'px';
     return global.AncalagonFocus?global.AncalagonFocus.preserveEditing(api?.root,change):change();
   }
