@@ -4,7 +4,7 @@ const sql=fs.readFileSync(path.join(dir,'supabase/migrations/20260915150000_admi
 const resources=Object.fromEntries([...sql.matchAll(/\('([a-z]+)', \$resource\$([\s\S]*?)\$resource\$\)/g)].map(m=>[m[1],m[2]]));
 const names={server:'server.ts',schema:'schema.sql',prompt:'evaluation-prompt.txt',pkg:'package.json',env:'.env.example'};
 (async()=>{
- let revoked=false,failTools=false,holdTools=false,held=null,downloads=0;
+ let revoked=false,failTools=false,holdTools=false,held=null,downloads=0,failUsage=false,usageCalls=0;
  const server=http.createServer(async(req,res)=>{
   if(req.url.startsWith('/rpc/')){
    let raw='';for await(const chunk of req)raw+=chunk;
@@ -12,7 +12,10 @@ const names={server:'server.ts',schema:'schema.sql',prompt:'evaluation-prompt.tx
    res.setHeader('Content-Type','application/json');
    if(op==='is-admin'){res.end(JSON.stringify(admin));return;}
    if(!admin){res.statusCode=403;res.end(JSON.stringify({code:'42501',message:'Admin access required'}));return;}
-   if(op==='usage'){res.end(JSON.stringify({totals:{accounts:2},users:[{email:'admin@example.test'}]}));return;}
+   if(op==='usage'){
+    usageCalls++;if(failUsage){res.statusCode=503;res.end(JSON.stringify({message:'Temporary outage'}));return;}
+    res.end(JSON.stringify({generated_at:'2026-09-16T12:00:00Z',tracking_started_at:'2026-09-16T11:00:00Z',totals:{accounts:2},users:[{email:'admin@example.test',jobs_created:2,candidates_added:3,ai_completed:7,resumes_analyzed:1,feedback_saved:4,outcomes_saved:1}],event_breakdown:{resume_analysis_completed:1,candidate_reassessment_completed:6}}));return;
+   }
    if(op==='tools'){
     if(failTools){res.statusCode=503;res.end(JSON.stringify({message:'Try again'}));return;}
     if(holdTools){held=()=>res.end(JSON.stringify({html:resources.panel}));return;}
@@ -53,6 +56,17 @@ const names={server:'server.ts',schema:'schema.sql',prompt:'evaluation-prompt.tx
   const denial=await page.evaluate(async()=>{try{await window.AncalagonData.create().loadAdminTools();return 'allowed';}catch(error){return error.code;}});assert.equal(denial,'42501');
   assert.equal(downloads,0);await context.close();
   ({page,context}=await open('admin'));
+  await page.locator('#adminUsageNav').waitFor({state:'visible'});await page.locator('#adminUsageNav').click();
+  assert.equal(await page.getByRole('heading',{name:'Tester Activity · All Time',exact:true}).isVisible(),true);
+  assert.equal(await page.locator('#adminUserRows tr td').nth(6).textContent(),'7','All AI operations must be shown, not just resumes');
+  assert.match(await page.locator('#adminUsageStatus').textContent(),/^Updated /);
+  assert.match(await page.locator('#adminUsageHistory').textContent(),/cannot be fully reconstructed/);
+  const beforeFocus=usageCalls;await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  assert.equal(usageCalls,beforeFocus,'Window focus should not refresh analytics');
+  failUsage=true;await page.locator('#refreshAdminUsage').click();await page.getByText('Could not refresh usage. Previously loaded numbers may be out of date. Try Refresh again.',{exact:true}).waitFor();
+  assert.equal(await page.locator('#adminUsageNav').isVisible(),true);assert.equal(await page.locator('#adminUserRows tr td').nth(6).textContent(),'7');
+  failUsage=false;await page.locator('#refreshAdminUsage').click();await page.getByText(/^Updated .*Refresh to load newer activity\.$/).waitFor();
+  assert.equal(usageCalls,beforeFocus+2,'Manual refresh requests not recorded');
   await page.locator('#adminToolsNav').waitFor({state:'visible'});await page.locator('#adminToolsNav').click();
   await page.locator('#downloadServer').waitFor();assert.equal(await page.locator('#adminToolsContent h3').count(),6);assert.equal(await page.locator('.rf-globaljob').isVisible(),false);
   await page.locator('[data-goto="backend"]').first().click();assert.equal(await page.locator('#page-backend #downloadServer').count(),0);

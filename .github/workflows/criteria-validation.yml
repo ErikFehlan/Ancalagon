@@ -68,3 +68,9 @@ jobs:
         run: |
           createdb -h localhost -U postgres personal_settings
           psql -h localhost -U postgres -d personal_settings -f tests/personal-settings.sql
+      - name: Test confirmed usage counts and account isolation
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres usage_analytics
+          psql -h localhost -U postgres -d usage_analytics -f tests/usage-analytics.sql

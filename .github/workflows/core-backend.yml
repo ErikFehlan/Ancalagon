@@ -34,6 +34,8 @@ jobs:
           psql -h localhost -U postgres -d postgres -f tests/criteria-queue.sql
           createdb -h localhost -U postgres core_intake
           psql -h localhost -U postgres -d core_intake -f tests/core-intake.sql
+          createdb -h localhost -U postgres usage_analytics
+          psql -h localhost -U postgres -d usage_analytics -f tests/usage-analytics.sql
   deploy:
     needs: validate
     if: github.ref == 'refs/heads/main'
@@ -59,15 +61,19 @@ jobs:
           node scripts/job-reassessment-backend.mjs prepare
           node scripts/core-backend.mjs
           node scripts/account-controls-backend.mjs
+          node scripts/usage-analytics-backend.mjs
       - name: Deploy authenticated analysis and durable worker
         run: |
           supabase functions deploy analyze-patterns-v2 --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy analyze-patterns-beta --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy reassess-job --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy account-controls --project-ref "$SUPABASE_PROJECT_REF"
+          node scripts/usage-analytics-backend.mjs activate
       - name: Verify worker transport and activate scheduler
         run: node scripts/job-reassessment-backend.mjs activate
       - name: Verify live account and document isolation
-        run: node scripts/core-live-smoke.mjs
+        run: |
+          node scripts/core-live-smoke.mjs
+          node scripts/usage-analytics-backend.mjs verify
       - name: Recover previously failed resume quotations
         run: node scripts/recover-resume-intake.mjs

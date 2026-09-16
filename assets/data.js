@@ -375,12 +375,24 @@
     }
 
     async function trackEvent(eventType, options = {}) {
-      const { error } = await client.from('app_events').insert({
+      // Saved work and AI results are counted transactionally by the backend.
+      if (!['signed_in', 'job_opened'].includes(eventType)) return;
+      const row = {
+        event_id: crypto.randomUUID(),
         workspace_id: workspaceId, user_id: userId, job_id: options.jobId || null,
         event_type: eventType, session_id: options.sessionId,
         page_path: window.location.pathname, metadata: options.metadata || {}
-      });
-      if (error && error.code !== '42P01') console.warn('Product event was not recorded', error);
+      };
+      let failure;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const { error } = await client.from('app_events').insert(row);
+          if (!error || error.code === '23505') return;
+          failure = error;
+          if (['42501','23503','42P01','PGRST204'].includes(error.code)) break;
+        } catch (error) { failure = error; }
+      }
+      throw failure || new Error('Product event could not be recorded');
     }
 
     async function loadAdminAnalytics() {
