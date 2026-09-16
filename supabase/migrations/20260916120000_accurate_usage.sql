@@ -97,6 +97,11 @@ alter table public.job_reassessment_tasks add column if not exists usage_run_id 
 alter table public.job_reassessment_tasks add column if not exists usage_actor_id uuid references auth.users(id) on delete set null;
 alter table public.job_criteria_tasks add column if not exists usage_run_id uuid not null default gen_random_uuid();
 alter table public.job_criteria_tasks add column if not exists usage_actor_id uuid references auth.users(id) on delete set null;
+-- Deleting an owner clears both reviewer and usage attribution while deleting
+-- the owned candidate. Check that relationship after all cascading actions have
+-- finished, so the second attribution update cannot reject the pending deletion.
+alter table public.resume_intake_tasks alter constraint resume_intake_tasks_candidate_id_job_id_workspace_id_fkey deferrable initially deferred;
+alter table public.job_reassessment_tasks alter constraint job_reassessment_tasks_candidate_id_job_id_workspace_id_fkey deferrable initially deferred;
 create or replace function public.identify_usage_operation() returns trigger
 language plpgsql security definer set search_path='' as $$
 declare fresh boolean;creator uuid;
