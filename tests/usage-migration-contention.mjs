@@ -24,7 +24,7 @@ async function withLock(table,work){
 }
 await withLock('app_events',async()=>{
  await assert.rejects(exec('psql',[...args,'-f','supabase/migrations/20260916120000_accurate_usage.sql'],{timeout:5000}),error=>{
-  assert.match(error.stderr,/55P03/);assert.match(error.stderr,/could not obtain lock/);return true;
+  assert.match(error.stderr,/55P03/);assert.match(error.stderr,/lock timeout/);return true;
  });
  // Even though jobs was locked first, it must be released after the abort.
  await sql('begin; lock table public.jobs in access exclusive mode nowait; rollback;');
