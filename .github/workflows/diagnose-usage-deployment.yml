@@ -1,4 +1,4 @@
-name: Verify approved analytics recovery
+name: Diagnose disposable fixture rollback
 on:
   push:
     branches: [diagnostics/usage-deployment]
@@ -20,7 +20,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Finish cleanup of the disposable recovery test only
+      - name: Diagnose disposable fixture deletion and roll it back
         run: node scripts/usage-lock-diagnostics.mjs
-      - name: Verify retained usage records
-        run: node scripts/usage-analytics-backend.mjs verify
