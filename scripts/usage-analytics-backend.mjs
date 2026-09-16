@@ -18,6 +18,15 @@ with saved as (
 const response=await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`,{method:'POST',
  headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
  body:JSON.stringify({query}),signal:AbortSignal.timeout(60000)});
-if(!response.ok)throw Error(`Usage migration failed (${response.status}). No query result was logged.`);
+if(!response.ok){
+ const body=await response.json().catch(()=>({}));
+ const message=String(body.message||body.error||'');
+ const first=message.split(/\r?\n/)[0];
+ const state=message.match(/ERROR:\s*([0-9A-Z]{5}):/)?.[1]||'unknown';
+ const category=['does not exist','already exists','permission denied','not-null constraint','foreign key constraint','check constraint','ambiguous','cannot change','invalid input','syntax error','duplicate key'].find(x=>first.toLowerCase().includes(x))||'unclassified';
+ const objects=[...first.matchAll(/(?:relation|column|constraint|function|sequence|index|table) "([a-z_][a-z0-9_.]*)"/gi)].map(m=>m[1]);
+ console.error('Usage deployment diagnostic:',JSON.stringify({mode,http_status:response.status,sqlstate:state,category,objects}));
+ throw Error('Usage deployment stopped. Customer data and raw database errors were not logged.');
+}
 if(verify){const rows=await response.json();if(!Array.isArray(rows)||rows.length!==1||Number(rows[0].missing_saved)!==0||Number(rows[0].missing_completed)!==0)throw Error('Usage verification found missing saved work or completed processing.');console.log('Usage coverage verified: zero missing saved records or retained completed tasks.');}
 else console.log(mode==='activate'?'Confirmed usage write permissions activated.':'Confirmed usage recording and recoverable history installed.');

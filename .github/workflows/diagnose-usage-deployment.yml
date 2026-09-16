@@ -1,0 +1,24 @@
+name: Diagnose approved usage deployment
+on:
+  push:
+    branches: [diagnostics/usage-deployment]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    environment: criteria-backend
+    concurrency:
+      group: criteria-backend-deploy
+      cancel-in-progress: false
+    timeout-minutes: 5
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Retry the approved migration with schema-only error diagnostics
+        run: node scripts/usage-analytics-backend.mjs
