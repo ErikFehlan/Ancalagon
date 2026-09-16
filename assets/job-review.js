@@ -99,8 +99,15 @@
         approved=decision==='approve';
         api.approved(candidate);
         api.toast(decision==='approve'?'Assessment approved and saved.':decision==='ignore'?'Current assessment kept.':'Assessment queued for another try.');
-      }catch(e){api.toast(e.message||'Unable to save this decision.','error');}
-      finally{busy.delete(id);await refresh();}
+      }catch(e){
+        if(e.code==='PT409'){
+          // Never replay an approval against changed evidence. Request once;
+          // polling only reads status and the replacement needs a new decision.
+          try{await api.request(id);api.toast('Evidence changed. Preparing a fresh assessment for you to review.');}
+          catch{api.toast('Evidence changed. Your scores are unchanged. Refresh to review the latest assessment.','error');}
+        }else api.toast(e.message||'Unable to save this decision.','error');
+      }
+      finally{try{await refresh();}finally{busy.delete(id);render();api.candidateChanged();}}
       if(approved&&next)api.next?.(candidate);
     }
     function dispose(){disposed=true;clearTimeout(timer);}

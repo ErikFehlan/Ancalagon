@@ -221,14 +221,14 @@ begin
   select * into task from public.job_reassessment_tasks where candidate_id=p_candidate for update;
   if not found or not public.is_workspace_member(task.workspace_id) then raise exception 'Assessment unavailable' using errcode='42501';end if;
   if not exists(select 1 from public.jobs where id=task.job_id and status='active') then raise exception 'Reopen the job before reviewing assessments';end if;
-  if task.revision is distinct from p_revision then raise exception 'Evidence changed. Review the latest assessment.' using errcode='40001';end if;
+  if task.revision is distinct from p_revision then raise exception 'Evidence changed. Review the latest assessment.' using errcode='PT409';end if;
   if p_decision='retry' then
     if task.status<>'failed' then raise exception 'Only failed assessments can be retried';end if;
     update public.job_reassessment_tasks set status='queued',attempts=0,next_run_at=now(),error_code=null,updated_at=now() where candidate_id=p_candidate;
     perform public.wake_job_reassessments(task.job_id);return jsonb_build_object('status','queued');
   end if;
   if task.status<>'ready' then raise exception 'Assessment is not ready for review';end if;
-  if md5(public.reassessment_input(p_candidate)::text) is distinct from p_revision then raise exception 'Evidence changed. Review a fresh assessment.' using errcode='40001';end if;
+  if md5(public.reassessment_input(p_candidate)::text) is distinct from p_revision then raise exception 'Evidence changed. Review a fresh assessment.' using errcode='PT409';end if;
   if p_decision='ignore' then
     update public.job_reassessment_tasks set status='ignored',reviewed_by=auth.uid(),reviewed_at=now(),updated_at=now() where candidate_id=p_candidate;
     return jsonb_build_object('status','ignored');
