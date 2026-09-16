@@ -15,17 +15,26 @@ function fixture() {
       if(operation==='select')return {data:clone(matching),error:null};
       calls.push({table,operation,payload,filters});
       if(fail){fail=false;return {data:null,error:new Error('network unavailable')}}
-      if(operation==='insert'){if(rows[table].some(r=>r.id&&r.id===payload.id))return {data:null,error:{code:'23505'}};const row=clone(payload);rows[table].push(row);if(lose){lose=false;return {data:null,error:new Error('Response lost after commit')}}return {data:[row],error:null}}
+      if(operation==='insert'){if(rows[table].some(r=>(r.id&&r.id===payload.id)||(r.event_id&&r.event_id===payload.event_id)))return {data:null,error:{code:'23505'}};const row=clone(payload);rows[table].push(row);if(lose){lose=false;return {data:null,error:new Error('Response lost after commit')}}return {data:[row],error:null}}
       if(operation==='update')matching.forEach(row=>Object.assign(row,clone(payload)));
       if(operation==='delete')rows[table]=rows[table].filter(row=>!matching.includes(row));
       return {data:clone(matching),error:null};
     }).then(resolve,reject)}
   };return q}};
-  const context={window:{},console,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto};
+  const context={window:{location:{pathname:'/'}},console,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto};
   vm.runInNewContext(fs.readFileSync('assets/data.js','utf8'),context);
   const service=context.window.AncalagonData.create({client,workspace:{id:'workspace'},session:{user:{id:'user'}}});
   return {service,rows,calls,setRpc(handler){rpcHandler=handler},failNext(){fail=true},loseNextInsert(){lose=true}};
 }
+test('navigation telemetry recovers a lost response without double counting; save clicks are excluded',async()=>{
+ const f=fixture();f.loseNextInsert();
+ await f.service.trackEvent('signed_in',{sessionId:'session'});
+ assert.equal(f.rows.app_events.length,1);assert.equal(f.calls.length,2);
+ assert.equal(f.calls[0].payload.event_id,f.calls[1].payload.event_id);
+ await f.service.trackEvent('candidate_added',{sessionId:'session'});
+ await f.service.trackEvent('resume_analyzed',{sessionId:'session'});
+ assert.equal(f.calls.length,2);
+});
 test('load and unchanged save perform no writes; one job edit updates only that job',async()=>{
  const f=fixture(),state=await f.service.load();await f.service.flush(state);assert.equal(f.calls.length,0);
  state.jobs[0].title='Updated';await f.service.flush(state);

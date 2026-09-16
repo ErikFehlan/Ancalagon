@@ -55,7 +55,7 @@ Deno.test('auth checks overlap, model waits for both, telemetry does not delay r
   const oldFetch=globalThis.fetch;
   const globals=globalThis as typeof globalThis & {EdgeRuntime?:{waitUntil(p:Promise<unknown>):void}};
   const oldRuntime=globals.EdgeRuntime;
-  for(const [key,value] of Object.entries({OPENAI_API_KEY:'test-only',SUPABASE_URL:'https://example.invalid',SUPABASE_ANON_KEY:'test-public'}))Deno.env.set(key,value);
+  for(const [key,value] of Object.entries({OPENAI_API_KEY:'test-only',SUPABASE_URL:'https://example.invalid',SUPABASE_ANON_KEY:'test-public',SUPABASE_SERVICE_ROLE_KEY:'test-service'}))Deno.env.set(key,value);
   let releaseMember!:(r:Response)=>void,releaseUser!:(r:Response)=>void,releaseUsage!:(r:Response)=>void;
   let authCalls=0,modelCalled=false,background:Promise<unknown>|undefined;
   globals.EdgeRuntime={waitUntil:p=>{background=p;}};
@@ -86,6 +86,34 @@ Deno.test('auth checks overlap, model waits for both, telemetry does not delay r
     assert((await rejected).status===403&&!modelCalled,'workspace authorization bypassed');
   }finally{
     globalThis.fetch=oldFetch;globals.EdgeRuntime=oldRuntime;
-    for(const key of ['OPENAI_API_KEY','SUPABASE_URL','SUPABASE_ANON_KEY'])Deno.env.delete(key);
+    for(const key of ['OPENAI_API_KEY','SUPABASE_URL','SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY'])Deno.env.delete(key);
   }
+});
+
+Deno.test('AI telemetry retries a stable operation identity using server credentials',async()=>{
+ const oldFetch=globalThis.fetch,rows:Array<{status:string;request_id:string}>=[];
+ const values={OPENAI_API_KEY:'test-only',SUPABASE_URL:'https://example.invalid',SUPABASE_ANON_KEY:'test-public',SUPABASE_SERVICE_ROLE_KEY:'test-service'};
+ const prior=Object.fromEntries(Object.keys(values).map(k=>[k,Deno.env.get(k)]));
+ Object.entries(values).forEach(([k,v])=>Deno.env.set(k,v));
+ let retried=false,modelOK=true;
+ globalThis.fetch=async(url,init)=>{
+  const u=String(url);
+  if(u.includes('workspace_members'))return json([{workspace_id:'workspace-a'}]);
+  if(u.includes('/auth/v1/user'))return json({id:'test-user'});
+  if(u.includes('ai_usage_events')){
+   const row=JSON.parse(String(init?.body));rows.push(row);
+   assert(new Headers(init?.headers).get('Authorization')==='Bearer test-service','client credential used for trusted telemetry');
+   assert(u.includes('on_conflict=request_id,status'),'retry deduplication missing');
+   if(row.status==='succeeded'&&!retried){retried=true;throw Error('Lost response after commit');}
+   return json({});
+  }
+  return modelOK?json(modelResult):json({error:{message:'Synthetic unavailable'}},503);
+ };
+ try{
+  assert((await handleAuthenticatedAnalysis(request(payload))).ok,'analysis failed');
+  assert(rows.length===3&&new Set(rows.map(r=>r.request_id)).size===1,'transport retry used a second operation identity');
+  modelOK=false;assert(!(await handleAuthenticatedAnalysis(request(payload))).ok,'failed model treated as success');
+  assert(rows.at(-1)?.status==='failed','failure recorded as completion');
+  assert(new Set(rows.map(r=>r.request_id)).size===2,'separate requests shared an identity');
+ }finally{globalThis.fetch=oldFetch;Object.keys(values).forEach(k=>prior[k]===undefined?Deno.env.delete(k):Deno.env.set(k,prior[k]!));}
 });

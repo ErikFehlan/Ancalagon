@@ -44,18 +44,30 @@ export async function handleAuthenticatedAnalysis(request: Request) {
 
   const user = userResponse.ok ? await userResponse.json().catch(() => null) : null;
   if (!user?.id) return json({ error: "Your session is invalid or expired" }, 401);
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceKey) return json({ error: "Analysis service configuration incomplete" }, 503);
 
   const operation = payload.analysis_type === "resume"
     ? "resume_analysis"
     : payload.analysis_type === "screening" || payload.analysis_type === "feedback"
       ? "screening_reassessment"
       : "pattern_analysis";
-  const recordUsage = (status: "started" | "succeeded" | "failed") => fetch(`${supabaseUrl}/rest/v1/ai_usage_events`, {
-    method: "POST",
-    headers: { ...headers, "Content-Type": "application/json", Prefer: "return=minimal" },
-    body: JSON.stringify({ workspace_id: workspaceId, user_id: user.id, operation, status }),
-    signal: AbortSignal.timeout(10000),
-  }).catch(() => null);
+  const requestId = crypto.randomUUID();
+  const recordUsage = async (status: "started" | "succeeded" | "failed") => {
+    const body = JSON.stringify({ workspace_id: workspaceId, user_id: user.id, operation, status, request_id: requestId });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const saved = await fetch(`${supabaseUrl}/rest/v1/ai_usage_events?on_conflict=request_id,status`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey, "Content-Type": "application/json", Prefer: "resolution=ignore-duplicates,return=minimal" },
+          body, signal: AbortSignal.timeout(5000),
+        });
+        if (saved.ok) return;
+        if (saved.status < 500 && saved.status !== 429) break;
+      } catch { /* Retry the same identity after a lost response. */ }
+    }
+    console.error("AI usage could not be recorded after bounded retries.");
+  };
 
   const started = recordUsage("started");
   const response = await handleAnalysis(request);
