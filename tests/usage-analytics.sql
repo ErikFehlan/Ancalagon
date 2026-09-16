@@ -18,7 +18,9 @@ create function net.http_post(url text,headers jsonb,body jsonb,timeout_millisec
 grant usage on schema auth,storage to authenticated,service_role;
 grant execute on function auth.uid(),auth.jwt(),storage.foldername(text) to authenticated,service_role;
 \ir ../supabase/migrations/20260909160000_multi_user_foundation.sql
+\ir ../supabase/migrations/20260909220000_remote_pattern_analysis.sql
 \ir ../supabase/migrations/20260910160000_admin_usage_analytics.sql
+\ir ../supabase/migrations/20260910190000_job_lifecycle.sql
 \ir ../supabase/migrations/20260911180000_criteria_automation.sql
 \ir ../supabase/migrations/20260914120000_immediate_criteria.sql
 \ir ../supabase/migrations/20260914160000_job_reassessments.sql
