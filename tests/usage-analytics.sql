@@ -163,4 +163,41 @@ do $$begin
  if exists(select from product_usage_events where user_id='00000000-0000-0000-0000-000000000002') then raise exception 'Deleted account telemetry retained';end if;
  if not exists(select from jobs where id='00000000-0000-0000-0000-000000000022') then raise exception 'Account deletion crossed workspace';end if;
 end$$;
-select 'Usage analytics passed: saved work, failed transactions, retries, background completions, attribution, history, periods, deletion retention, and isolation.' as result;
+-- The owner can also leave after approving work: two SET NULL attribution
+-- actions must coexist with the cascading candidate/workspace deletion.
+set test.actor='00000000-0000-0000-0000-000000000001';
+insert into candidates(id,job_id,workspace_id,name) values
+ ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000011','Owner deletion fixture');
+insert into resume_intake_tasks(candidate_id,job_id,workspace_id,revision,input,status,result,reviewed_by,reviewed_at) values
+ ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000011','delete-owner','{}','approved','{}',auth.uid(),now());
+update job_reassessment_tasks set status='approved',result='{}',reviewed_by=auth.uid(),reviewed_at=now(),usage_actor_id=auth.uid()
+ where candidate_id='00000000-0000-0000-0000-000000000032';
+-- Deferral changes the order of validation, never the required relationship.
+do $$begin
+ begin
+  insert into resume_intake_tasks(candidate_id,job_id,workspace_id,revision,input) values
+   ('00000000-0000-0000-0000-000000000099','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000011','invalid','{}');
+  set constraints all immediate;
+  raise exception 'Orphan processing task accepted';
+ exception when foreign_key_violation then null;end;
+end$$;
+set test.actor='';
+-- Reproduce the production failure with the previous immediate constraints.
+alter table resume_intake_tasks alter constraint resume_intake_tasks_candidate_id_job_id_workspace_id_fkey not deferrable;
+alter table job_reassessment_tasks alter constraint job_reassessment_tasks_candidate_id_job_id_workspace_id_fkey not deferrable;
+do $$declare failed_constraint text;begin
+ begin
+  delete from auth.users where id='00000000-0000-0000-0000-000000000001';
+  raise exception 'Owner deletion regression was not reproduced';
+ exception when foreign_key_violation then
+  get stacked diagnostics failed_constraint=constraint_name;
+  if failed_constraint not in ('resume_intake_tasks_candidate_id_job_id_workspace_id_fkey','job_reassessment_tasks_candidate_id_job_id_workspace_id_fkey') then raise exception 'Unexpected deletion constraint: %',failed_constraint;end if;
+ end;
+end$$;
+alter table resume_intake_tasks alter constraint resume_intake_tasks_candidate_id_job_id_workspace_id_fkey deferrable initially deferred;
+alter table job_reassessment_tasks alter constraint job_reassessment_tasks_candidate_id_job_id_workspace_id_fkey deferrable initially deferred;
+delete from auth.users where id='00000000-0000-0000-0000-000000000001';
+do $$begin
+ if exists(select from product_usage_events) or exists(select from resume_intake_tasks) or exists(select from job_reassessment_tasks) then raise exception 'Owner deletion left usage or processing behind';end if;
+end$$;
+select 'Usage analytics passed: saved work, retries, background completions, attribution, history, periods, collaborator/owner deletion, and isolation.' as result;
