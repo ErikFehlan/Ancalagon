@@ -62,7 +62,7 @@ const dir=path.resolve(__dirname,'..');
   // Pauses and continuing edits update one saved note. No Save button is needed.
   await page.locator('#workspaceNote').fill('Owned regression testing.');
   await page.locator('#workspaceEvaluation [data-job-review="approve-next"]').evaluate(b=>b.click());
-  await page.waitForFunction(()=>window.testSaved.feedback[0]?.text==='Owned regression testing.'&&document.querySelector('#workspaceNoteStatus').textContent.startsWith('Saved'));
+  await page.waitForFunction(()=>window.testSaved.feedback[0]?.text==='Owned regression testing.'&&document.querySelector('#workspaceNoteStatus').textContent.startsWith('Your note is saved'));
   assert.equal(await page.locator('#detailName').textContent(),'Bob','new feedback prevents approving the old assessment');
   assert.equal(await page.evaluate(()=>window.testSaved.candidates[1].managerScore),7);
   const noteId=await page.evaluate(()=>window.testSaved.feedback[0].id);
@@ -82,7 +82,7 @@ const dir=path.resolve(__dirname,'..');
   assert.equal(await page.evaluate(()=>window.AncalagonWorkspace.hasDrafts()),true);
   assert.equal(await page.evaluate(()=>window.testSaved.feedback[0].text),'Owned regression testing. Confirm automation scope.','failed edits keep the last saved version');
   await page.locator('#retryQuickNote').click();
-  await page.waitForFunction(()=>document.querySelector('#workspaceNoteStatus').textContent.startsWith('Saved'));
+  await page.waitForFunction(()=>document.querySelector('#workspaceNoteStatus').textContent.startsWith('Your note is saved'));
   await page.waitForFunction(()=>window.testSaved.feedback[0]?.interpretation);
   assert.equal(await page.evaluate(()=>window.testSaved.feedback.length),1);
   // If the recruiter changes jobs during approval, completion must not navigate back.

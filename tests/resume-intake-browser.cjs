@@ -66,7 +66,7 @@ const dir=path.resolve(__dirname,'..');
   await page.locator('[data-candidate-id]').first().click();
   assert.equal(await page.locator('#workspaceNote').inputValue(),'');
   assert.equal(await page.locator('#submissionDraft').inputValue(),'Unsaved recruiter summary');
-  assert.match(await page.locator('#workspaceIntake').textContent(),/Awaiting your review/);
+  assert.match(await page.locator('#workspaceIntake').textContent(),/Ready for your review/);
   assert.equal(await page.locator('#workspaceQuestions li').count(),3);
   await page.locator('#workspaceIntake details summary').filter({hasText:'Supporting resume evidence'}).click();
   assert.match(await page.locator('#workspaceIntake blockquote').textContent(),/Owned manual regression/);

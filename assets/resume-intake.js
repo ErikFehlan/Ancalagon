@@ -131,7 +131,7 @@
             Object.assign(c,{name:result.name==='Candidate'?c.name:result.name,short:result.name==='Candidate'?c.name:result.name,role:result.role,
               signal:result.primary_signal,strengths:result.resume_evidence.map(e=>e.claim+' — Resume: “'+e.quote+'”'),concerns:result.concerns,tags:result.tags,screeningQuestions:result.screening_questions,updatedAt:Date.now()});
             Object.assign(c.resumeIntake,{brief:result,signature,phase:'ready',updatedAt:Date.now(),error:''});
-            await api.persist();changed(c);api.track('resume_analyzed');api.toast('Screening brief ready for '+c.short+'.');break;
+            await api.persist();changed(c);api.track('resume_analyzed');api.toast('Assessment ready for your review: '+c.short+'.');break;
           }
         }catch(e){if(valid(c)&&pending(c)){set(c,'error',e.message||'Assessment unavailable. Your resume is saved.');try{await api.persist();}catch{}}}
       }}finally{running=false;}
@@ -193,9 +193,9 @@
       else if(state.phase==='error')html+='<h3>Resume intake needs attention</h3><p>'+escape(state.error)+'</p><button class="rf-btn" type="button" data-intake-retry>Try again</button>';
       else if(state.phase!=='ready')html+='<h3>Preparing your screening brief…</h3><p class="rf-sub">You can keep working. Once your resume is saved, processing continues even if you close this tab. Scores appear after review.</p>';
       else{
-        html+='<div class="rf-cardhead"><h3>'+(wrap.id==='workspaceIntake'?'Resume assessment':escape(c.short))+'</h3><span class="rf-pill '+(needsReview?'rf-amber':'rf-green')+'">'+(needsReview?'Awaiting your review':'Reviewed')+'</span></div><p>'+escape(brief.primary_signal)+'</p>';
+        html+='<div class="rf-cardhead"><h3>'+(wrap.id==='workspaceIntake'?'Resume assessment':escape(c.short))+'</h3><span class="rf-pill '+(needsReview?'rf-amber':'rf-green')+'">'+(needsReview?'Ready for your review':'Reviewed')+'</span></div><p>'+escape(brief.primary_signal)+'</p>';
         if(needsReview)html+='<p><strong>Proposed JD Fit: '+brief.score.toFixed(1)+'/10 · Manager Fit: '+brief.manager_score.toFixed(1)+'/10</strong></p>';
-        html+='<p><strong>Key uncertainty:</strong> '+escape(brief.concerns[0]||'Confirm the job requirements during screening.')+'</p><details><summary>Supporting resume evidence and score details</summary><p class="rf-sub">'+escape(brief.jd_reason)+'</p><p class="rf-sub">'+escape(brief.manager_reason)+'</p><ul>'+brief.resume_evidence.map(e=>'<li><strong>'+escape(e.claim)+'</strong><blockquote>'+escape(e.quote)+'</blockquote></li>').join('')+'</ul>'+(brief.resume_evidence.length?'':'<p>No supporting job-related evidence was confirmed. Verify the requirements during screening.</p>')+'<h4>Concerns to clarify</h4><ul>'+brief.concerns.map(s=>'<li>'+escape(s)+'</li>').join('')+'</ul></details>';
+        html+='<p><strong>Worth asking about:</strong> '+escape(brief.concerns[0]||'Confirm the job requirements during screening.')+'</p><details><summary>Supporting resume evidence and score details</summary><p class="rf-sub">'+escape(brief.jd_reason)+'</p><p class="rf-sub">'+escape(brief.manager_reason)+'</p><ul>'+brief.resume_evidence.map(e=>'<li><strong>'+escape(e.claim)+'</strong><blockquote>'+escape(e.quote)+'</blockquote></li>').join('')+'</ul>'+(brief.resume_evidence.length?'':'<p>No supporting job-related evidence was confirmed. Verify the requirements during screening.</p>')+'<h4>Concerns to clarify</h4><ul>'+brief.concerns.map(s=>'<li>'+escape(s)+'</li>').join('')+'</ul></details>';
         if(brief.name==='Candidate'||brief.role==='Role not stated')html+='<p class="rf-note">The resume did not clearly identify the name or professional role. Verify these details during screening.</p>';
         const matches=duplicates(c);
         if(matches.length)html+='<div class="rf-note">Possible duplicate: this name is already on this job. '+matches.map(x=>'<button class="rf-linkbtn" type="button" data-intake-existing="'+escape(x.id)+'">Open '+escape(x.short)+'</button>').join(' ')+' No records have been merged.</div>';
@@ -214,7 +214,7 @@
       const wrap=api.root?.querySelector('#resumeIntakeStatus');if(!wrap)return;
       const list=api.candidates().filter(c=>c.jobId===api.job()?.id&&pending(c));
       wrap.hidden=!list.length;
-      wrap.innerHTML=list.map(c=>'<button type="button" class="rf-intake-status" data-intake-open="'+escape(c.id)+'"><strong>'+escape(c.short)+'</strong><span>'+({uploading:'Saving resume…',queued:'Queued for assessment',processing:'Preparing screening brief…',ready:'Screening brief ready · review',error:'Needs attention'}[c.resumeIntake.phase]||'Preparing…')+'</span></button>').join('');
+      wrap.innerHTML=list.map(c=>'<button type="button" class="rf-intake-status" data-intake-open="'+escape(c.id)+'"><strong>'+escape(c.short)+'</strong><span>'+({uploading:'Saving resume…',queued:'Queued for assessment',processing:'Preparing screening brief…',ready:'Ready for your review',error:'Needs attention'}[c.resumeIntake.phase]||'Preparing…')+'</span></button>').join('');
       wrap.querySelectorAll('[data-intake-open]').forEach(b=>b.addEventListener('click',()=>api.open(api.candidates().find(c=>c.id===b.dataset.intakeOpen),true)));
     }
     function resume(){
