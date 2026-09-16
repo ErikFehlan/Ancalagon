@@ -12,5 +12,11 @@
     const question=typeof result.clarification_question==='string'?result.clarification_question.trim():'';
     return {text:(result.summary.trim()+(question?'\n\n'+question:'')).slice(0,2000),source:'ai',model:result.model||null,updatedAt:Date.now()};
   }
-  const api={buildPayload,fromResult};if(typeof module!=='undefined')module.exports=api;global.AncalagonFeedback=api;
+  function review(interpretation,correction=null,now=Date.now()){
+    if(!interpretation?.text)throw Error('Wait for an interpretation before reviewing it.');
+    if(correction===null)return {...interpretation,reviewStatus:'accepted',reviewedAt:now};
+    const text=String(correction).trim();if(!text||text.length>2000)throw Error('Enter a clarification of up to 2,000 characters.');
+    return {...interpretation,text,source:'recruiter',updatedAt:now,reviewStatus:'corrected',reviewedAt:now};
+  }
+  const api={buildPayload,fromResult,review};if(typeof module!=='undefined')module.exports=api;global.AncalagonFeedback=api;
 })(typeof window!=='undefined'?window:globalThis);

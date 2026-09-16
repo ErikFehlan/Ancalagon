@@ -174,7 +174,7 @@
         c.aiReview.contextSignature=api.signature(api.fullContext(c));await api.persist();
         approved=true;api.toast('Assessment approved and added to rankings.');
       }catch(e){Object.assign(c,before);delete c.resumeIntake.reviewedAt;api.toast(e.message||'Approval could not be saved. Try again.','error');}
-      finally{reviewing.delete(c.id);changed(c);if(useRemote()&&approved&&next)api.next?.(c);}
+      finally{reviewing.delete(c.id);if(approved)api.reviewed?.(c);changed(c);if(useRemote()&&approved&&next)api.next?.(c);}
       if(approved&&next)api.next?.(c);
       return approved;
     }
@@ -201,6 +201,7 @@
         if(matches.length)html+='<div class="rf-note">Possible duplicate: this name is already on this job. '+matches.map(x=>'<button class="rf-linkbtn" type="button" data-intake-existing="'+escape(x.id)+'">Open '+escape(x.short)+'</button>').join(' ')+' No records have been merged.</div>';
         if(needsReview){
           const inline=wrap.id==='workspaceIntake',disabled=reviewing.has(c.id)||api.job(c.jobId)?.status==='closed';
+          html+='<p class="rf-evidence-caution">Missing evidence is a question to verify, not proof of a missing skill.</p><details class="rf-review-explanation"><summary>What happens when I approve?</summary><p>Saves the proposed JD Fit and Manager Fit scores, recommendation, and supporting assessment for this candidate. Their pipeline stage stays the same. Approval does not submit them to a manager or change another candidate.</p><p>Approve &amp; next also opens the next ready assessment. You can leave this assessment pending and return after checking the evidence.</p></details>';
           html+='<div class="rf-actions">'+(!stale&&inline?'<button class="rf-btn primary" type="button" data-intake-next'+(disabled?' disabled':'')+'>'+(matches.length?'Keep separate, approve &amp; next':'Approve &amp; next')+'</button>':'')+'<button class="rf-btn'+(!inline||stale?' primary':'')+'" type="button" '+(stale?'data-intake-retry':'data-intake-approve')+(disabled?' disabled':'')+'>'+(stale?'Update from latest evidence':matches.length?'Keep separate and approve assessment':'Approve assessment')+'</button></div>';
         }
         if(stale)html+='<p class="rf-sub">The job or feedback changed. This proposal needs updating before approval.</p>';

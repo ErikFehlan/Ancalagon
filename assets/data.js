@@ -297,6 +297,14 @@
       const {data,error}=await client.from('workspace_home').select('tutorial_progress,tutorial_revision').eq('user_id',userId).eq('workspace_id',workspaceId).maybeSingle();
       if(error)throw error;return {state:data?.tutorial_progress||null,revision:data?.tutorial_revision||0};
     }
+    async function loadGuidance() {
+      const {data,error}=await client.from('workspace_home').select('guidance_state').eq('user_id',userId).eq('workspace_id',workspaceId).maybeSingle();
+      if(error)throw error;return data?.guidance_state||null;
+    }
+    async function saveGuidance(action,tip) {
+      const {data,error}=await client.rpc('update_contextual_guidance',{p_workspace:workspaceId,p_action:action,p_tip:tip||null});
+      if(error)throw error;return data;
+    }
     async function saveTutorial(progress,revision) {
       await visitHome();
       const {data,error}=await client.from('workspace_home').update({tutorial_progress:progress,tutorial_revision:revision+1}).eq('user_id',userId).eq('workspace_id',workspaceId).eq('tutorial_revision',revision).select('tutorial_revision').maybeSingle();
@@ -482,7 +490,7 @@
     async function downloadResume(path){const {data,error}=await client.storage.from('resumes').download(path);if(error)throw error;return data;}
     async function deleteAccount(password){const {data,error}=await client.functions.invoke('account-controls',{body:{action:'delete_account',password,confirmation:'DELETE'}});if(error){let details;try{details=await error.context?.json();}catch{}throw Error(details?.error||'Could not confirm deletion status. If your account is still available, try again.');}if(!['complete','pending'].includes(data?.status))throw Error('Deletion was not confirmed. Try again.');return data;}
 
-    return { loadSettings, saveSettings, loadNotifications, markNotificationsRead, loadSupportRequests, submitSupportRequest, reviewSupportRequest, exportAccountData, loadPersonalUsage, downloadResume, deleteAccount, requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadTutorial, saveTutorial, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, isAppAdmin, loadAdminTools, loadAdminStarterFile, uploadResume, loadResumeText, workspaceId };
+    return { loadGuidance, saveGuidance, loadSettings, saveSettings, loadNotifications, markNotificationsRead, loadSupportRequests, submitSupportRequest, reviewSupportRequest, exportAccountData, loadPersonalUsage, downloadResume, deleteAccount, requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadTutorial, saveTutorial, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, isAppAdmin, loadAdminTools, loadAdminStarterFile, uploadResume, loadResumeText, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };

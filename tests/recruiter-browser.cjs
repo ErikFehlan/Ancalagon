@@ -13,9 +13,9 @@ const root=path.resolve(__dirname,'..');
    const clone=x=>JSON.parse(JSON.stringify(x));
    const job=(id,title)=>({id,title,description:'Manual regression testing',criteria:[],weights:[],knockouts:[],status:'active',createdAt:1,updatedAt:1});
    const fixture={jobs:[job('qa','QA Analyst'),job('security','Security Engineer')],candidates:[],feedback:[],interviewOutcomes:[]};
-   window.testState=fixture;window.testDocs={};window.testTasks={};window.failedUpload=false;window.batchReads=0;
-   const api={load:async()=>clone(fixture),loadHome:async()=>null,visitHome:async()=>{},saveHome:async()=>{},loadHomeReviews:async()=>[],
-    schedule:(s,e,status)=>{window.testState=clone(s);status('saved');},flush:async s=>{window.testState=clone(s);},trackEvent:async()=>{},loadAdminAnalytics:async()=>{throw Error('not admin')},loadJobReassessments:async()=>[],
+   window.testGuidance={enabled:true,tips:{}};window.guidanceFail=false;window.feedbackReviewFail=false;window.testState=fixture;window.testDocs={};window.testTasks={};window.failedUpload=false;window.batchReads=0;
+   const api={loadGuidance:async()=>clone(window.testGuidance),saveGuidance:async(action,tip)=>{if(window.guidanceFail)throw Error('Offline');const state=window.testGuidance;if(action==='reset')window.testGuidance={enabled:true,tips:{}};else if(action==='enable'||action==='disable')state.enabled=action==='enable';else if(action==='dismiss'||!state.tips[tip])state.tips[tip]=action==='dismiss'?'dismissed':'completed';return clone(window.testGuidance);},load:async()=>clone(fixture),loadHome:async()=>null,visitHome:async()=>{},saveHome:async()=>{},loadHomeReviews:async()=>[],
+    schedule:(s,e,status)=>{window.testState=clone(s);status('saved');},flush:async s=>{if(window.feedbackReviewFail&&s.feedback.some(f=>f.interpretation?.reviewStatus))throw Error('Offline');window.testState=clone(s);},trackEvent:async()=>{},loadAdminAnalytics:async()=>{throw Error('not admin')},loadJobReassessments:async()=>[],
     uploadResume:async(c,file,text)=>{if(file.name==='Retry.txt'&&!window.failedUpload){window.failedUpload=true;throw Error('Connection interrupted. Retry this file.');}window.testDocs[c.id]=text;},loadResumeText:async c=>window.testDocs[c.id]||'',
     requestResumeIntake:async id=>{
      if(window.testTasks[id])return;
@@ -45,6 +45,18 @@ const root=path.resolve(__dirname,'..');
   assert.match(await page.locator('#resumeIntakeStatus').textContent(),/3 ready to review/);
   if(process.env.CAPTURE_UI)await page.screenshot({path:process.env.CAPTURE_UI+'-ready.png',fullPage:true});
   await page.locator('[data-queue-open]').click();
+  await page.locator('#candidateGuidance [data-guidance-open="approval"]').waitFor();
+  await page.evaluate(()=>window.guidanceFail=true);
+  await page.locator('#candidateGuidance [data-guidance-dismiss]').click();
+  await page.locator('#candidateGuidance .rf-guidance-status').filter({hasText:'did not save'}).waitFor();
+  assert.equal(await page.locator('#candidateGuidance [data-guidance-open]').getAttribute('aria-expanded'),'true');
+  await page.evaluate(()=>window.guidanceFail=false);await page.locator('#candidateGuidance [data-guidance-retry]').click();
+  await page.waitForFunction(()=>window.testGuidance.tips.approval==='dismissed');
+  assert.equal(await page.locator('#candidateGuidance [data-guidance-open]').getAttribute('aria-expanded'),'false');
+  await page.locator('#candidateGuidance [data-guidance-open]').click();
+  assert.equal(await page.locator('#candidateGuidance [data-guidance-open]').getAttribute('aria-expanded'),'true');
+  await page.locator('#candidateGuidance [data-guidance-dismiss]').click();
+  assert.match(await page.locator('#workspaceIntake').textContent(),/What happens when I approve/);
   const names=[];
   for(let n=0;n<3;n++){
    await page.locator('#workspaceIntake [data-intake-next]').waitFor();names.push(await page.locator('#detailName').textContent());
@@ -77,6 +89,32 @@ const root=path.resolve(__dirname,'..');
   assert.equal(savedNote.candidateId,selectedCandidate);assert.equal(savedNote.candidate,'Taylor Example');assert.equal(savedNote.jobId,'qa');
   assert.equal(savedNote.text,'Personally owned the regression test plan.');
   assert.equal(await candidateSelect.inputValue(),selectedCandidate,'background interpretation preserves selection');
+  const beforeReviewScores=await page.evaluate(()=>window.testState.candidates.map(c=>({id:c.id,jd:c.jdScore,manager:c.managerScore,stage:c.stage})));
+  await page.evaluate(()=>window.feedbackReviewFail=true);
+  await page.locator('#feedbackList [data-accept-interpretation]').click();
+  await page.locator('#feedbackList .rf-review-status').filter({hasText:'did not save'}).waitFor();
+  assert.equal(await page.evaluate(()=>window.testState.feedback[0].interpretation.reviewStatus),undefined);
+  assert.equal(await page.locator('#feedbackList [data-accept-interpretation]').isDisabled(),false);
+  await page.evaluate(()=>window.feedbackReviewFail=false);
+  await page.locator('#feedbackList [data-accept-interpretation]').click();
+  await page.waitForFunction(()=>window.testState.feedback[0].interpretation.reviewStatus==='accepted');
+  assert.equal(await page.locator('#feedbackList [data-accept-interpretation]').isDisabled(),true);
+  assert.deepEqual(await page.evaluate(()=>window.testState.candidates.map(c=>({id:c.id,jd:c.jdScore,manager:c.managerScore,stage:c.stage}))),beforeReviewScores);
+  assert.equal(await page.evaluate(()=>window.testState.feedback[0].text),'Personally owned the regression test plan.');
+  assert.equal(await page.evaluate(()=>window.testGuidance.tips.feedback),'completed');
+  await page.locator('#feedbackList summary').filter({hasText:'Correct interpretation'}).click();
+  await page.locator('#feedbackList textarea').fill('Owned test planning. Automation ownership still needs verification.');
+  await page.locator('#feedbackList [data-correct-interpretation]').click();
+  await page.waitForFunction(()=>window.testState.feedback[0].interpretation.source==='recruiter');
+  assert.equal(await page.evaluate(()=>window.testState.feedback[0].text),'Personally owned the regression test plan.');
+  assert.match(await page.evaluate(()=>window.testState.feedback[0].interpretation.text),/Automation ownership still needs verification/);
+  assert.deepEqual(await page.evaluate(()=>window.testState.candidates.map(c=>({id:c.id,jd:c.jdScore,manager:c.managerScore,stage:c.stage}))),beforeReviewScores);
+  for(const width of [1440,390,320]){
+   await page.setViewportSize({width,height:1000});
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'guidance and interpretation controls fit '+width+'px');
+  }
+  await page.setViewportSize({width:1440,height:1000});
+  if(process.env.CAPTURE_UI)await page.screenshot({path:process.env.CAPTURE_UI+'-guidance.png',fullPage:true});
   const jobMenu=page.locator('#globalJobSelect').locator('..');
   await jobMenu.locator('.rf-select-button').click();await jobMenu.locator('.rf-select-menu').getByRole('option',{name:'Security Engineer',exact:true}).click();
   assert.equal(await candidateMenu.locator('.rf-select-button').isDisabled(),true);
