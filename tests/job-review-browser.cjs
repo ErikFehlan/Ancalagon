@@ -51,7 +51,7 @@ const dir=path.resolve(__dirname,'..');
   await page.locator('#jobAssessmentPanel > summary').focus();
   await page.keyboard.press('Enter');
   await page.locator('#jobAssessmentUpdates [data-review-candidate="candidate-a"][data-job-review="approve"]').waitFor();
-  const evidence=page.locator('[data-review-card="candidate-a"] details');
+  const evidence=page.locator('[data-review-card="candidate-a"] details').filter({has:page.locator('summary',{hasText:'Why this assessment? View evidence'})});
   await evidence.locator('summary').click();
   const approve=page.locator('[data-review-card="candidate-a"] [data-job-review="approve"]');
   await approve.focus();

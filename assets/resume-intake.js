@@ -207,7 +207,7 @@
         if(stale)html+='<p class="rf-sub">The job or feedback changed. This proposal needs updating before approval.</p>';
       }
       // Keep evidence expanded across intake status refreshes.
-      if(wrap.dataset.markup!==html||wrap.dataset.candidate!==c.id){const open=wrap.querySelector('details')?.open;wrap.innerHTML=html;wrap.dataset.markup=html;wrap.dataset.candidate=c.id;if(open&&wrap.querySelector('details'))wrap.querySelector('details').open=true;bind(wrap,c);}
+      if(wrap.dataset.markup!==html||wrap.dataset.candidate!==c.id){const expanded=wrap.dataset.candidate===c.id?[...wrap.querySelectorAll('details')].map(el=>el.open):[];wrap.innerHTML=html;wrap.dataset.markup=html;wrap.dataset.candidate=c.id;wrap.querySelectorAll('details').forEach((el,i)=>el.open=expanded[i]||false);bind(wrap,c);}
     }
     function render(){
       if(api.renderQueue){api.renderQueue();return;}
