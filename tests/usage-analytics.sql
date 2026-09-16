@@ -79,6 +79,8 @@ insert into jobs(id,workspace_id,title,description) values('00000000-0000-0000-0
 insert into candidates(id,job_id,workspace_id,name,role) values
  ('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000011','Manual','QA'),
  ('00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000011','Uploaded','Resume awaiting analysis');
+insert into candidate_assessments(workspace_id,job_id,candidate_id,assessment_type,evidence) values
+ ('00000000-0000-0000-0000-000000000011','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000033','manual_correction','{"resume_intake":{"phase":"uploading","backend":"durable-v1"}}');
 insert into candidate_documents(workspace_id,job_id,candidate_id,file_name,mime_type,file_size,storage_path,extracted_text)
  values('00000000-0000-0000-0000-000000000011','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000033','Synthetic.txt','text/plain',80,
  '00000000-0000-0000-0000-000000000011/00000000-0000-0000-0000-000000000022/00000000-0000-0000-0000-000000000033/source.txt','Synthetic Candidate performed manual testing of a fictional billing application.');
@@ -139,6 +141,8 @@ do $$declare r jsonb;u jsonb;begin
  if (r#>>'{totals,active_7d}')::int<>1 then raise exception 'Background worker marked collaborator active';end if;
  if r#>>'{event_breakdown,pattern_analysis_completed}'<>'1' then raise exception 'AI retry doubled count';end if;
 end$$;
+update auth.users set last_sign_in_at=now() where id='00000000-0000-0000-0000-000000000002';
+do $$begin if get_admin_usage_summary()#>>'{totals,active_7d}'<>'2' then raise exception 'Server-confirmed sign-in missing from active users';end if;end$$;
 -- Same browser-session UUID under different accounts means two account sessions.
 insert into app_events(workspace_id,user_id,event_type,session_id) values
  ('00000000-0000-0000-0000-000000000011','00000000-0000-0000-0000-000000000001','signed_in','00000000-0000-0000-0000-000000000061'),

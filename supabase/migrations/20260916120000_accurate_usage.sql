@@ -223,7 +223,7 @@ begin
   select user_id,workspace_id,event_type,created_at,false,session_id from public.app_events where event_type in ('signed_in','job_opened')
  ), people as (
   select u.id,jsonb_build_object('user_id',u.id,'email',u.email,'created_at',u.created_at,'last_sign_in_at',u.last_sign_in_at,
-   'last_activity',max(e.happened) filter(where not e.background),'sessions',count(distinct e.session_id),
+   'last_activity',greatest(u.last_sign_in_at,max(e.happened) filter(where not e.background)),'sessions',count(distinct e.session_id),
    'events',count(e.event_type),'jobs_created',count(*) filter(where e.event_type='job_created'),
    'candidates_added',count(*) filter(where e.event_type='candidate_added'),
    'resumes_analyzed',count(*) filter(where e.event_type='resume_analysis_completed'),
@@ -234,8 +234,8 @@ begin
  ) select jsonb_build_object(
   'generated_at',now(),'tracking_started_at',(select started_at from public.usage_tracking_state),
   'totals',jsonb_build_object('accounts',(select count(*) from auth.users),
-   'active_7d',(select count(distinct user_id) from events where not background and happened>=now()-interval '7 days'),
-   'active_30d',(select count(distinct user_id) from events where not background and happened>=now()-interval '30 days'),
+   'active_7d',(select count(*) from auth.users u where u.last_sign_in_at>=now()-interval '7 days' or exists(select from events e where e.user_id=u.id and not e.background and e.happened>=now()-interval '7 days')),
+   'active_30d',(select count(*) from auth.users u where u.last_sign_in_at>=now()-interval '30 days' or exists(select from events e where e.user_id=u.id and not e.background and e.happened>=now()-interval '30 days')),
    'sessions_30d',(select count(distinct (user_id,session_id)) from events where session_id is not null and happened>=now()-interval '30 days'),
    'events_30d',(select count(*) from events where happened>=now()-interval '30 days')),
   'users',coalesce((select jsonb_agg(user_row order by (user_row->>'last_activity') desc nulls last) from people),'[]'::jsonb),
