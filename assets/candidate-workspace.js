@@ -27,7 +27,7 @@
   function noteStatus(candidate){
     if(current!==candidate.id||!api)return;
     const state=quickNotes.entry(candidate),status=api.root.querySelector('#workspaceNoteStatus');if(!status)return;
-    status.textContent=state.status==='error'?'Not saved — '+state.error:state.status==='saving'?'Saving feedback…':state.status==='editing'?'Waiting for a pause to save…':state.savedText?(state.text.trim()?'Saved · assessment proposal prepares automatically':'Saved note kept in feedback history.'):'Saves automatically.';
+    status.textContent=state.status==='error'?'Not saved — '+state.error:state.status==='saving'?'Saving your note…':state.status==='editing'?'Your note saves when you pause…':state.savedText?(state.text.trim()?'Your note is saved · assessment prepares automatically':'Your saved note is in the history below.'):'Notes save automatically when you pause.';
     status.dataset.state=state.status;
     const retry=api.root.querySelector('#retryQuickNote');if(retry)retry.hidden=state.status!=='error';
   }
@@ -132,7 +132,7 @@
   async function beforeReview(candidate){
     if(!quickNotes?.pending(candidate.id))return true;
     const saved=await quickNotes.flush(candidate);
-    api.toast(saved?'Feedback saved. Review the updated assessment when it is ready.':'Save your feedback before approving this assessment.',saved?'info':'error');return false;
+    api.toast(saved?'Your note is saved. Review the updated assessment when it is ready.':'Save your feedback before approving this assessment.',saved?'info':'error');return false;
   }
   function leave(){const candidate=currentCandidate;if(candidate)void quickNotes.flush(candidate);}
   const methods={init:options=>{api=options;quickNotes=global.AncalagonQuickNotes.create({id:api.noteId,valid:api.validCandidate,save:api.saveNote,changed:noteStatus});},leave,beforeReview,flushNotes:()=>quickNotes?.flushAll(),hasPendingNotes:id=>quickNotes?.pending(id),render,refreshFeedback,refreshEvaluation,refreshIntake,hasDrafts:pending,copy,summary,displayName,evidenceFor};

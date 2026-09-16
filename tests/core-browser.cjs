@@ -45,7 +45,7 @@ const root=path.resolve(__dirname,'..');
   // The request is idempotent: use the saved cloud task rather than a new one.
   await page.evaluate(()=>{window.coreTasks=window.coreRestoredTasks;});
   await page.waitForFunction(()=>window.coreState.candidates[0]?.resumeIntake.phase==='ready');
-  assert.match(await page.locator('#workspaceIntake').textContent(),/Awaiting your review/);assert.equal(await page.evaluate(()=>window.coreState.candidates[0].managerScore),0);
+  assert.match(await page.locator('#workspaceIntake').textContent(),/Ready for your review/);assert.equal(await page.evaluate(()=>window.coreState.candidates[0].managerScore),0);
   await page.evaluate(()=>window.coreFailApproval=true);await page.locator('#workspaceIntake [data-intake-approve]').click();
   await page.waitForFunction(()=>document.body.textContent.includes('Simulated stale revision'));assert.equal(await page.evaluate(()=>window.coreState.candidates[0].managerScore),0);
   await page.evaluate(()=>window.coreFailApproval=false);await page.locator('#workspaceIntake [data-intake-approve]').click();
