@@ -8,6 +8,7 @@ const root=path.resolve(__dirname,'..');
   page.on('pageerror',e=>errors.push(e.message));await page.route('https://**',r=>r.abort());
   await page.route('**/assets/auth.js*',r=>r.fulfill({contentType:'application/javascript',body:"document.body.classList.remove('rf-auth-pending');document.getElementById('authGate').style.display='none';"}));
   await page.route('**/assets/data.js*',r=>r.fulfill({contentType:'application/javascript',body:''}));
+  await page.route('**/functions/v1/**',r=>r.fulfill({json:{summary:'Manual regression ownership recorded.',clarification_question:null}}));
   await page.addInitScript(()=>{
    const clone=x=>JSON.parse(JSON.stringify(x));
    const job=(id,title)=>({id,title,description:'Manual regression testing',criteria:[],weights:[],knockouts:[],status:'active',createdAt:1,updatedAt:1});
@@ -51,6 +52,47 @@ const root=path.resolve(__dirname,'..');
    await page.waitForFunction(n=>window.testState.candidates.filter(c=>c.aiReview).length===n,n+1);
   }
   await page.locator('#page-candidates.active').waitFor();assert.equal(new Set(names).size,3);
+  // Open manager feedback directly after uploading; no reload or job switch may
+  // be needed to populate the visible custom dropdown.
+  await page.locator('#feedbackNav > summary').click();
+  await page.locator('.rf-nav [data-page="feedback"]').click();
+  const candidateSelect=page.locator('#feedbackCandidate'),candidateMenu=candidateSelect.locator('..');
+  await candidateMenu.locator('.rf-select-button').click();
+  assert.deepEqual(await candidateMenu.locator('.rf-select-option').allTextContents(),['Alex Example','Sam Example','Taylor Example']);
+  await candidateMenu.getByRole('option',{name:'Taylor Example',exact:true}).click();
+  const selectedCandidate=await candidateSelect.inputValue();
+  await page.locator('#feedbackText').fill('Personally owned the regression test plan.');
+  // A resume can finish saving and processing while the recruiter is writing.
+  // Its new name must appear without changing the chosen candidate or note.
+  await page.locator('#resumeUpload').setInputFiles(resume('Jordan Example','New resume.txt'));
+  await page.waitForFunction(()=>window.testState.candidates.length===4&&window.testState.candidates.every(c=>c.resumeIntake.phase==='ready'));
+  await page.waitForFunction(()=>[...document.querySelector('#feedbackCandidate').options].some(o=>o.textContent==='Jordan Example'));
+  assert.equal(await page.locator('#page-feedback.active').count(),1);
+  assert.equal(await candidateSelect.inputValue(),selectedCandidate);
+  assert.equal(await candidateMenu.locator('.rf-select-button').textContent(),'Taylor Example');
+  assert.equal(await page.locator('#feedbackText').inputValue(),'Personally owned the regression test plan.');
+  await page.locator('#feedbackSubmitBtn').click();
+  await page.waitForFunction(()=>window.testState.feedback[0]?.interpretation);
+  const savedNote=await page.evaluate(()=>window.testState.feedback[0]);
+  assert.equal(savedNote.candidateId,selectedCandidate);assert.equal(savedNote.candidate,'Taylor Example');assert.equal(savedNote.jobId,'qa');
+  assert.equal(savedNote.text,'Personally owned the regression test plan.');
+  assert.equal(await candidateSelect.inputValue(),selectedCandidate,'background interpretation preserves selection');
+  const jobMenu=page.locator('#globalJobSelect').locator('..');
+  await jobMenu.locator('.rf-select-button').click();await jobMenu.getByRole('option',{name:'Security Engineer',exact:true}).click();
+  assert.equal(await candidateMenu.locator('.rf-select-button').isDisabled(),true);
+  assert.match(await candidateMenu.locator('.rf-select-button').textContent(),/No candidates in this job/);
+  assert.equal(await page.locator('#feedbackSubmitBtn').isDisabled(),true);
+  assert.equal(await page.locator('#feedbackList .rf-feeditem').count(),0,'another job cannot show QA feedback');
+  await jobMenu.locator('.rf-select-button').click();await jobMenu.getByRole('option',{name:'QA Analyst',exact:true}).click();
+  assert.equal(await page.locator('#feedbackSubmitBtn').isDisabled(),false);
+  await candidateMenu.locator('.rf-select-button').click();
+  await candidateMenu.locator('.rf-select-button').press('Home');await candidateMenu.locator('.rf-select-button').press('ArrowDown');await candidateMenu.locator('.rf-select-button').press('Enter');
+  assert.equal(await candidateMenu.locator('.rf-select-button').textContent(),'Sam Example','keyboard selection works after switching jobs');
+  const samId=await candidateSelect.inputValue();
+  await page.locator('#feedbackText').fill('Explained defect triage clearly.');await page.locator('#feedbackSubmitBtn').click();
+  await page.waitForFunction(()=>window.testState.feedback.length===2&&window.testState.feedback.every(f=>f.interpretation));
+  assert.equal(await page.evaluate(()=>window.testState.feedback[1].candidateId),samId);
+  assert.equal(await page.evaluate(()=>window.testState.feedback[1].jobId),'qa');
   await page.locator('.rf-nav [data-page="jobs"]').click();
   await page.locator('[data-close-job="qa"]').evaluate(e=>e.closest('details').open=true);await page.locator('[data-close-job="qa"]').click();
   await page.locator('#closeJobForm button[type=submit]').click();
@@ -59,9 +101,9 @@ const root=path.resolve(__dirname,'..');
   await page.locator('#jobSearch').fill('security');assert.equal(await page.locator('[data-activate-job]').count(),0);await page.locator('#jobSearch').fill('QA');
   await page.locator('[data-reopen-job="qa"]').evaluate(e=>e.closest('details').open=true);await page.locator('[data-reopen-job="qa"]').click();
   await page.locator('[data-job-filter="active"]').click();await page.locator('#jobSearch').fill('');
-  assert.equal(await page.locator('[data-activate-job]').count(),2);assert.equal(await page.evaluate(()=>window.testState.candidates.length),3);
+  assert.equal(await page.locator('[data-activate-job]').count(),2);assert.equal(await page.evaluate(()=>window.testState.candidates.length),4);
   await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
   if(process.env.CAPTURE_UI)await page.screenshot({path:process.env.CAPTURE_UI+'-jobs-mobile.png',fullPage:true});
-  assert.deepEqual(errors,[]);console.log('PASS: bulk intake, duplicate protection, failed-file retry, three approvals in sequence, job filters, close/reopen preservation, mobile layout.');
+  assert.deepEqual(errors,[]);console.log('PASS: bulk intake, duplicate protection, failed-file retry, three approvals, manager feedback candidate selection after upload, background updates, correct saved candidate, empty jobs, keyboard selection, job isolation, close/reopen preservation, mobile layout.');
  }finally{if(browser)await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
