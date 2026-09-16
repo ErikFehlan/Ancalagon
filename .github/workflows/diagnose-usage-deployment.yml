@@ -1,4 +1,4 @@
-name: Diagnose approved usage deployment
+name: Recover approved analytics deployment
 on:
   push:
     branches: [diagnostics/usage-deployment]
@@ -11,7 +11,7 @@ jobs:
     concurrency:
       group: criteria-backend-deploy
       cancel-in-progress: false
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
@@ -20,5 +20,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Check for an unfinished approved migration (read only, aggregate only)
+      - name: Verify retained usage records
+        run: node scripts/usage-analytics-backend.mjs verify
+      - name: Recover the unavailable API and verify readiness
         run: node scripts/usage-lock-diagnostics.mjs
+      - name: Verify account isolation and background intake
+        run: node scripts/core-live-smoke.mjs
