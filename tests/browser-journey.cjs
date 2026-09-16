@@ -32,7 +32,7 @@ await page.evaluate(()=>window.releaseFlush());
 await page.waitForFunction(()=>window.testSaved.feedback[0].interpretation);
 assert.equal(await page.evaluate(()=>window.testSaved.feedback[0].outcome),'Neutral / no signal');
 assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].managerScore),8.5);
-await page.locator('#feedbackList .rf-feedback-interpretation summary').click();
+await page.locator('#feedbackList .rf-feedback-interpretation summary').filter({hasText:'Correct interpretation'}).click();
 await page.locator('#feedbackList [aria-label="Correct interpretation"]').fill('Clarify which production systems they owned personally.');
 await page.locator('#feedbackList [data-correct-interpretation]').click();
 assert.equal(await page.evaluate(()=>window.testSaved.feedback[0].interpretation.source),'recruiter');

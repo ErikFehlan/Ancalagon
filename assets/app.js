@@ -435,6 +435,7 @@
       }
       async function prepareAssessmentReview(candidate){
         if(!await window.AncalagonWorkspace.beforeReview(candidate))return false;
+        if(feedback.some(f=>f.candidateId===candidate.id&&f.jobId===candidate.jobId&&feedbackReviews.has(f.id))){showToast('Your interpretation review is still saving. Try approval once it is saved.');return false;}
         if([...feedbackInterpretations.values()].some(t=>t.item?.candidateId===candidate.id&&t.item?.jobId===candidate.jobId&&feedback.includes(t.item))){showToast('Feedback is still being interpreted. Review the updated assessment when it is ready.');return false;}
         return true;
       }
