@@ -29,6 +29,7 @@ jobs:
       - name: Validate JavaScript
         run: |
           node --check assets/app.js
+          node --check assets/guidance.js
           node --check assets/settings.js
           node --check assets/settings-ui.js
           node --check assets/admin-tools.js
@@ -71,7 +72,7 @@ jobs:
           node tests/home-browser.cjs
           CAPTURE_UI=test-results/focus node tests/focus-browser.cjs
           node tests/core-browser.cjs
-          node tests/recruiter-browser.cjs
+          CAPTURE_UI=test-results/recruiter node tests/recruiter-browser.cjs
           node tests/tutorial-browser.cjs
           node tests/admin-tools-browser.cjs
 
@@ -84,6 +85,7 @@ jobs:
             test-results/tutorial-*.png
             test-results/focus-*.png
             test-results/landing-*.png
+            test-results/recruiter-*.png
           if-no-files-found: ignore
 
   prepare-home:

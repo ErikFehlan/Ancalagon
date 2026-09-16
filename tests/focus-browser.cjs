@@ -49,7 +49,7 @@ const dir=path.resolve(__dirname,'..');
   assert.equal(after.value,editor.value);assert.equal(after.start,7);assert.equal(after.end,12);assert.equal(after.focused,true);assert.ok(Math.abs(after.top-editor.top)<5,'processing updates do not move the note editor: '+JSON.stringify({editor,after}));
   await page.evaluate(()=>{window.fixture.candidates[0].feedbackEvaluation=null;window.AncalagonWorkspace.refreshEvaluation();});
   // Correction text survives a changed interpretation arriving while the editor is focused.
-  await page.evaluate(()=>window.AncalagonWorkspace.flushNotes());await page.waitForTimeout(300);if(!await page.locator('.rf-feedback-history').evaluate(e=>e.open))await page.locator('.rf-feedback-history > summary').click();await page.locator('#workspaceFeedback .rf-feedback-interpretation details > summary').last().click();
+  await page.evaluate(()=>window.AncalagonWorkspace.flushNotes());await page.waitForTimeout(300);if(!await page.locator('.rf-feedback-history').evaluate(e=>e.open))await page.locator('.rf-feedback-history > summary').click();await page.locator('#workspaceFeedback .rf-feedback-interpretation details > summary').filter({hasText:'Correct interpretation'}).last().click();
   const correction=page.locator('#workspaceFeedback textarea').last();await correction.fill('My unfinished clarification');
   await page.evaluate(()=>{window.fixture.feedback[0].interpretation.text='A new interpretation arrived';window.AncalagonWorkspace.refreshFeedback();});
   assert.equal(await correction.inputValue(),'My unfinished clarification');assert.equal(await correction.evaluate(e=>document.activeElement===e),true);
