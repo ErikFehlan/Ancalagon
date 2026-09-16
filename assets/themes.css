@@ -85,7 +85,7 @@
 #rf-app[data-theme] .rf-nav button:hover {background:var(--ui-soft); color:var(--ui-text); transform:none;}
 #rf-app[data-theme] .rf-nav button.active {background:var(--ui-soft); color:var(--ui-text); border-color:transparent; border-left-color:var(--ui-accent); box-shadow:none;}
 /* Change foreground and background together when switching between dark and light. */
-#rf-app[data-theme] :is(.rf-btn,.rf-select-button) {background:var(--ui-panel); color:var(--ui-text); border-color:var(--ui-control-line); border-radius:10px; font-family:inherit; font-weight:600; transition:background-color .14s ease,color .14s ease,border-color .14s ease,box-shadow .14s ease;}
+#rf-app[data-theme] :is(.rf-btn,.rf-select-button) {background:var(--ui-panel); color:var(--ui-text); border-color:var(--ui-control-line); border-radius:10px; font-family:inherit; font-weight:600; transition:border-color .14s ease,box-shadow .14s ease;}
 #rf-app[data-theme] .rf-btn:hover:not(:disabled) {background:var(--ui-soft); border-color:var(--ui-accent); transform:none;}
 #rf-app[data-theme] .rf-btn.primary {background:var(--ui-accent); color:var(--ui-on-accent); border-color:var(--ui-accent);}
 #rf-app[data-theme] .rf-btn.primary:hover:not(:disabled) {background:var(--ui-accent); filter:none; box-shadow:0 0 0 3px color-mix(in srgb,var(--ui-accent) 18%,transparent);}
@@ -125,7 +125,8 @@
 #rf-app[data-theme] :is(.rf-evidence-status.missing,.rf-evidence-status.knockout,.rf-reevaluation-score .down) {color:var(--rf-red);}
 #rf-app[data-theme] :is(.rf-evidence-status.partial,.rf-evidence-status.clear) {color:var(--ui-muted);}
 #rf-app[data-theme] :is(button,input,textarea,select,summary,a):focus-visible {outline:2px solid var(--ui-accent); outline-offset:3px;}
-/* Typography and finishes change without changing spacing or page geometry. */
+/* Typography and finishes change without changing spacing or page geometry.
+   Theme foregrounds and backgrounds switch together; only outlines and shadows ease. */
 #rf-app[data-theme] :is(.rf-kicker,.rf-panel-meta,.rf-navgroup-label,.rf-globaljob label,.rf-confidence-dots+span,.rf-table th,.rf-top-table th,.rf-stage h4,.rf-bench h4,.rf-compare-field label,.rf-compare-label,.rf-home-eyebrow,.rf-home-kicker) {font-family:inherit; letter-spacing:.01em; text-transform:none; font-weight:600;}
 #rf-app[data-theme] :is(.rf-card h3,.rf-sectiontitle h2,.rf-top h1) {font-weight:650;}
 #rf-app[data-theme] :is(.rf-score,.rf-value,.rf-scorebox,.rf-score-ring strong) {font-family:inherit; font-weight:650; font-variant-numeric:tabular-nums; text-shadow:none;}
@@ -133,7 +134,7 @@
 #rf-app[data-theme] :is(.rf-icon,.rf-empty-icon,.rf-job-choice-icon) {border-radius:10px; border-color:var(--ui-panel-line); box-shadow:none;}
 #rf-app[data-theme] :is(.rf-pill,.rf-tag) {font-weight:600;}
 #rf-app[data-theme] .rf-ui-icon {width:18px; height:18px; vertical-align:middle; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; pointer-events:none;}
-#rf-app[data-theme] :is(.rf-linkbtn,.rf-nav button,.rf-select-option,.rf-theme-option) {transition:background-color .14s ease,color .14s ease,border-color .14s ease;}
+#rf-app[data-theme] :is(.rf-linkbtn,.rf-nav button,.rf-select-option,.rf-theme-option) {transition:border-color .14s ease;}
 #rf-app[data-theme] .rf-linkbtn:hover:not(:disabled) {text-decoration:underline; text-underline-offset:3px;}
 #rf-app[data-theme] .rf-brand {border-color:var(--ui-panel-line);}
 #rf-app[data-theme] .rf-brand span {color:var(--ui-muted); letter-spacing:.025em;}
