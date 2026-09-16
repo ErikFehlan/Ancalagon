@@ -36,6 +36,7 @@ jobs:
           psql -h localhost -U postgres -d core_intake -f tests/core-intake.sql
           createdb -h localhost -U postgres usage_analytics
           psql -h localhost -U postgres -d usage_analytics -f tests/usage-analytics.sql
+          node tests/usage-migration-contention.mjs
   deploy:
     needs: validate
     if: github.ref == 'refs/heads/main'
