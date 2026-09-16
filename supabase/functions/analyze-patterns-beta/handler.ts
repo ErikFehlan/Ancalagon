@@ -84,7 +84,7 @@ export async function handleAuthenticatedAnalysis(request: Request) {
     } catch { /* Registry unavailable: keep the existing base model usable. */ }
   }
   let response = await handleAnalysis(request.clone(), {feedbackModel});
-  if (feedbackModel && response.status >= 500) response = await handleAnalysis(request);
+  if (feedbackModel && !response.ok) response = await handleAnalysis(request);
 
   const telemetry = started.then(() => recordUsage(response.ok ? "succeeded" : "failed"));
   const runtime = (globalThis as typeof globalThis & { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;

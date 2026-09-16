@@ -212,7 +212,8 @@ ANALYSIS RULES
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      signal: AbortSignal.timeout(55000),
+      // Leave enough of the browser timeout for one base-model fallback.
+      signal: AbortSignal.timeout(isFeedback && options.feedbackModel ? 15000 : 55000),
       body: JSON.stringify({
         model: isFeedback ? (options.feedbackModel || feedbackBaseModel) : (Deno.env.get("OPENAI_MODEL") || "gpt-4.1-mini"),
         ...(isFeedback ? { max_output_tokens: 700 } : autoIntake ? {max_output_tokens:attempt?3200:2500} : {}),
