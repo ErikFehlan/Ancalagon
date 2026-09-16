@@ -49,6 +49,7 @@ insert into app_events(workspace_id,user_id,event_type,session_id)
  select '00000000-0000-0000-0000-000000000011',auth.uid(),t,gen_random_uuid()
  from unnest(array['job_created','candidate_added','resume_analyzed','hybrid_analysis_run']) t;
 \ir ../supabase/migrations/20260916120000_accurate_usage.sql
+select activate_confirmed_usage();
 create temp table first_install as select count(*) n from product_usage_events;
 \ir ../supabase/migrations/20260916120000_accurate_usage.sql
 do $$declare r jsonb;u jsonb;begin

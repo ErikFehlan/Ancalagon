@@ -147,10 +147,18 @@ end$$;
 -- retries. Only the authenticated Edge Function may write AI completion records.
 alter table public.ai_usage_events add column if not exists request_id uuid;
 create unique index if not exists ai_usage_request_status on public.ai_usage_events(request_id,status);
-drop policy if exists usage_insert_own on public.ai_usage_events;
-revoke insert,update,delete on public.ai_usage_events from authenticated,anon;
 grant all on public.ai_usage_events to service_role;
 grant usage,select on sequence public.ai_usage_events_id_seq to service_role;
+-- Retain compatibility with in-flight older handlers until the service-writing
+-- handlers have deployed. Activation closes the old client-write permission.
+create or replace function public.activate_confirmed_usage() returns void
+language plpgsql security definer set search_path='' as $$
+begin
+ drop policy if exists usage_insert_own on public.ai_usage_events;
+ revoke insert,update,delete on public.ai_usage_events from authenticated,anon;
+end$$;
+revoke all on function public.activate_confirmed_usage() from public,anon,authenticated;
+grant execute on function public.activate_confirmed_usage() to service_role;
 create or replace function public.record_direct_ai_usage() returns trigger
 language plpgsql security definer set search_path='' as $$
 declare kind text;

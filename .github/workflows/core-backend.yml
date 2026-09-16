@@ -68,6 +68,7 @@ jobs:
           supabase functions deploy analyze-patterns-beta --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy reassess-job --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy account-controls --project-ref "$SUPABASE_PROJECT_REF"
+          node scripts/usage-analytics-backend.mjs activate
       - name: Verify worker transport and activate scheduler
         run: node scripts/job-reassessment-backend.mjs activate
       - name: Verify live account and document isolation

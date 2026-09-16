@@ -42,7 +42,7 @@
       function showToast(message,type='success'){const region=root.querySelector('#toastRegion'),toast=document.createElement('div');toast.className='rf-toast '+type;toast.textContent=message;region.appendChild(toast);setTimeout(()=>{toast.style.opacity='0';toast.style.transform='translateY(8px)';setTimeout(()=>toast.remove(),220)},3200)}
       function trackProductEvent(eventType,jobId=activeJobId,metadata={}){if(!dataService)return;dataService.trackEvent(eventType,{jobId,sessionId:analyticsSessionId,metadata}).catch(error=>console.warn('Analytics event failed',error))}
       function usageDate(value){return value?personalDate(value):'No activity yet'}
-      function usageLabel(value){return String(value||'').replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase())}
+      function usageLabel(value){return ({signed_in:'Workspace opened',screening_analysis_completed:'Screening / feedback AI completed',screening_analysis_failed:'Screening / feedback AI failed'})[value]||String(value||'').replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase())}
       function setAdminAccess(allowed){
         adminAccess=allowed===true;adminTools.setAllowed(adminAccess);
         root.querySelector('#adminToolsNav').hidden=!adminAccess;
