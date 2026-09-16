@@ -74,3 +74,4 @@ jobs:
         run: |
           createdb -h localhost -U postgres usage_analytics
           psql -h localhost -U postgres -d usage_analytics -f tests/usage-analytics.sql
+          node tests/usage-migration-contention.mjs

@@ -1,4 +1,5 @@
 import {readFile} from 'node:fs/promises';
+import {runUsageQuery} from './usage-deploy-query.mjs';
 const token=process.env.SUPABASE_ACCESS_TOKEN?.trim(),ref=process.env.SUPABASE_PROJECT_REF?.trim();
 if(!token||!/^[a-z0-9]{20}$/.test(ref||''))throw Error('Configure the existing criteria-backend environment.');
 const mode=process.argv[2]||'prepare',verify=mode==='verify';
@@ -15,9 +16,6 @@ with saved as (
 ) select (select count(*) from saved s where not exists(select from public.product_usage_events e where e.source_key=s.k)) as missing_saved,
  (select count(*) from completed s where not exists(select from public.product_usage_events e where e.source_key=s.k)) as missing_completed;
 `:await readFile('supabase/migrations/20260916120000_accurate_usage.sql','utf8');
-const response=await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`,{method:'POST',
- headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
- body:JSON.stringify({query}),signal:AbortSignal.timeout(60000)});
-if(!response.ok)throw Error(`Usage migration failed (${response.status}). No query result was logged.`);
+const response=await runUsageQuery(query,{token,ref,mode});
 if(verify){const rows=await response.json();if(!Array.isArray(rows)||rows.length!==1||Number(rows[0].missing_saved)!==0||Number(rows[0].missing_completed)!==0)throw Error('Usage verification found missing saved work or completed processing.');console.log('Usage coverage verified: zero missing saved records or retained completed tasks.');}
 else console.log(mode==='activate'?'Confirmed usage write permissions activated.':'Confirmed usage recording and recoverable history installed.');

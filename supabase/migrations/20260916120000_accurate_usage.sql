@@ -1,5 +1,13 @@
 -- Counts describe committed work, not form submissions or polling activity.
 begin;
+-- Take the required table locks before changing schema. If a worker or request
+-- is using one, abort immediately; the deployment runner retries the whole
+-- transaction after rollback. Do not wait while holding partial schema locks.
+set local lock_timeout='1s';
+lock table public.jobs,public.candidates,public.candidate_documents,
+ public.manager_feedback,public.screening_insights,public.interview_outcomes,
+ public.resume_intake_tasks,public.job_reassessment_tasks,public.job_criteria_tasks,
+ public.ai_usage_events,public.app_events in access exclusive mode nowait;
 create table if not exists public.product_usage_events (
  id bigint generated always as identity primary key,
  workspace_id uuid not null references public.workspaces(id) on delete cascade,
