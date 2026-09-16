@@ -46,3 +46,23 @@ test('model promotion requires better held-out results, human review, factuality
  const rerated=structuredClone(ratings);rerated[0].output_hash=hash(broken.results[0]);assert.throws(()=>evaluationMetrics(bundle,broken,rerated),/gates/);
  const modified=structuredClone(bundle);modified.examples[0].input.feedback.text='changed';assert.throws(()=>verifyBundle(modified),/changed/);
 });
+test('operator commands complete a synthetic train, evaluate, promote, rollback and cleanup cycle without network access',async()=>{
+ const {mkdtemp,writeFile,readFile,rm}=require('node:fs/promises'),{tmpdir}=require('node:os'),{join,resolve}=require('node:path'),{spawnSync}=require('node:child_process');
+ const {hash}=await lib,dir=await mkdtemp(join(tmpdir(),'learning-test-')),{state,curated}=fixture();
+ const write=(name,data)=>writeFile(join(dir,name),JSON.stringify(data));const read=async name=>JSON.parse(await readFile(join(dir,name),'utf8'));
+ const run=command=>spawnSync(process.execPath,['--import',resolve('tests/fixtures/learning-provider.mjs'),resolve('scripts/learning.mjs'),command,'--workspace',state.workspace_id,'--dir',dir],{encoding:'utf8',timeout:10000,env:{...process.env,LEARNING_TEST_DIR:dir,SUPABASE_ACCESS_TOKEN:'synthetic',SUPABASE_PROJECT_REF:'a'.repeat(20),OPENAI_API_KEY:'synthetic'}});
+ const good=command=>{const result=run(command);assert.equal(result.status,0,result.stderr);return result;};
+ try{
+  await write('state.json',state);await write('curated.json',curated);await write('calls.json',[]);
+  good('build');assert.equal((await read('calls.json')).some(x=>x.url.includes('api.openai.com')),false);
+  good('train');assert.equal((await read('run.json')).job_id,'ftjob-synthetic');
+  const duplicate=run('train');assert.equal(duplicate.status,1);assert.match(duplicate.stderr,/already exists/);
+  assert.equal((await read('calls.json')).filter(x=>x.url.endsWith('/fine_tuning/jobs')).length,1);
+  good('poll');good('evaluate');const evaluation=await read('evaluation.json');assert.equal(evaluation.results.length,15);
+  assert.equal(run('promote').status,1,'unreviewed output was promoted');
+  await write('ratings.json',evaluation.results.map(x=>({source_id:x.source_id,output_hash:hash(x),reviewer:'Reviewer',baseline_quality:3,candidate_quality:4,unsupported_claims:false,scope_safe:true})));
+  good('promote');assert.equal((await read('release.json')).metrics.test_count,15);good('rollback');good('cleanup');
+  const manifest=await read('run.json');assert.equal(manifest.status,'cleaned');assert.equal(manifest.model_deleted,true);assert.equal(manifest.deleted_files.length,2);
+  assert.equal(run('promote').status,1,'deleted model was promoted again');
+ }finally{await rm(dir,{recursive:true,force:true});}
+});

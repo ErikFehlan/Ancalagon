@@ -90,7 +90,10 @@ create trigger invalidate_changed_learning after update on public.manager_feedba
 create or replace function public.invalidate_learning_models() returns trigger
 language plpgsql security definer set search_path='' as $$
 begin
- update public.learning_model_releases set active=false,invalidated=true where old.id=any(example_ids);
+ -- Workspace cascades also delete releases. Updating them after their parent
+ -- disappeared would recheck the FK and incorrectly block account deletion.
+ if not exists(select from public.workspaces where id=old.workspace_id) then return old;end if;
+ update public.learning_model_releases set active=false,invalidated=true where workspace_id=old.workspace_id and old.id=any(example_ids);
  return old;
 end$$;
 drop trigger if exists invalidate_learning_models on public.learning_examples;

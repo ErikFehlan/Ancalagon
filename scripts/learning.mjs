@@ -7,7 +7,7 @@ import {parseArgs} from 'node:util';
 import {trainingBase,uuid,tunedModel,hash,requireThat,buildDataset,verifyBundle,currentSources,trainingJSONL,evaluationMetrics} from './learning-lib.mjs';
 import {feedbackRequest,feedbackTaskVersion} from '../supabase/functions/_shared/feedback-task.mjs';
 const {positionals,values:args}=parseArgs({allowPositionals:true,options:{workspace:{type:'string'},dir:{type:'string'},record:{type:'string'},disable:{type:'boolean'}}});
-const command=positionals[0]||'help',dir=resolve(args.dir||'.learning'),workspace=args.workspace;
+const command=positionals[0]||'help',dir=resolve(args.dir||'.learning'),workspace=args.workspace?.toLowerCase();
 const read=name=>readFile(resolve(dir,name),'utf8').then(JSON.parse);
 async function save(name,data){await mkdir(dir,{recursive:true,mode:0o700});await chmod(dir,0o700);await writeFile(resolve(dir,name),JSON.stringify(data,null,2)+'\n',{mode:0o600});await chmod(resolve(dir,name),0o600);}
 async function exists(name){try{await readFile(resolve(dir,name));return true;}catch(e){if(e.code==='ENOENT')return false;throw e;}}
