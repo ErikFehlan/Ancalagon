@@ -1,1 +1,14 @@
-# Operating system files .DS_Store Thumbs.db # Environment variables and secrets .env .env.local .env.* # Dependencies node_modules/ # Build output dist/ build/ # Editor files .vscode/ .idea/ # Logs *.log npm-debug.log*
+# Local credentials, dependencies and build output
+.DS_Store
+Thumbs.db
+.env
+.env.*
+node_modules/
+dist/
+build/
+.vscode/
+.idea/
+*.log
+# Private learning exports and model run manifests (never commit these)
+.learning/
+learning-data/

@@ -18,3 +18,17 @@ test('accepting interpretation wording preserves the original evidence signature
  assert.equal(corrected.source,'recruiter');assert.equal(corrected.reviewStatus,'corrected');assert.notEqual(signature(build(job,candidate,[{...note,interpretation:corrected}],[])),before);
  assert.throws(()=>review(corrected,'  '));assert.throws(()=>review(null));
 });
+test('review preserves immutable original model input and output for later curation',()=>{
+ const {review}=require('../assets/feedback.js');
+ const payload=buildPayload({text:'Owns test planning',jobId:'j',candidateId:'c'},{id:'j',title:'QA'},{id:'c',jobId:'j'},{sources:[{text:'Original context'}]});
+ const result=fromResult({summary:'Owned the plan.',clarification_question:null,model:'base'},payload);
+ payload.feedback.text='Edited note';payload.evaluation_context.sources[0].text='Edited context';
+ const corrected=review(result,'Owned planning, not automation.',22);
+ assert.equal(corrected.learning.input.feedback.text,'Owns test planning');
+ assert.equal(corrected.learning.input.evaluation_context.sources[0].text,'Original context');
+ assert.equal(corrected.learning.output.summary,'Owned the plan.');
+ assert.equal(corrected.text,'Owned planning, not automation.');
+ assert.equal(review(result).learning.version,'feedback-v1');
+ assert.equal(fromResult({summary:'legacy'}).learning,undefined);
+ assert.equal(fromResult({summary:'large'},{...payload,evaluation_context:{text:'x'.repeat(160001)}}).learning,undefined);
+});
