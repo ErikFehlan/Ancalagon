@@ -20,5 +20,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Retry the approved migration with schema-only error diagnostics
-        run: node scripts/usage-analytics-backend.mjs
+      - name: Check for an unfinished approved migration (read only, aggregate only)
+        run: node scripts/usage-lock-diagnostics.mjs
