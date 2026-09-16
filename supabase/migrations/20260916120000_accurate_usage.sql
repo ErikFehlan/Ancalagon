@@ -5,8 +5,9 @@ begin;
 -- transaction after rollback. Do not wait while holding partial schema locks.
 set local lock_timeout='1s';
 lock table public.jobs,public.candidates,public.candidate_documents,
- public.manager_feedback,public.screening_insights,public.interview_outcomes,
- public.resume_intake_tasks,public.job_reassessment_tasks,public.job_criteria_tasks,
+ public.manager_feedback,public.screening_insights,public.interview_outcomes
+ in share row exclusive mode nowait;
+lock table public.resume_intake_tasks,public.job_reassessment_tasks,public.job_criteria_tasks,
  public.ai_usage_events,public.app_events in access exclusive mode nowait;
 create table if not exists public.product_usage_events (
  id bigint generated always as identity primary key,
@@ -75,8 +76,7 @@ do $$declare t text;kind text;fields text;begin
   ('screening_insights','screening_updated','can_do_job,culture_working_style_fit,notes'),
   ('interview_outcomes','interview_outcome_updated','interview_stage,decision,positives,concerns,notes')) v(t,k,f)
  loop
-  execute format('drop trigger if exists record_updated_usage on public.%I',t);
-  execute format('create trigger record_updated_usage after update on public.%I for each row execute function public.record_updated_usage(%L,%L)',t,kind,fields);
+  execute format('create or replace trigger record_updated_usage after update on public.%I for each row execute function public.record_updated_usage(%L,%L)',t,kind,fields);
  end loop;
 end$$;
 revoke all on function public.record_saved_usage() from public,anon,authenticated;
@@ -85,8 +85,7 @@ do $$declare table_name text;kind text;begin
   ('jobs','job_created'),('candidates','candidate_added'),('candidate_documents','resume_uploaded'),
   ('manager_feedback','feedback_saved'),('screening_insights','screening_saved'),('interview_outcomes','interview_outcome_saved')) v(t,k)
  loop
-  execute format('drop trigger if exists record_saved_usage on public.%I',table_name);
-  execute format('create trigger record_saved_usage after insert on public.%I for each row execute function public.record_saved_usage(%L)',table_name,kind);
+  execute format('create or replace trigger record_saved_usage after insert on public.%I for each row execute function public.record_saved_usage(%L)',table_name,kind);
  end loop;
 end$$;
 
@@ -144,10 +143,8 @@ end$$;
 revoke all on function public.record_task_usage() from public,anon,authenticated;
 do $$declare t text;begin
  foreach t in array array['resume_intake_tasks','job_reassessment_tasks','job_criteria_tasks'] loop
-  execute format('drop trigger if exists identify_usage_operation on public.%I',t);
-  execute format('create trigger identify_usage_operation before insert or update on public.%I for each row execute function public.identify_usage_operation()',t);
-  execute format('drop trigger if exists record_task_usage on public.%I',t);
-  execute format('create trigger record_task_usage after insert or update of status,revision on public.%I for each row execute function public.record_task_usage()',t);
+  execute format('create or replace trigger identify_usage_operation before insert or update on public.%I for each row execute function public.identify_usage_operation()',t);
+  execute format('create or replace trigger record_task_usage after insert or update of status,revision on public.%I for each row execute function public.record_task_usage()',t);
  end loop;
 end$$;
 
@@ -178,8 +175,7 @@ begin
  return new;
 end$$;
 revoke all on function public.record_direct_ai_usage() from public,anon,authenticated;
-drop trigger if exists record_direct_ai_usage on public.ai_usage_events;
-create trigger record_direct_ai_usage after insert on public.ai_usage_events for each row execute function public.record_direct_ai_usage();
+create or replace trigger record_direct_ai_usage after insert on public.ai_usage_events for each row execute function public.record_direct_ai_usage();
 
 -- Recover only facts supported by retained records. Old click counts cannot
 -- establish whether a save succeeded, and superseded task history is unavailable.
