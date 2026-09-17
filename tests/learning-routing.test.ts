@@ -5,7 +5,7 @@ Deno.test('learning models are workspace scoped, feedback only, server selected,
  const saved=globalThis.fetch,names={OPENAI_API_KEY:'synthetic',SUPABASE_URL:'https://synthetic.invalid',SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'service'};
  const prior=Object.fromEntries(Object.keys(names).map(k=>[k,Deno.env.get(k)]));Object.entries(names).forEach(([k,v])=>Deno.env.set(k,v));
  let allowed=true,lookupFail=false,modelFail=false,lookups=0,failureStatus=200;const models:string[]=[];
- const model='ft:gpt-4.1-mini-2025-04-14:synthetic:feedback:model',base='gpt-4.1-mini-2025-04-14';
+ const model='ft:gpt-4.1-mini-2025-04-14:synthetic:feedback:model',base='gpt-5.6-sol';
  globalThis.fetch=async(url,init)=>{
   const u=String(url),body=init?.body?JSON.parse(String(init.body)):null;
   if(u.includes('/reserve_ai_budget'))return json({allowed:true});
