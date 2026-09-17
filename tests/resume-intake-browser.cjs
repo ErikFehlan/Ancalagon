@@ -67,7 +67,7 @@ const dir=path.resolve(__dirname,'..');
   assert.equal(await page.locator('#workspaceNote').inputValue(),'');
   assert.equal(await page.locator('#submissionDraft').inputValue(),'Unsaved recruiter summary');
   assert.match(await page.locator('#workspaceIntake').textContent(),/Ready for your review/);
-  assert.equal(await page.locator('#workspaceQuestions li').count(),3);
+  assert.equal(await page.locator('#workspaceQuestions li').count(),2,'show the two priority questions from a legacy assessment');
   await page.locator('#workspaceIntake details summary').filter({hasText:'Supporting resume evidence'}).click();
   assert.match(await page.locator('#workspaceIntake blockquote').textContent(),/Owned manual regression/);
   await page.locator('#workspaceIntake .rf-review-explanation > summary').click();

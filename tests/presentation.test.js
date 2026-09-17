@@ -17,7 +17,7 @@ test('brief copy removes internal references while retaining uncertainty',()=>{
  assert.match(result,/Automation ownership is unclear/);assert.doesNotMatch(result,/profile-strength|manager-calibration|Provisional/);assert.ok(p.words(result).length<=30);
 });
 test('client strengths omit entire mixed claims, rather than converting uncertainty to praise',()=>{
- const c={strengths:['Owned test planning','Owned test planning','Built API tests but maintenance ownership is unclear','May have managed releases; confirm scope','Supported manual regression — Resume: “Private source”','No direct automation experience']};
+ const c={strengths:['Owned test planning','Owned test planning','Built API tests but maintenance ownership is unclear','May have managed releases; confirm scope','Supported manual regression — Resume: “Private source”','No direct automation experience','May have led security improvements']};
  const before=JSON.stringify(c),points=p.sellingPoints(c);
  assert.deepEqual(points,['Owned test planning','Supported manual regression']);assert.equal(JSON.stringify(c),before);
 });

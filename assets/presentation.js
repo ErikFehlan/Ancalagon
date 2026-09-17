@@ -51,7 +51,7 @@
     const seen=new Set();
     return (candidate.strengths||[]).map(evidence).map(e=>clean(e.claim)).filter(claim=>{
       const key=claim.toLowerCase();
-      if(!claim||seen.has(key)||caution.test(claim)||/\b(?:confirm|verify|concern|gap|needs? clarification)\b/i.test(claim))return false;
+      if(!claim||seen.has(key)||caution.test(claim)||/\b(?:confirm|verify|concern|gap|needs? clarification|may|might|could|potentially|possibly|appears|seems|suggests)\b/i.test(claim))return false;
       seen.add(key);return true;
     }).map(claim=>segments(claim)[0]).filter(claim=>words(claim).length<=26).slice(0,5);
   }
