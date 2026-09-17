@@ -406,7 +406,7 @@
         try{
           const result=await callHybrid(payload,'Feedback interpretation');
           if(!feedback.includes(item)||signature!==window.AncalagonContext.signature(evaluationContext(candidate,job)))return;
-          const interpretation=window.AncalagonFeedback.fromResult(result);
+          const interpretation=window.AncalagonFeedback.fromResult(result,payload);
           item.interpretation=interpretation;item.updatedAt=Date.now();token.phase='saving';
           dataService.markPending?.(stateSnapshot());if(activeJobId===item.jobId)renderFeedback();
           const saveError=await saved;if(saveError)throw saveError;

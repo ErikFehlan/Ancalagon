@@ -26,7 +26,7 @@ jobs:
         run: |
           node --test tests/*.test.js
           deno check supabase/functions/account-controls/index.ts supabase/functions/reassess-job/index.ts supabase/functions/analyze-patterns-beta/index.ts supabase/functions/analyze-patterns-v2/index.ts
-          deno test --allow-env tests/account-controls.test.ts tests/analysis-latency.test.ts tests/resume-intake-backend.test.ts tests/job-reassessment-worker.test.ts
+          deno test --allow-env tests/learning-routing.test.ts tests/account-controls.test.ts tests/analysis-latency.test.ts tests/resume-intake-backend.test.ts tests/job-reassessment-worker.test.ts
       - name: Check database transactions and permissions
         env:
           PGPASSWORD: postgres
@@ -37,6 +37,8 @@ jobs:
           createdb -h localhost -U postgres usage_analytics
           psql -h localhost -U postgres -d usage_analytics -f tests/usage-analytics.sql
           node tests/usage-migration-contention.mjs
+          createdb -h localhost -U postgres feedback_learning
+          psql -h localhost -U postgres -d feedback_learning -f tests/learning.sql
   deploy:
     needs: validate
     if: github.ref == 'refs/heads/main'
@@ -63,6 +65,7 @@ jobs:
           node scripts/core-backend.mjs
           node scripts/account-controls-backend.mjs
           node scripts/usage-analytics-backend.mjs
+          node scripts/learning-backend.mjs
       - name: Deploy authenticated analysis and durable worker
         run: |
           supabase functions deploy analyze-patterns-v2 --project-ref "$SUPABASE_PROJECT_REF"

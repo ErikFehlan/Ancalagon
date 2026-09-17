@@ -7,10 +7,17 @@
       feedback:{text:note.text,type:note.type||'General note',outcome:note.outcome||'Neutral / no signal'}
     }));
   }
-  function fromResult(result){
+  function fromResult(result,request=null){
     if(typeof result?.summary!=='string'||!result.summary.trim())throw Error('No interpretation returned');
     const question=typeof result.clarification_question==='string'?result.clarification_question.trim():'';
-    return {text:(result.summary.trim()+(question?'\n\n'+question:'')).slice(0,2000),source:'ai',model:result.model||null,updatedAt:Date.now()};
+    const interpretation={text:(result.summary.trim()+(question?'\n\n'+question:'')).slice(0,2000),source:'ai',model:result.model||null,updatedAt:Date.now()};
+    // A future review needs the original input and output, not today's edited job.
+    // These private snapshots are only training candidates; review is not consent.
+    if(request?.analysis_type==='feedback'&&JSON.stringify(request).length<=160000){
+      interpretation.learning={version:'feedback-v1',input:JSON.parse(JSON.stringify(request)),
+        output:{summary:result.summary.trim(),clarification_question:question||null}};
+    }
+    return interpretation;
   }
   function review(interpretation,correction=null,now=Date.now()){
     if(!interpretation?.text)throw Error('Wait for an interpretation before reviewing it.');

@@ -24,7 +24,7 @@ jobs:
       - name: Check worker types
         run: deno check supabase/functions/account-controls/index.ts supabase/functions/refine-job-criteria/index.ts supabase/functions/analyze-patterns-beta/index.ts supabase/functions/reassess-job/index.ts
       - name: Test focused feedback and authentication
-        run: deno test --allow-env tests/account-controls.test.ts tests/analysis-latency.test.ts tests/job-reassessment-worker.test.ts tests/resume-intake-backend.test.ts
+        run: deno test --allow-env tests/learning-routing.test.ts tests/account-controls.test.ts tests/analysis-latency.test.ts tests/job-reassessment-worker.test.ts tests/resume-intake-backend.test.ts
       - name: Test queue transactions and permissions
         env:
           PGPASSWORD: postgres
@@ -75,3 +75,10 @@ jobs:
           createdb -h localhost -U postgres usage_analytics
           psql -h localhost -U postgres -d usage_analytics -f tests/usage-analytics.sql
           node tests/usage-migration-contention.mjs
+
+      - name: Test learning capture, model gates, and workspace isolation
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres feedback_learning
+          psql -h localhost -U postgres -d feedback_learning -f tests/learning.sql

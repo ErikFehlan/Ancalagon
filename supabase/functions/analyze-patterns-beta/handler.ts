@@ -70,7 +70,22 @@ export async function handleAuthenticatedAnalysis(request: Request) {
   };
 
   const started = recordUsage("started");
-  const response = await handleAnalysis(request);
+  // Resolve only after authentication, with the caller's workspace-scoped JWT.
+  // No cache: permission withdrawal and source deletion take effect next request.
+  let feedbackModel: string | undefined;
+  if (payload.analysis_type === "feedback") {
+    try {
+      const lookup = await fetch(`${supabaseUrl}/rest/v1/rpc/get_feedback_learning_model`, {
+        method: "POST", headers: {...headers, "Content-Type":"application/json"},
+        body: JSON.stringify({p_workspace:workspaceId}), signal:AbortSignal.timeout(1500),
+      });
+      const model = lookup.ok ? await lookup.json() : null;
+      if (typeof model === "string" && /^ft:gpt-4\.1-mini-2025-04-14:[a-zA-Z0-9:_-]+$/.test(model)) feedbackModel = model;
+    } catch { /* Registry unavailable: keep the existing base model usable. */ }
+  }
+  let response = await handleAnalysis(request.clone(), {feedbackModel});
+  if (feedbackModel && !response.ok) response = await handleAnalysis(request);
+
   const telemetry = started.then(() => recordUsage(response.ok ? "succeeded" : "failed"));
   const runtime = (globalThis as typeof globalThis & { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
   if (runtime) runtime.waitUntil(telemetry);

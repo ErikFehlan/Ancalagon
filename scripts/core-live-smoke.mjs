@@ -34,9 +34,35 @@ try{
  const path=`${owner.workspace}/${job}/${candidate}/synthetic.txt`;owner.paths.push(path);
  const uploaded=await fetch(base+'/storage/v1/object/resumes/'+path,{method:'POST',headers:{apikey:anon,Authorization:`Bearer ${owner.access}`,'Content-Type':'text/plain'},body:text,signal:AbortSignal.timeout(20000)});
  assert.ok(uploaded.ok,'Owner document upload failed');
+ await req('/rest/v1/manager_feedback',owner.access,'POST',{id:note,workspace_id:owner.workspace,job_id:job,candidate_id:candidate,feedback_type:'General note',feedback_text:'Synthetic note: verify personal ownership.',created_by:owner.id});
+
+ // Verify learning on disposable evidence, without training or provider upload.
+ const interpretation={text:'Synthetic ownership needs clarification.',source:'ai',reviewStatus:'pending',model:'synthetic',learning:{
+  version:'feedback-v1',input:{candidate_ref:candidate,job:{title:'Synthetic core QA'},feedback:{text:'Synthetic note: verify personal ownership.',type:'General note',outcome:'Neutral / no signal'}},
+  output:{summary:'Synthetic ownership needs clarification.',clarification_question:null}}};
+ const evidence={feedback_id:note,interpretation};
+ const assessment=await req('/rest/v1/candidate_assessments',owner.access,'POST',{workspace_id:owner.workspace,job_id:job,candidate_id:candidate,assessment_type:'manager_feedback',evidence,created_by:owner.id});
+ const assessmentPath='/rest/v1/candidate_assessments?id=eq.'+assessment.data[0].id;
+ const examplePath='/rest/v1/learning_examples?feedback_id=eq.'+note;
+ assert.equal((await req(examplePath,owner.access)).data.length,0,'Unreviewed output became a learning example');
+ interpretation.reviewStatus='accepted';
+ await req(assessmentPath,owner.access,'PATCH',{evidence});
+ const captured=(await req(examplePath,owner.access)).data;
+ assert.equal(captured.length,1,'Accepted feedback was not captured');
+ assert.equal(captured[0].review_kind,'accepted');assert.equal(captured[0].workspace_id,owner.workspace);
+ await req(assessmentPath,owner.access,'PATCH',{evidence});
+ assert.equal((await req(examplePath,owner.access)).data[0].id,captured[0].id,'Repeated save duplicated the example');
+ interpretation.reviewStatus='corrected';interpretation.source='recruiter';interpretation.text='Synthetic correction: personal ownership is still unverified.';
+ await req(assessmentPath,owner.access,'PATCH',{evidence});
+ const corrected=(await req(examplePath,owner.access)).data;
+ assert.equal(corrected.length,1);assert.equal(corrected[0].review_kind,'corrected');assert.equal(corrected[0].reviewed_text,interpretation.text);
+ assert.equal((await req(examplePath,other.access)).data.length,0,'Learning example crossed workspaces');
+ assert.equal((await req('/rest/v1/learning_permissions?workspace_id=eq.'+owner.workspace,owner.access)).data.length,0,'Review enabled training permission');
+ assert.equal((await req('/rest/v1/rpc/get_feedback_learning_model',owner.access,'POST',{p_workspace:owner.workspace})).data,null,'Capture activated a model');
+ assert.equal((await req('/rest/v1/rpc/get_feedback_learning_model',other.access,'POST',{p_workspace:owner.workspace},false)).status,403,'Foreign model lookup allowed');
+ console.log('PASS: live feedback capture, corrections, deduplication, workspace isolation and inactive training/model defaults.');
  const intakeStarted=performance.now();
  await req('/rest/v1/candidate_documents',owner.access,'POST',{workspace_id:owner.workspace,job_id:job,candidate_id:candidate,storage_path:path,file_name:'Synthetic.txt',mime_type:'text/plain',file_size:text.length,extracted_text:text,created_by:owner.id});
- await req('/rest/v1/manager_feedback',owner.access,'POST',{id:note,workspace_id:owner.workspace,job_id:job,candidate_id:candidate,feedback_type:'General note',feedback_text:'Synthetic note: verify personal ownership.',created_by:owner.id});
  for(const table of ['jobs','candidates','candidate_documents','candidate_assessments','manager_feedback','screening_insights','interview_outcomes','candidate_benchmarks','resume_intake_tasks','job_reassessment_tasks']){
   const filter=table==='jobs'?'id':'job_id';const rows=await req(`/rest/v1/${table}?${filter}=eq.${job}&select=*`,other.access);
   assert.equal(rows.data.length,0,`Cross-account ${table} read leaked rows`);
