@@ -13,4 +13,14 @@
       event.preventDefault();select(tabs[next]);tabs[next].focus();
     });
   });
+  document.querySelectorAll('[data-explore-preview]').forEach(link=>{
+    link.addEventListener('click',event=>{
+      const active=tabs.find(tab=>tab.getAttribute('aria-selected')==='true');
+      const preview=document.getElementById('product-preview');
+      if(!active||!preview)return;
+      event.preventDefault();
+      preview.scrollIntoView({block:'start',behavior:'instant'});
+      active.focus({preventScroll:true});
+    });
+  });
 })();
