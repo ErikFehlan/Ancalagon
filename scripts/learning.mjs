@@ -4,9 +4,9 @@
 import {readFile,writeFile,mkdir,chmod} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {parseArgs} from 'node:util';
-import {trainingBase,uuid,tunedModel,hash,requireThat,buildDataset,verifyBundle,currentSources,trainingJSONL,evaluationMetrics} from './learning-lib.mjs';
+import {trainingBase,uuid,tunedModel,hash,requireThat,trainingEligibility,buildDataset,verifyBundle,currentSources,trainingJSONL,evaluationMetrics} from './learning-lib.mjs';
 import {feedbackRequest,feedbackTaskVersion} from '../supabase/functions/_shared/feedback-task.mjs';
-const {positionals,values:args}=parseArgs({allowPositionals:true,options:{workspace:{type:'string'},dir:{type:'string'},record:{type:'string'},disable:{type:'boolean'}}});
+const {positionals,values:args}=parseArgs({allowPositionals:true,options:{workspace:{type:'string'},dir:{type:'string'},record:{type:'string'},'eligibility-record':{type:'string'},disable:{type:'boolean'}}});
 const command=positionals[0]||'help',dir=resolve(args.dir||'.learning'),workspace=args.workspace?.toLowerCase();
 const read=name=>readFile(resolve(dir,name),'utf8').then(JSON.parse);
 async function save(name,data){await mkdir(dir,{recursive:true,mode:0o700});await chmod(dir,0o700);await writeFile(resolve(dir,name),JSON.stringify(data,null,2)+'\n',{mode:0o600});await chmod(resolve(dir,name),0o600);}
@@ -46,7 +46,7 @@ Commands:
   authorize    Workspace owner records permission; --record TEXT [--disable].
   export       Export private review candidates and a curation template.
   build        Validate curated.json and hold out complete jobs in dataset.json.
-  train        Explicit paid upload/training operation; creates run.json once.
+  train        Paid upload/training; requires verified --eligibility-record.
   poll         Refresh the recorded training job status.
   evaluate     Explicit paid comparison on held-out jobs; writes ratings.json.
   promote      Validate human ratings and activate the evaluated workspace model.
@@ -78,10 +78,11 @@ See docs/learning-foundation.md for review requirements and credentials.`);retur
   requireThat(uuid.test(workspace||''),'Supply --workspace UUID.');await query(`select public.rollback_feedback_model(${literal(workspace)}::uuid);`);console.log('Workspace returned to the base model.');return;
  }
  if(command==='train'){
+  const eligibility=trainingEligibility(args['eligibility-record']);
   requireThat(!await exists('run.json'),'A run already exists. Poll or reconcile it; never blindly retry job creation.');
   const bundle=await checkedBundle(),current=await state(),jsonl=trainingJSONL(bundle);
   requireThat(Buffer.byteLength(jsonl)<=10_000_000,'Training file exceeds the 10 MB pilot budget.');
-  const run={workspace_id:workspace,dataset_hash:bundle.dataset_hash,baseline_model:current.active?.model||trainingBase,expected_release:current.active?.id||null,created_at:new Date().toISOString(),status:'upload_pending'};
+  const run={workspace_id:workspace,dataset_hash:bundle.dataset_hash,baseline_model:current.active?.model||trainingBase,expected_release:current.active?.id||null,eligibility,created_at:new Date().toISOString(),status:'upload_pending'};
   await save('run.json',run);
   const form=new FormData();form.set('purpose','fine-tune');form.set('file',new Blob([jsonl],{type:'application/jsonl'}),'feedback-training.jsonl');
   const file=await api('files',{method:'POST',body:form});requireThat(/^file-[a-zA-Z0-9_-]+$/.test(file.id||''),'Unexpected uploaded file identity.');

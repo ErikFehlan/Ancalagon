@@ -116,11 +116,14 @@ test('server approval adopts authoritative versions and preserves drafts and que
  await f.service.flush(state);assert.equal(f.service.hasPendingChanges(),false);
  const restored=await f.service.load();assert.equal(restored.candidates[0].managerScore,9);assert.equal(restored.candidates[0].submissionDraft.text,'Keep draft');
 });
-test('stale backend approval rejects without changing the local score',async()=>{
+test('stale backend approval returns PT409 once without changing the score or blocking later saves',async()=>{
  const f=fixture(),state=await f.service.load();state.candidates.push({id:'c',jobId:'job',name:'Test',short:'Test',strengths:[],concerns:[],tags:[],jdScore:7,managerScore:7});
- await f.service.flush(state);f.setRpc(async()=>({data:null,error:Object.assign(Error('Evidence changed'),{code:'40001'})}));
- await assert.rejects(f.service.reviewJobReassessment('c','old','approve',state),e=>e.code==='40001');
- assert.equal(state.candidates[0].managerScore,7);
+ await f.service.flush(state);let calls=0;f.setRpc(async()=>{calls++;return {data:null,error:Object.assign(Error('Evidence changed'),{code:'PT409'})}});
+ await assert.rejects(f.service.reviewJobReassessment('c','old','approve',state),e=>e.code==='PT409');
+ assert.equal(state.candidates[0].managerScore,7);assert.equal(calls,1);
+ state.candidates[0].submissionDraft={text:'Still editable after conflict',updatedAt:1};
+ await f.service.flush(state);assert.equal(f.service.hasPendingChanges(),false);assert.equal(calls,1);
+ const restored=await f.service.load();assert.equal(restored.candidates[0].managerScore,7);assert.equal(restored.candidates[0].submissionDraft.text,'Still editable after conflict');
 });
 
 test('source timestamps stay consistent with worker context after database update timestamps change',async()=>{

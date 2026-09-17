@@ -3,6 +3,8 @@
 import {readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
+// Fixed time keeps the eligible-account workflow test valid after provider sunset.
+const RealDate=Date;globalThis.Date=class extends RealDate{constructor(...args){super(...(args.length?args:['2026-09-17T00:00:00Z']));}static now(){return RealDate.parse('2026-09-17T00:00:00Z');}};
 const dir=process.env.LEARNING_TEST_DIR,model='ft:gpt-4.1-mini-2025-04-14:test:feedback:run';
 const load=async name=>JSON.parse(await readFile(join(dir,name),'utf8'));
 const json=value=>new Response(JSON.stringify(value));

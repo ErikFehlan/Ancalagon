@@ -10,6 +10,13 @@ export function canonical(value){
 }
 export const hash=value=>createHash('sha256').update(typeof value==='string'?value:canonical(value)).digest('hex');
 export function requireThat(condition,message){if(!condition)throw Error(message);}
+// Availability is account-specific; this is an operator record, not an API
+// eligibility check. Refuse to upload until availability has been verified.
+export function trainingEligibility(record,now=Date.now()){
+ requireThat(now<Date.parse('2027-01-06T00:00:00Z'),'OpenAI self-serve fine-tuning no longer supports new jobs. Choose a supported training provider before uploading.');
+ requireThat(typeof record==='string'&&record.trim().length>=10&&record.trim().length<=2000,'Verify OpenAI fine-tuning eligibility for this organization/project and supply --eligibility-record before any upload. See docs/learning-foundation.md.');
+ return {provider:'openai',record:record.trim(),recorded_at:new Date(now).toISOString()};
+}
 export function currentSources(bundle,state){
  requireThat(state.permission?.enabled===true,'Workspace training permission is not enabled.');
  requireThat(state.workspace_id===bundle.workspace_id,'Workspace mismatch.');

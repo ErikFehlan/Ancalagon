@@ -4,6 +4,12 @@ This release adds a learning **pipeline**, not an already-trained model. Existin
 
 The first task is interpreting a recruiter note as `{summary, clarification_question}`. Resume assessment, score calculation and interview outcomes are not training labels. A hired candidate does not establish that an assessment was correct. Company-specific facts and current role requirements continue to arrive as request context, not as model memory.
 
+## Training availability (verified September 17, 2026)
+
+OpenAI self-serve fine-tuning is restricted to eligible existing organizations: new organizations lost access May 7, 2026; since July 2, organizations without fine-tuned inference in the preceding 60 days cannot create jobs. New jobs close for the remaining active customers January 6, 2027. Existing fine-tuned inference follows the underlying model's retirement date. Source: [OpenAI deprecations](https://developers.openai.com/api/docs/deprecations#update-to-openais-self-serve-fine-tuning).
+
+Ancalagon's account eligibility has **not** been verified. Deploying this release enables private feedback capture and the evaluation/model registry; it does not establish that model training is available. Before running `train`, verify access for the actual provider organization/project through the provider dashboard or support and record the evidence with `--eligibility-record`. The CLI records that operator verification and checks the shutdown date before any training upload; it cannot independently certify account eligibility. Without access, continue collecting eligible examples and adapt the training/evaluation/model-routing adapter to a supported provider before training. Do not upload a dataset simply to probe availability.
+
 ## What happens automatically
 
 - A successful interpretation retains its original input and output alongside the existing private interpretation. Accept/Correct preserves that snapshot. Older interpretations without snapshots are not backfilled or presented as faithful training examples.
@@ -25,7 +31,7 @@ node scripts/learning.mjs export --workspace WORKSPACE_UUID --dir .learning/pilo
 # Curate .learning/pilot-01/curated.json, using export.json as evidence.
 node scripts/learning.mjs build --workspace WORKSPACE_UUID --dir .learning/pilot-01
 # Explicit paid operation: uploads the training split and starts one job.
-node scripts/learning.mjs train --workspace WORKSPACE_UUID --dir .learning/pilot-01
+node scripts/learning.mjs train --workspace WORKSPACE_UUID --dir .learning/pilot-01 --eligibility-record 'Reference to current provider confirmation for this organization/project.'
 node scripts/learning.mjs poll --workspace WORKSPACE_UUID --dir .learning/pilot-01
 # Run after poll reports succeeded. This makes paid inference calls.
 node scripts/learning.mjs evaluate --workspace WORKSPACE_UUID --dir .learning/pilot-01
@@ -46,7 +52,7 @@ Owner authorization must reflect actual permission to use the candidate/client m
 
 The pilot requires at least 50 training and 10 held-out examples across at least three jobs. Complete jobs are deterministically assigned to the test split; imbalanced job sizes can require more examples. The current cap is 1,000 examples, 24,000 characters per example and a 10 MB training file, with three epochs. Inspect the dataset size and current provider pricing before `train`; those caps are not a monetary budget guarantee.
 
-Only training messages are uploaded as the fine-tuning dataset; held-out examples are not included as a validation file. They are sent later as inference inputs for comparison. The fixed prompt and JSON schema are shared by training, evaluation and live inference. The supported training and fallback base is `gpt-4.1-mini-2025-04-14`. Changing the task/prompt/schema requires a version bump and a new evaluated release.
+Only training messages are uploaded as the fine-tuning dataset; held-out examples are not included as a validation file. They are sent later as inference inputs for comparison. The fixed prompt and JSON schema are shared by training, evaluation and live inference. The configured base for eligible legacy training accounts and fallback inference is `gpt-4.1-mini-2025-04-14`. Changing the task/prompt/schema requires a version bump and a new evaluated release.
 
 ### Evaluation and release
 
@@ -77,7 +83,7 @@ For beta, review readiness and invalidated runs regularly, curate new examples, 
 
 ## Deployment and verification
 
-The existing backend release workflow installs the idempotent migration before deploying authenticated analysis functions. There are no new production secrets and no training job in CI. The browser asset versions only change to deliver snapshot capture. Roll out the pipeline first, record workspace permission, collect and curate examples, then perform the first model release.
+The existing backend release workflow installs the idempotent migration before deploying authenticated analysis functions. There are no new production secrets and no training job in CI. The live deployment check uses disposable accounts to verify accepted/corrected feedback capture, deduplication, workspace isolation and inactive training/model defaults before publishing browser changes. The browser asset versions only change to deliver snapshot capture. Roll out the pipeline first, record workspace permission, collect and curate examples, then perform the first model release.
 
 ```bash
 node --test tests/*.test.js

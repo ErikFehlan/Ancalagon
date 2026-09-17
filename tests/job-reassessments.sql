@@ -99,7 +99,7 @@ end$$;
 set test.workspace='00000000-0000-0000-0000-000000000001';
 do $$declare rev text;result jsonb;begin
  select revision into rev from job_reassessment_tasks where candidate_id='00000000-0000-0000-0000-000000000021';
- begin perform public.review_job_reassessment('00000000-0000-0000-0000-000000000021',null,'approve');raise exception 'Missing revision accepted';exception when serialization_failure then null;end;
+ begin perform public.review_job_reassessment('00000000-0000-0000-0000-000000000021',null,'approve');raise exception 'Missing revision accepted';exception when sqlstate 'PT409' then null;end;
  result:=public.review_job_reassessment('00000000-0000-0000-0000-000000000021',rev,'approve');
  if result#>>'{candidate,manager_score}'<>'9.0' and result#>>'{candidate,manager_score}'<>'9' then raise exception 'Score not saved atomically';end if;
  if (result#>>'{candidate,jd_score}')::numeric<>8 then raise exception 'JD score not saved atomically';end if;

@@ -3,6 +3,7 @@
 create table candidate_documents(id uuid primary key default gen_random_uuid(),workspace_id uuid,job_id uuid,candidate_id uuid,storage_path text unique,file_name text,extracted_text text,created_at timestamptz default now(),
  foreign key(candidate_id,job_id,workspace_id) references candidates(id,job_id,workspace_id) on delete cascade);
 \ir ../supabase/migrations/20260915090000_core_intake.sql
+\ir review-conflicts.sql
 insert into jobs(id,workspace_id,title,description) values('00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000001','Core QA','Hands-on manual testing');
 insert into candidates(id,job_id,workspace_id,role) values
  ('00000000-0000-0000-0000-000000000121','00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000001','Resume awaiting analysis'),
@@ -46,6 +47,16 @@ do $$declare t record;begin
   if not finish_resume_intake(t.candidate_id,t.revision,t.lease_id,'{"name":"Synthetic Candidate","role":"QA","score":8,"manager_score":8.5,"primary_signal":"Manual testing","jd_reason":"Testing demonstrated","manager_reason":"Ownership demonstrated","resume_evidence":[{"claim":"Manual testing","quote":"Owned manual regression testing for billing systems"}],"concerns":[],"tags":[],"screening_questions":[],"context_signature":"test"}') then raise exception 'Valid completion rejected';end if;
  end loop;
  if exists(select 1 from candidates where job_id='00000000-0000-0000-0000-000000000111' and manager_score<>7) then raise exception 'Intake changed score without review';end if;
+end$$;
+-- Both stale intake guards must return a non-retryable conflict as well.
+set test.workspace='00000000-0000-0000-0000-000000000001';
+do $$declare rev text;begin
+ select revision into rev from resume_intake_tasks where candidate_id='00000000-0000-0000-0000-000000000121';
+ begin perform review_resume_intake('00000000-0000-0000-0000-000000000121',null,'approve');raise exception 'Missing intake revision accepted';exception when sqlstate 'PT409' then null;end;
+ update resume_intake_tasks set revision='old-intake-input' where candidate_id='00000000-0000-0000-0000-000000000121';
+ begin perform review_resume_intake('00000000-0000-0000-0000-000000000121','old-intake-input','approve');raise exception 'Stale intake evidence accepted';exception when sqlstate 'PT409' then null;end;
+ if (select manager_score<>7 from candidates where id='00000000-0000-0000-0000-000000000121') then raise exception 'Stale intake changed score';end if;
+ update resume_intake_tasks set revision=rev where candidate_id='00000000-0000-0000-0000-000000000121';
 end$$;
 set role authenticated;
 set test.workspace='00000000-0000-0000-0000-000000000001';

@@ -204,13 +204,13 @@ begin
  if not found or not public.is_workspace_member(c.workspace_id) then raise exception 'Candidate unavailable' using errcode='42501';end if;
  select * into t from public.resume_intake_tasks where candidate_id=c.id for update;
  if not found or t.revision is distinct from p_revision then
-  raise exception 'Evidence changed. Review the latest assessment.' using errcode='40001';end if;
+  raise exception 'Evidence changed. Review the latest assessment.' using errcode='PT409';end if;
  select * into a from public.candidate_assessments where candidate_id=c.id and assessment_type='manual_correction' order by created_at desc,id desc limit 1 for update;
  -- Recover a response lost after the transaction committed. Return current
  -- records, never replay old scores over subsequent recruiter corrections.
  if t.status='approved' then return jsonb_build_object('status','approved','candidate',to_jsonb(c),'assessment',to_jsonb(a));end if;
  if t.status<>'ready' or public.resume_intake_revision(public.resume_intake_input(c.id)) is distinct from p_revision then
-  raise exception 'Evidence changed. Review the latest assessment.' using errcode='40001';end if;
+  raise exception 'Evidence changed. Review the latest assessment.' using errcode='PT409';end if;
  r:=t.result;stamp:=floor(extract(epoch from now())*1000);
  rec:=case when (r->>'manager_score')::numeric>=9.2 then 'Interview' when (r->>'manager_score')::numeric>=8.3 then 'Strong Consideration' when (r->>'manager_score')::numeric>=7.2 then 'Consider' when (r->>'manager_score')::numeric>=6 then 'Screen First' else 'Not Recommended' end;
  review:=jsonb_build_object('source','resume_intake','verdict','Needs Adjustment','correctedScore',r->'manager_score','correctedJDScore',r->'score',

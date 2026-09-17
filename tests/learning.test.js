@@ -6,6 +6,12 @@ function fixture(){
  const curated=state.examples.map((x,i)=>({source_id:x.id,revision:x.revision,input:{job:{title:'QA'},feedback:{text:'Test planning example '+i},evaluation_context:{sources:[{text:'Documented testing responsibility '+i}]}},target:{summary:'Test planning is supported.',clarification_question:'Did they build the automation?'},reviewer:'Curator',authorized:true,deidentified:true,faithful_to_review:true}));
  return {state,curated};
 }
+test('training requires recorded provider eligibility before uploading and stops at provider shutdown',async()=>{
+ const {trainingEligibility}=await lib,now=Date.parse('2026-09-17T00:00:00Z');
+ for(const record of [undefined,'','unchecked',42])assert.throws(()=>trainingEligibility(record,now),/eligibility/);
+ assert.equal(trainingEligibility('Provider confirmed access for this test project',now).recorded_at,'2026-09-17T00:00:00.000Z');
+ assert.throws(()=>trainingEligibility('Provider confirmed historical access',Date.parse('2027-01-06T00:00:00Z')),/no longer supports/);
+});
 test('learning holds out entire jobs and exports only train messages, without source identifiers',async()=>{
  const {buildDataset,trainingJSONL,currentSources}=await lib,{state,curated}=fixture(),bundle=buildDataset(state,curated);
  const train=bundle.examples.filter(x=>x.split==='train'),held=bundle.examples.filter(x=>x.split==='test');
@@ -50,11 +56,13 @@ test('operator commands complete a synthetic train, evaluate, promote, rollback 
  const {mkdtemp,writeFile,readFile,rm}=require('node:fs/promises'),{tmpdir}=require('node:os'),{join,resolve}=require('node:path'),{spawnSync}=require('node:child_process');
  const {hash}=await lib,dir=await mkdtemp(join(tmpdir(),'learning-test-')),{state,curated}=fixture();
  const write=(name,data)=>writeFile(join(dir,name),JSON.stringify(data));const read=async name=>JSON.parse(await readFile(join(dir,name),'utf8'));
- const run=command=>spawnSync(process.execPath,['--import',resolve('tests/fixtures/learning-provider.mjs'),resolve('scripts/learning.mjs'),command,'--workspace',state.workspace_id,'--dir',dir],{encoding:'utf8',timeout:10000,env:{...process.env,LEARNING_TEST_DIR:dir,SUPABASE_ACCESS_TOKEN:'synthetic',SUPABASE_PROJECT_REF:'a'.repeat(20),OPENAI_API_KEY:'synthetic'}});
+ const run=(command,extra=['--eligibility-record','Synthetic provider eligibility confirmed'])=>spawnSync(process.execPath,['--import',resolve('tests/fixtures/learning-provider.mjs'),resolve('scripts/learning.mjs'),command,'--workspace',state.workspace_id,'--dir',dir,...extra],{encoding:'utf8',timeout:10000,env:{...process.env,LEARNING_TEST_DIR:dir,SUPABASE_ACCESS_TOKEN:'synthetic',SUPABASE_PROJECT_REF:'a'.repeat(20),OPENAI_API_KEY:'synthetic'}});
  const good=command=>{const result=run(command);assert.equal(result.status,0,result.stderr);return result;};
  try{
   await write('state.json',state);await write('curated.json',curated);await write('calls.json',[]);
   good('build');assert.equal((await read('calls.json')).some(x=>x.url.includes('api.openai.com')),false);
+  const unverified=run('train',[]);assert.equal(unverified.status,1);assert.match(unverified.stderr,/eligibility/);
+  assert.equal((await read('calls.json')).some(x=>x.url.includes('api.openai.com')),false,'unverified account uploaded training data');
   good('train');assert.equal((await read('run.json')).job_id,'ftjob-synthetic');
   const duplicate=run('train');assert.equal(duplicate.status,1);assert.match(duplicate.stderr,/already exists/);
   assert.equal((await read('calls.json')).filter(x=>x.url.endsWith('/fine_tuning/jobs')).length,1);
