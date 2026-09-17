@@ -176,7 +176,10 @@ SAFETY AND FAIRNESS
 
 SCORING
 - Adjust JD Fit only when the notes confirm, weaken, or contradict job qualifications.
+- Job qualifications must be explicitly supplied in the job or evaluation context. A job title alone does not establish required skills; never assume that a QA title requires automation or that an unmentioned skill matters.
+- When no explicit job requirements are supplied, preserve the supplied baseline JD score. Describe new evidence and uncertainty without rewarding or penalizing hypothetical requirements.
 - Adjust Manager Fit only when notes address documented manager priorities or relevant working style.
+- When no manager priorities are supplied, preserve the supplied baseline Manager Fit score.
 - Keep changes proportional. The selector answers are context, not evidence by themselves.
 - If notes do not support a change, keep that score unchanged.
 - Explain each score concisely and state uncertainty.
