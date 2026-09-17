@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src 'self' blob: https://cdn.jsdelivr.net; connect-src 'self' https://zqiqjzxcpznhzjengfff.supabase.co wss://zqiqjzxcpznhzjengfff.supabase.co https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark">
@@ -93,8 +95,8 @@
       <label for="authEmail">Work email</label>
       <input id="authEmail" type="email" autocomplete="username" required placeholder="you@company.com">
       <label for="authPassword">Password</label>
-      <input id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Your password">
-      <div class="rf-auth-create-field" id="authConfirmField" hidden><label for="authConfirmPassword">Confirm password</label><input id="authConfirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Re-enter your password"></div>
+      <input id="authPassword" type="password" autocomplete="current-password" minlength="12" required placeholder="Your password">
+      <div class="rf-auth-create-field" id="authConfirmField" hidden><label for="authConfirmPassword">Confirm password</label><input id="authConfirmPassword" type="password" autocomplete="new-password" minlength="12" placeholder="Re-enter your password"></div>
       <button id="authSubmit" type="submit">Sign in</button>
     </form>
     <button class="rf-auth-help-btn" id="forgotAccess" type="button">Forgot email or password?</button>
@@ -114,7 +116,7 @@
   <div class="rf-welcome-dialog"><h2 id="recoveryTitle">Reset your password</h2><p>Your username is the work email used to create your account. Enter it below and we’ll send a secure reset link.</p><form class="rf-auth-form" id="recoveryForm"><label for="recoveryEmail">Work email</label><input id="recoveryEmail" type="email" autocomplete="email" required placeholder="you@company.com"><button id="recoverySubmit" type="submit">Send reset link</button></form><div class="rf-auth-message" id="recoveryMessage"></div><button class="rf-auth-help-btn" id="recoveryCancel" type="button">Back to sign in</button></div>
 </div>
 <div class="rf-welcome-modal" id="resetPasswordModal" role="dialog" aria-modal="true" aria-labelledby="resetPasswordTitle" hidden>
-  <div class="rf-welcome-dialog"><h2 id="resetPasswordTitle">Choose a new password</h2><p>Enter a new password for your Ancalagon account.</p><form class="rf-auth-form" id="resetPasswordForm"><label for="recoveryNewPassword">New password</label><input id="recoveryNewPassword" type="password" autocomplete="new-password" minlength="8" required><label for="recoveryConfirmPassword">Confirm password</label><input id="recoveryConfirmPassword" type="password" autocomplete="new-password" minlength="8" required><button id="resetPasswordSubmit" type="submit">Save new password</button></form><div class="rf-auth-message" id="resetPasswordMessage"></div></div>
+  <div class="rf-welcome-dialog"><h2 id="resetPasswordTitle">Choose a new password</h2><p>Enter a new password for your Ancalagon account.</p><form class="rf-auth-form" id="resetPasswordForm"><label for="recoveryNewPassword">New password</label><input id="recoveryNewPassword" type="password" autocomplete="new-password" minlength="12" required><label for="recoveryConfirmPassword">Confirm password</label><input id="recoveryConfirmPassword" type="password" autocomplete="new-password" minlength="12" required><button id="resetPasswordSubmit" type="submit">Save new password</button></form><div class="rf-auth-message" id="resetPasswordMessage"></div></div>
 </div>
 <div id="rf-app">
 
@@ -485,7 +487,7 @@
           <details class="settings-details"><summary>Your problem reports</summary><button class="rf-btn" type="button" id="refreshSupport">Refresh reports</button><ul id="supportHistory" class="settings-list"></ul></details>
         </section>
         <section class="rf-card"><h3>Your activity</h3><p class="rf-sub">Your account’s activity over the last 30 days.</p><div id="personalUsage" role="status">Loading activity…</div><button class="rf-btn" type="button" id="refreshPersonalUsage">Refresh activity</button></section>
-        <div class="rf-card" style="margin-bottom:16px"><div class="rf-cardhead"><div><h3>Account Security</h3><p class="rf-sub">Create or replace the password for your signed-in account.</p></div><span class="rf-pill rf-blue">Private account</span></div><form class="rf-form" id="passwordForm"><div class="rf-formrow"><div><label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required></div><div><label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></div></div><div class="rf-actions"><button class="rf-btn primary" id="passwordSubmit" type="submit">Set Password</button><span class="rf-sub" id="passwordMessage" role="status">Use at least 8 characters.</span></div></form><div class="settings-details"><button class="rf-btn" type="button" id="signOutAllDevices">Sign out on all devices</button><p id="allDevicesStatus" role="status" class="rf-sub">Ends sign-in sessions. Existing access tokens can remain valid until they expire.</p></div></div>
+        <div class="rf-card" style="margin-bottom:16px"><div class="rf-cardhead"><div><h3>Account Security</h3><p class="rf-sub">Create or replace the password for your signed-in account.</p></div><span class="rf-pill rf-blue">Private account</span></div><form class="rf-form" id="passwordForm"><div class="rf-formrow"><div><label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="12" required></div><div><label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" required></div></div><div class="rf-actions"><button class="rf-btn primary" id="passwordSubmit" type="submit">Set Password</button><span class="rf-sub" id="passwordMessage" role="status">Use at least 8 characters.</span></div></form><div class="settings-details"><button class="rf-btn" type="button" id="signOutAllDevices">Sign out on all devices</button><p id="allDevicesStatus" role="status" class="rf-sub">Ends sign-in sessions. Existing access tokens can remain valid until they expire.</p></div></div>
         <section class="rf-card"><h3>Your data</h3><p class="rf-sub">Export your profile, preferences, accessible workspace records, assessments, and notes as JSON. Original resumes are available as individual downloads after export.</p><button class="rf-btn" type="button" id="exportAccountData">Export account data</button><p id="accountDataStatus" role="status"></p><div id="exportDocuments" class="rf-actions"></div>
           <details class="settings-details settings-danger"><summary>Delete account</summary><p>This permanently removes your account, private workspaces, candidates, resumes, and preferences. Download your data first if you need a copy. Shared workspace ownership must be resolved before deletion.</p><form id="deleteAccountForm" class="rf-form"><div><label for="deleteAccountPassword">Current password</label><input id="deleteAccountPassword" type="password" autocomplete="current-password" required></div><div><label for="deleteAccountConfirmation">Type DELETE to confirm</label><input id="deleteAccountConfirmation" pattern="DELETE" autocomplete="off" required></div><button id="deleteAccountSubmit" class="rf-btn danger" type="submit">Delete my account</button><p id="deleteAccountStatus" role="status"></p></form></details>
         </section>
@@ -538,9 +540,9 @@
   <div class="rf-modalbackdrop" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle"><div class="rf-modal"><h3 id="confirmTitle">Confirm action</h3><p id="confirmMessage"></p><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="confirmCancel" type="button">Cancel</button><button class="rf-btn danger" id="confirmAccept" type="button">Delete</button></div></div></div>
   <div class="rf-modalbackdrop" id="closeJobModal" role="dialog" aria-modal="true" aria-labelledby="closeJobTitle"><div class="rf-modal"><form class="rf-form" id="closeJobForm"><div><div class="rf-kicker">Job lifecycle</div><h3 id="closeJobTitle">Close job</h3><p>Close the search without deleting its candidates, feedback, or hiring intelligence.</p></div><div><label for="closeJobReason">Why is this job closing?</label><select id="closeJobReason" required><option value="Filled Internally">Filled internally</option><option value="Filled by Another Firm">Filled by another firm</option><option value="Cancelled">Position cancelled</option><option value="On Hold">Position placed on hold</option></select></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="closeJobCancel" type="button">Cancel</button><button class="rf-btn primary" type="submit">Close Job</button></div></form></div></div>
   <div class="rf-modalbackdrop" id="screeningModal" role="dialog" aria-modal="true" aria-labelledby="screeningTitle"><div class="rf-modal rf-screen-modal"><form class="rf-form" id="screeningForm"><div><div class="rf-kicker">Screening insight</div><h3 id="screeningTitle">Add screening evidence</h3><p>Capture only what changes the assessment. Ancalagon will compare this evidence with the job, manager priorities, and current evaluation.</p></div><div class="rf-screen-context"><div>Current JD Fit<strong id="screenCurrentJD">—</strong></div><div>Current Manager Fit<strong id="screenCurrentManager">—</strong></div></div><div class="rf-formrow"><div><label for="screenAbility">Can they do the job?</label><select id="screenAbility" required><option value="">Select an assessment</option><option value="Yes">Yes — evidence supports it</option><option value="Maybe">Maybe — important gaps remain</option><option value="No">No — evidence shows a mismatch</option></select></div><div><label for="screenCulture">Culture / working-style fit</label><select id="screenCulture" required><option value="">Select an assessment</option><option value="Strong">Strong alignment</option><option value="Mixed">Mixed / uncertain</option><option value="Weak">Weak alignment</option></select></div></div><div><label for="screenNotes">What did you learn?</label><textarea id="screenNotes" required maxlength="4000" placeholder="Add concise, job-related evidence from the conversation—skills depth, ownership, communication, motivation, or working style."></textarea><div class="rf-sub" style="margin-top:5px">Do not include protected personal information. Notes are used as evidence, not as an automatic hiring decision.</div></div><div class="rf-actions" style="justify-content:flex-end"><button class="rf-btn" id="screenCancel" type="button">Cancel</button><button class="rf-btn primary" id="screenSubmit" type="submit">✦ Reassess & Mark Screened</button></div></form></div></div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="assets/auth.js?v=20260915-homepage"></script>
-  <script src="assets/data.js?v=20260916-guidance"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" crossorigin="anonymous"></script>
+  <script src="assets/auth.js?v=20260917-security"></script>
+  <script src="assets/data.js?v=20260917-security"></script>
   <script src="assets/select.js?v=20260910-dark-dropdowns"></script>
   <script src="assets/evidence.js?v=20260911-quick-feedback"></script>
   <script src="assets/context.js?v=20260915-core"></script>
@@ -550,22 +552,22 @@
   <script src="assets/feedback.js?v=20260916-learning"></script>
   <script src="assets/pdf-text.js?v=20260915-intake"></script>
   <script src="assets/resume-intake.js?v=20260916-polish"></script>
-<script src="assets/resume-remote.js?v=20260915-speed"></script>
-  <script src="assets/job-review.js?v=20260916-review-conflicts"></script>
+<script src="assets/resume-remote.js?v=20260917-security"></script>
+  <script src="assets/job-review.js?v=20260917-security"></script>
   <script src="assets/candidate-automation.js?v=20260914-job-review"></script>
   <script src="assets/quick-notes.js?v=20260914-focus"></script>
   <script src="assets/candidate-workspace.js?v=20260916-polish"></script>
   <script src="assets/criteria-automation.js?v=20260914-speed"></script>
   <script src="assets/home.js?v=20260915-tutorial"></script>
-<script src="assets/focus-ui.js?v=20260915-admin"></script>
+<script src="assets/focus-ui.js?v=20260917-security"></script>
 <script src="assets/recruiter-workflow.js?v=20260915-phase2"></script>
 <script src="assets/tutorial.js?v=20260915-tutorial"></script>
 <script src="assets/tutorial-ui.js?v=20260915-settings"></script>
-<script src="assets/admin-tools.js?v=20260915-settings"></script>
+<script src="assets/admin-tools.js?v=20260917-security"></script>
 <script src="assets/settings.js?v=20260915-settings"></script>
 <script src="assets/settings-ui.js?v=20260915-settings"></script>
 <script src="assets/guidance.js?v=20260916-polish"></script>
-<script src="assets/app.js?v=20260916-learning"></script>
+<script src="assets/app.js?v=20260917-security"></script>
 </div>
 </body>
 </html>

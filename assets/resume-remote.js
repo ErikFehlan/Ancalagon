@@ -3,6 +3,7 @@
   function failureMessage(code){
     const saved='Your resume is saved. ';
     if(typeof code==='string'&&code.startsWith('verification_'))return saved+'The AI assessment could not be verified against the resume. Try the assessment again.';
+    if(code==='usage_limit')return saved+'AI processing has reached a beta limit or is paused. Try later or contact the administrator.';
     if(code==='ai_rate_limit')return saved+'The assessment service is busy. Wait a moment, then try again.';
     if(code==='input_too_large')return saved+'The resume and job context exceed the assessment limit. Shorten the job description or resume before trying again.';
     return saved+'The assessment service could not finish after automatic retries. Try the assessment again.';

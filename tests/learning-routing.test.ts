@@ -8,6 +8,7 @@ Deno.test('learning models are workspace scoped, feedback only, server selected,
  const model='ft:gpt-4.1-mini-2025-04-14:synthetic:feedback:model',base='gpt-4.1-mini-2025-04-14';
  globalThis.fetch=async(url,init)=>{
   const u=String(url),body=init?.body?JSON.parse(String(init.body)):null;
+  if(u.includes('/reserve_ai_budget'))return json({allowed:true});
   if(u.includes('workspace_members'))return json(allowed?[{workspace_id:'a'}]:[],allowed?200:403);
   if(u.includes('/auth/v1/user'))return json({id:'user'});
   if(u.includes('ai_usage_events'))return json({});

@@ -14,10 +14,18 @@ async function req(path,access,method='GET',body,expected=true){
  if(expected&&!r.ok)throw Error(`Live check request failed (${r.status}) for ${path.split('?')[0]}.`);
  return {ok:r.ok,status:r.status,data:await r.json().catch(()=>null)};
 }
+async function fixtureApproval(email,approved){
+ if(!/^ancalagon-core-test-[0-9a-f-]+@example\.invalid$/.test(email))throw Error('Invalid synthetic fixture email');
+ const query=approved?'insert into public.beta_access(email) values($1) on conflict(email) do update set approved=true':'delete from public.beta_access where email=$1 and user_id is null';
+ const r=await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({query,parameters:[email]}),signal:AbortSignal.timeout(20000)});
+ if(!r.ok)throw Error('Synthetic beta approval failed');
+}
+const fixtureEmails=[];
 let cleanupFailed=false;
 try{
  for(let i=0;i<2;i++){
   const email=`ancalagon-core-test-${randomUUID()}@example.invalid`,password=randomBytes(32).toString('base64url');
+  fixtureEmails.push(email);await fixtureApproval(email,true);
   const created=await req('/auth/v1/admin/users',service,'POST',{email,password,email_confirm:true,user_metadata:{display_name:'Disposable core test'}});
   const id=created.data.id||created.data.user?.id;assert.ok(id,'Disposable user was not created');
   const user={id,paths:[]};users.push(user);
@@ -98,5 +106,6 @@ try{
   try{if(user.paths.length)await req('/storage/v1/object/resumes',service,'DELETE',{prefixes:user.paths});await req('/auth/v1/admin/users/'+user.id,service,'DELETE');}
   catch{cleanupFailed=true;console.error('Disposable test cleanup failed for user ID '+user.id+'.');}
  }
+ for(const email of fixtureEmails){try{await fixtureApproval(email,false);}catch{cleanupFailed=true;}}
  if(cleanupFailed)throw Error('Disposable test cleanup needs attention; no production accounts were modified.');
 }

@@ -3,35 +3,8 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: criteria-backend-deploy
-  cancel-in-progress: false
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    environment: criteria-backend
-    timeout-minutes: 10
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-      - name: Check worker and deployment script
-        run: |
-          deno check supabase/functions/reassess-job/index.ts
-          node --check scripts/job-reassessment-backend.mjs
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - name: Install queue and worker credential
-        run: node scripts/job-reassessment-backend.mjs prepare
-      - name: Deploy durable reassessment worker
-        run: supabase functions deploy reassess-job --project-ref "$SUPABASE_PROJECT_REF"
-      - name: Verify transport and activate scheduler
-        run: node scripts/job-reassessment-backend.mjs activate
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/core-backend.yml
+    secrets: inherit

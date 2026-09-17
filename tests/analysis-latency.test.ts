@@ -44,7 +44,7 @@ Deno.test('real screening still uses the full score schema', async () => {
     const body=JSON.parse(String(init?.body));
     assert(body.text.format.name==='screening_reassessment','screening routed to feedback');
     assert(body.text.format.schema.required.includes('manager_score'),'score schema removed');
-    assert(body.max_output_tokens===undefined,'feedback cap affected screening');
+    assert(body.max_output_tokens===3200,'screening output cap missing');
     return json({output_text:JSON.stringify({summary:'screen',manager_score:7,jd_score:7})});
   };
   try {assert((await handleAnalysis(request({...payload,analysis_type:'screening',screening:{notes:'Specific technical example'}}))).ok,'screen failed');}
@@ -61,6 +61,7 @@ Deno.test('auth checks overlap, model waits for both, telemetry does not delay r
   globals.EdgeRuntime={waitUntil:p=>{background=p;}};
   globalThis.fetch=(url,init)=>{
     const u=String(url);
+    if(u.includes('/reserve_ai_budget'))return Promise.resolve(json({allowed:true}));
     if(u.includes('workspace_members')){authCalls++;return new Promise(r=>{releaseMember=r;});}
     if(u.includes('/auth/v1/user')){authCalls++;return new Promise(r=>{releaseUser=r;});}
     if(u.includes('ai_usage_events')){
@@ -98,6 +99,7 @@ Deno.test('AI telemetry retries a stable operation identity using server credent
  let retried=false,modelOK=true;
  globalThis.fetch=async(url,init)=>{
   const u=String(url);
+    if(u.includes('/reserve_ai_budget'))return Promise.resolve(json({allowed:true}));
   if(u.includes('workspace_members'))return json([{workspace_id:'workspace-a'}]);
   if(u.includes('/auth/v1/user'))return json({id:'test-user'});
   if(u.includes('ai_usage_events')){

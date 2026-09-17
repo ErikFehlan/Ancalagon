@@ -20,7 +20,7 @@ Deno.test('saved resumes start while job edits are still coalescing and retain t
  let releaseDelay:()=>void=()=>{},markStarted:()=>void=()=>{},markDelayed:()=>void=()=>{},timer:ReturnType<typeof setTimeout>|undefined;
  const started=new Promise<void>(resolve=>markStarted=resolve),delayed=new Promise<void>(resolve=>markDelayed=resolve);
  let finished=false,jobClaimed=false,run:Promise<Response>|undefined;
- const task={candidate_id:'c',revision:'revision-1',lease_id:'lease-1',input:{job:{id:'j',title:'Synthetic QA',criteria:[],weights:[],knockouts:[]},candidate:{id:'c',jobId:'j'},feedback:[],outcomes:[],resume_text:'Synthetic QA Analyst. Owned manual regression testing and documented defects.',file_name:'Synthetic.txt'}};
+ const task={workspace_id:'workspace-a',candidate_id:'c',revision:'revision-1',lease_id:'lease-1',input:{job:{id:'j',title:'Synthetic QA',criteria:[],weights:[],knockouts:[]},candidate:{id:'c',jobId:'j'},feedback:[],outcomes:[],resume_text:'Synthetic QA Analyst. Owned manual regression testing and documented defects.',file_name:'Synthetic.txt'}};
  try{
   for(const [name,value] of Object.entries({JOB_REASSESSMENT_SECRET:'test-worker',SUPABASE_URL:'https://backend.invalid',SUPABASE_SERVICE_ROLE_KEY:'test-service',OPENAI_API_KEY:'test-ai'}))Deno.env.set(name,value);
   globalThis.setTimeout=((callback:()=>void,ms:number)=>{
@@ -30,6 +30,7 @@ Deno.test('saved resumes start while job edits are still coalescing and retain t
   globalThis.fetch=async(url,init)=>{
    const path=new URL(String(url)).pathname;
    const json=(data:unknown)=>new Response(JSON.stringify(data));
+   if(path.endsWith('/reserve_ai_budget'))return json({allowed:true});
    if(path.endsWith('/claim_account_deletions'))return json([]);
    if(path.endsWith('/claim_resume_intakes'))return json([task]);
    if(path==='/v1/responses'){
