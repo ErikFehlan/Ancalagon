@@ -19,7 +19,7 @@ over the new live model.
 ## Deployment gate
 
 Before production handlers are replaced, the workflow temporarily deploys
-`sol-model-check`, which requires the service-role credential and accepts only
+`sol-model-check`, which requires the existing private worker credential and accepts only
 fixed synthetic cases and two fixed models. Six budgeted model requests compare
 the old base and Sol on resume, feedback, and screening contracts. Failure stops
 the rollout. The temporary endpoint is removed even when the comparison fails.

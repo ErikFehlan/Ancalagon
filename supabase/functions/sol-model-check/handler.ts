@@ -11,8 +11,10 @@ export const fixtures={
  screening:{analysis_type:'screening',job:{title:'QA Analyst'},candidate:{jdScore:7,managerScore:6},screening:{notes:'Candidate confirmed ownership of manual regression testing. They explicitly said they have never written or maintained automated tests.'},evaluation_context:{}},
 };
 export async function handleSolCheck(request:Request){
- const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
- if(!service||request.headers.get('Authorization')!==`Bearer ${service}`)return json({error:'Unauthorized'},401);
+ // Match the already deployed private worker transport. A service API key is
+ // not assumed to be the exact JWT exposed inside an Edge Function isolate.
+ const secret=Deno.env.get('JOB_REASSESSMENT_SECRET');
+ if(!secret||request.headers.get('x-worker-secret')!==secret)return json({error:'Unauthorized'},401);
  if(request.method!=='POST')return json({error:'Method not allowed'},405);
  const body=await request.json().catch(()=>null);
  if(!body||!Object.hasOwn(fixtures,body.case)||!['sol','baseline'].includes(body.model)||! /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(body.workspace_id||''))return json({error:'Invalid synthetic check'},400);

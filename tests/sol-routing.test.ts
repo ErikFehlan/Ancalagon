@@ -28,10 +28,12 @@ Deno.test('public payload cannot select a model; Sol preserves the feedback cont
  }finally{globalThis.fetch=saved;names.forEach((n,i)=>previous[i]===undefined?Deno.env.delete(n):Deno.env.set(n,previous[i]!));}
 });
 Deno.test('temporary Sol validation rejects ordinary users before any API or database request',async()=>{
- const saved=globalThis.fetch,prior=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');Deno.env.set('SUPABASE_SERVICE_ROLE_KEY','server-only');
+ const saved=globalThis.fetch,prior=Deno.env.get('JOB_REASSESSMENT_SECRET');Deno.env.set('JOB_REASSESSMENT_SECRET','server-only');
  globalThis.fetch=()=>{throw Error('Unauthorized validation reached remote service');};
  try{
-  for(const token of ['', 'ordinary-user'])assert((await handleSolCheck(new Request('https://synthetic.invalid',{method:'POST',headers:{Authorization:'Bearer '+token},body:'{}'}))).status===401,'non-service caller admitted');
-  assert((await handleSolCheck(new Request('https://synthetic.invalid',{method:'POST',headers:{Authorization:'Bearer server-only'},body:'{"case":"arbitrary","model":"sol"}'}))).status===400,'arbitrary input accepted');
- }finally{globalThis.fetch=saved;if(prior===undefined)Deno.env.delete('SUPABASE_SERVICE_ROLE_KEY');else Deno.env.set('SUPABASE_SERVICE_ROLE_KEY',prior);}
+  for(const token of ['', 'ordinary-user'])assert((await handleSolCheck(new Request('https://synthetic.invalid',{method:'POST',headers:{Authorization:'Bearer server-only','x-worker-secret':token},body:'{}'}))).status===401,'non-worker caller admitted');
+  assert((await handleSolCheck(new Request('https://synthetic.invalid',{method:'POST',headers:{'x-worker-secret':'server-only'},body:'{"case":"arbitrary","model":"sol"}'}))).status===400,'arbitrary input accepted');
+  Deno.env.delete('JOB_REASSESSMENT_SECRET');
+  assert((await handleSolCheck(new Request('https://synthetic.invalid',{method:'POST',body:'{}'}))).status===401,'missing configuration admitted a caller');
+ }finally{globalThis.fetch=saved;if(prior===undefined)Deno.env.delete('JOB_REASSESSMENT_SECRET');else Deno.env.set('JOB_REASSESSMENT_SECRET',prior);}
 });
