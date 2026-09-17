@@ -45,6 +45,10 @@ try{
    }else{
     for(const key of ['jd_score','manager_score'])assert.ok(Number.isFinite(out[key])&&out[key]>=0&&out[key]<=10);
     assert.ok(out.summary&&out.jd_reason&&out.manager_reason);
+    if(model==='sol'){
+     assert.equal(out.jd_score,7,'Sol changed a score using requirements inferred from a job title');
+     assert.equal(out.manager_score,6,'Sol changed manager fit without stated manager priorities');
+    }
    }
    // All output below is from the fixed synthetic fixtures, never real resumes.
    console.log('SOL_PREFLIGHT '+JSON.stringify(check));

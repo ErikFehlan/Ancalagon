@@ -31,6 +31,13 @@ benchmark. User-reviewed real examples are still needed to measure practical
 quality improvement. Live integration checks also require Sol model provenance
 on the deployed intake and both authenticated analysis endpoints.
 
+The first live comparison exposed a shared baseline/Sol failure: a title-only
+QA job caused a score reduction for missing automation despite no automation
+requirement being supplied. Screening instructions now explicitly forbid
+title-inferred requirements and preserve baseline scores when their relevant
+job requirements or manager priorities are absent. The Sol preflight checks
+this exact case before deployment.
+
 ## Configuration and rollback
 
 The release explicitly sets `ASSESSMENT_MODEL`, `FEEDBACK_MODEL`, and
