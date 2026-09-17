@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.reassess-job]
 verify_jwt = false
+
+[functions.sol-model-check]
+verify_jwt = true

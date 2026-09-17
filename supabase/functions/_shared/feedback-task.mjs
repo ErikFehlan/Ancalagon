@@ -1,4 +1,5 @@
 // Keep production requests, training examples, and evaluations on one contract.
+// Legacy training base only. Live feedback defaults are in model-routing.mjs.
 export const feedbackBaseModel = 'gpt-4.1-mini-2025-04-14';
 export const feedbackTaskVersion = 'feedback-v1';
 export const feedbackInstructions = `Interpret a brief recruiter note in the supplied candidate and job context.

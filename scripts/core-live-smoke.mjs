@@ -10,7 +10,7 @@ if(!keysResponse.ok)throw Error(`Live check credential access failed (${keysResp
 const keys=await keysResponse.json(),service=keys.find(k=>k.name==='service_role')?.api_key,anon=keys.find(k=>k.name==='anon')?.api_key;
 if(!service||!anon)throw Error('Live check requires the existing service and public API keys.');
 async function req(path,access,method='GET',body,expected=true){
- const r=await fetch(base+path,{method,headers:{apikey:access===service?service:anon,Authorization:`Bearer ${access||anon}`,'Content-Type':'application/json',Prefer:'return=representation'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(25000)});
+ const r=await fetch(base+path,{method,headers:{apikey:access===service?service:anon,Authorization:`Bearer ${access||anon}`,'Content-Type':'application/json',Prefer:'return=representation'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(path.startsWith('/functions/')?65000:25000)});
  if(expected&&!r.ok)throw Error(`Live check request failed (${r.status}) for ${path.split('?')[0]}.`);
  return {ok:r.ok,status:r.status,data:await r.json().catch(()=>null)};
 }
@@ -95,11 +95,17 @@ try{
  assert.equal(task?.status,'ready','Intake did not finish without a browser');
  console.log('SYNTHETIC_INTAKE_METRIC '+JSON.stringify({document_to_ready_ms:Math.round(performance.now()-intakeStarted),attempts:task.attempts}));
  assert.ok(task.result.resume_evidence?.length,'Live AI did not return resume evidence');
+ assert.ok(task.result.model?.startsWith('gpt-5.6-sol'),'Live intake did not use Sol');
  for(const evidence of task.result.resume_evidence)assert.ok(text.includes(evidence.quote),'Live quote not grounded');
  const before=await req('/rest/v1/candidates?id=eq.'+candidate,owner.access);assert.equal(before.data[0].manager_score,null,'Unreviewed AI changed scores');
  const approved=await req('/rest/v1/rpc/review_resume_intake',owner.access,'POST',{p_candidate:candidate,p_revision:task.revision,p_decision:'approve'});
  assert.equal(approved.data.status,'approved');assert.equal(approved.data.assessment.evidence.submission_draft.text,'Synthetic draft retained');
  const restored=await req('/rest/v1/candidates?id=eq.'+candidate,owner.access);assert.equal(restored.data[0].manager_score,task.result.manager_score,'Approved score did not persist');
+ const feedback=await req('/functions/v1/analyze-patterns-beta',owner.access,'POST',{workspace_id:owner.workspace,analysis_type:'feedback',job:{title:'Synthetic QA'},feedback:{text:'Strong manual testing; verify whether they personally owned automated tests.'}});
+ assert.ok(feedback.data.model?.startsWith('gpt-5.6-sol')&&feedback.data.summary,'Live feedback did not use Sol');
+ const screening=await req('/functions/v1/analyze-patterns-v2',owner.access,'POST',{workspace_id:owner.workspace,analysis_type:'screening',job:{title:'Synthetic QA'},screening:{notes:'Confirmed manual regression ownership; automation ownership remains unverified.'}});
+ assert.ok(screening.data.model?.startsWith('gpt-5.6-sol')&&Number.isFinite(screening.data.jd_score),'Live screening did not use Sol');
+ console.log('PASS: deployed Sol model provenance for durable resume intake, manager feedback, and screening.');
  console.log('PASS: real password accounts, separate workspaces, record/document isolation, protected AI routes, background intake, grounded quotes, atomic approval and persistence.');
 }finally{
  for(const user of users){
