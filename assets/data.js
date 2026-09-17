@@ -409,6 +409,9 @@
       return data;
     }
 
+    async function loadBetaSecurity() { const {data,error}=await client.rpc('get_beta_security');if(error)throw error;return data; }
+    async function manageBetaAccess(email,approved) { const {error}=await client.rpc('manage_beta_access',{p_email:email,p_approved:approved});if(error)throw error; }
+    async function pauseAI(paused) { const {error}=await client.rpc('set_ai_paused',{p_paused:paused});if(error)throw error; }
     async function isAppAdmin() {
       const { data, error } = await client.rpc('is_app_admin');
       if (error) throw error;
@@ -490,7 +493,7 @@
     async function downloadResume(path){const {data,error}=await client.storage.from('resumes').download(path);if(error)throw error;return data;}
     async function deleteAccount(password){const {data,error}=await client.functions.invoke('account-controls',{body:{action:'delete_account',password,confirmation:'DELETE'}});if(error){let details;try{details=await error.context?.json();}catch{}throw Error(details?.error||'Could not confirm deletion status. If your account is still available, try again.');}if(!['complete','pending'].includes(data?.status))throw Error('Deletion was not confirmed. Try again.');return data;}
 
-    return { loadGuidance, saveGuidance, loadSettings, saveSettings, loadNotifications, markNotificationsRead, loadSupportRequests, submitSupportRequest, reviewSupportRequest, exportAccountData, loadPersonalUsage, downloadResume, deleteAccount, requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadTutorial, saveTutorial, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, isAppAdmin, loadAdminTools, loadAdminStarterFile, uploadResume, loadResumeText, workspaceId };
+    return { loadBetaSecurity, manageBetaAccess, pauseAI, loadGuidance, saveGuidance, loadSettings, saveSettings, loadNotifications, markNotificationsRead, loadSupportRequests, submitSupportRequest, reviewSupportRequest, exportAccountData, loadPersonalUsage, downloadResume, deleteAccount, requestResumeIntake, loadResumeIntake, loadResumeIntakes, reviewResumeIntake, load, schedule, flush, loadHome, visitHome, saveHome, loadTutorial, saveTutorial, loadHomeReviews, loadJobReassessments, requestCandidateReassessment, reviewJobReassessment, loadCriteriaTask, toggleCriteriaOriginal, hasPendingChanges, markPending, logUsage, trackEvent, loadAdminAnalytics, isAppAdmin, loadAdminTools, loadAdminStarterFile, uploadResume, loadResumeText, workspaceId };
   }
 
   window.AncalagonData = { create: createDataService };

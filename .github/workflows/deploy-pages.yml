@@ -63,6 +63,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Test recruiter browser journey
         run: |
+          node tests/security-browser.cjs
           node tests/landing-browser.cjs
           node tests/settings-browser.cjs
           node tests/browser-journey.cjs

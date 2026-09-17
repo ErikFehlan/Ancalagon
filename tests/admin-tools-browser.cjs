@@ -4,6 +4,7 @@ const sql=fs.readFileSync(path.join(dir,'supabase/migrations/20260915150000_admi
 const resources=Object.fromEntries([...sql.matchAll(/\('([a-z]+)', \$resource\$([\s\S]*?)\$resource\$\)/g)].map(m=>[m[1],m[2]]));
 const names={server:'server.ts',schema:'schema.sql',prompt:'evaluation-prompt.txt',pkg:'package.json',env:'.env.example'};
 (async()=>{
+ let betaAccounts=[],aiPaused=false;
  let revoked=false,failTools=false,holdTools=false,held=null,downloads=0,failUsage=false,usageCalls=0;
  const server=http.createServer(async(req,res)=>{
   if(req.url.startsWith('/rpc/')){
@@ -12,6 +13,9 @@ const names={server:'server.ts',schema:'schema.sql',prompt:'evaluation-prompt.tx
    res.setHeader('Content-Type','application/json');
    if(op==='is-admin'){res.end(JSON.stringify(admin));return;}
    if(!admin){res.statusCode=403;res.end(JSON.stringify({code:'42501',message:'Admin access required'}));return;}
+   if(op==='security'){res.end(JSON.stringify({accounts:betaAccounts,limits:{ai_paused:aiPaused,global_day:1000,workspace_day:200,workspace_minute:20},today:{calls:4}}));return;}
+   if(op==='access'){betaAccounts=[{email:input.email,approved:input.approved,registered:false}];res.end('{}');return;}
+   if(op==='pause'){aiPaused=input.paused;res.end('{}');return;}
    if(op==='usage'){
     usageCalls++;if(failUsage){res.statusCode=503;res.end(JSON.stringify({message:'Temporary outage'}));return;}
     res.end(JSON.stringify({generated_at:'2026-09-16T12:00:00Z',tracking_started_at:'2026-09-16T11:00:00Z',totals:{accounts:2},users:[{email:'admin@example.test',jobs_created:2,candidates_added:3,ai_completed:7,resumes_analyzed:1,feedback_saved:4,outcomes_saved:1}],event_breakdown:{resume_analysis_completed:1,candidate_reassessment_completed:6}}));return;
@@ -40,7 +44,7 @@ const names={server:'server.ts',schema:'schema.sql',prompt:'evaluation-prompt.tx
    await page.route('**/assets/data.js*',route=>route.fulfill({contentType:'application/javascript',body:''}));
    await page.addInitScript(user=>{
     const rpc=async(op,input)=>{const response=await fetch('/rpc/'+op,{method:'POST',headers:{'X-Test-Account':user},body:JSON.stringify(input||{})});const result=await response.json();if(!response.ok)throw Object.assign(Error(result.message),{code:result.code});return result;};
-    window.AncalagonData={create:()=>({load:async()=>({jobs:[],candidates:[],feedback:[],interviewOutcomes:[]}),loadHome:async()=>null,visitHome:async()=>{},loadHomeReviews:async()=>[],loadJobReassessments:async()=>[],trackEvent:async()=>{},schedule:()=>{},flush:async()=>{},loadAdminAnalytics:()=>rpc('usage'),isAppAdmin:()=>rpc('is-admin'),loadAdminTools:()=>rpc('tools'),loadAdminStarterFile:(file,model,project)=>rpc('download',{file,model,project})})};
+    window.AncalagonData={create:()=>({load:async()=>({jobs:[],candidates:[],feedback:[],interviewOutcomes:[]}),loadHome:async()=>null,visitHome:async()=>{},loadHomeReviews:async()=>[],loadJobReassessments:async()=>[],trackEvent:async()=>{},schedule:()=>{},flush:async()=>{},loadBetaSecurity:()=>rpc('security'),manageBetaAccess:(email,approved)=>rpc('access',{email,approved}),pauseAI:paused=>rpc('pause',{paused}),loadAdminAnalytics:()=>rpc('usage'),isAppAdmin:()=>rpc('is-admin'),loadAdminTools:()=>rpc('tools'),loadAdminStarterFile:(file,model,project)=>rpc('download',{file,model,project})})};
     // Owning a workspace or setting user metadata never grants application-admin rights.
     window.ancalagonAuth={session:{user:{id:user,user_metadata:{role:'admin',admin:true}}},workspace:{id:user,role:'owner'}};
    },user);
@@ -68,7 +72,11 @@ const names={server:'server.ts',schema:'schema.sql',prompt:'evaluation-prompt.tx
   failUsage=false;await page.locator('#refreshAdminUsage').click();await page.getByText(/^Updated .*Refresh to load newer activity\.$/).waitFor();
   assert.equal(usageCalls,beforeFocus+2,'Manual refresh requests not recorded');
   await page.locator('#adminToolsNav').waitFor({state:'visible'});await page.locator('#adminToolsNav').click();
-  await page.locator('#downloadServer').waitFor();assert.equal(await page.locator('#adminToolsContent h3').count(),6);assert.equal(await page.locator('.rf-globaljob').isVisible(),false);
+  await page.locator('#downloadServer').waitFor();await page.locator('#betaAccessEmail').waitFor();assert.equal(await page.locator('#adminToolsContent h3').count(),7);assert.equal(await page.locator('.rf-globaljob').isVisible(),false);
+  await page.locator('#betaAccessEmail').fill('tester@example.test');await page.getByRole('button',{name:'Approve beta access',exact:true}).click();
+  await page.getByText('tester@example.test · Approved to register').waitFor();assert.equal(betaAccounts[0].approved,true);
+  await page.getByRole('button',{name:'Revoke access',exact:true}).click();await page.getByText('tester@example.test · Access revoked').waitFor();assert.equal(betaAccounts[0].approved,false);
+  await page.getByRole('button',{name:'Pause AI processing',exact:true}).click();await page.getByRole('button',{name:'Resume AI processing',exact:true}).waitFor();assert.equal(aiPaused,true);
   await page.locator('[data-goto="backend"]').first().click();assert.equal(await page.locator('#page-backend #downloadServer').count(),0);
   await page.locator('#adminToolsNav').click();await page.locator('#backendProject').fill('example-project');await page.locator('#backendModel').fill('example-model');
   for(const id of ['downloadServer','downloadSchema','downloadPrompt','downloadPackage','downloadEnv']){

@@ -3,36 +3,8 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: criteria-backend-deploy
-  cancel-in-progress: false
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    environment: criteria-backend
-    timeout-minutes: 10
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-      - name: Validate authenticated intake
-        run: |
-          deno check supabase/functions/analyze-patterns-beta/index.ts
-          deno test --allow-env tests/analysis-latency.test.ts tests/resume-intake-backend.test.ts
-          node --test tests/resume-intake.test.js
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - name: Exclude unfinished intake from duplicate processing
-        run: node scripts/resume-intake-backend.mjs
-      - name: Deploy verified resume processing
-        run: |
-          supabase functions deploy analyze-patterns-v2 --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy analyze-patterns-beta --project-ref "$SUPABASE_PROJECT_REF"
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/core-backend.yml
+    secrets: inherit

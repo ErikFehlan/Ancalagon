@@ -56,7 +56,7 @@
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) {const {data:deleting}=await client.rpc('get_account_deletion_status');throw new Error(deleting===true?'Account deletion is in progress. Your private workspaces are locked while cleanup finishes.':'No workspace is assigned to this account.');}
+    if (!data) {const {data:deleting}=await client.rpc('get_account_deletion_status');throw new Error(deleting===true?'Account deletion is in progress. Your private workspaces are locked while cleanup finishes.':'This account does not have active beta access. Contact the administrator.');}
     const relatedWorkspace = Array.isArray(data.workspaces)
       ? data.workspaces[0]
       : data.workspaces;
@@ -191,10 +191,11 @@
     nameInput.required = creating;
     confirmPasswordInput.required = creating;
     passwordInput.autocomplete = creating ? 'new-password' : 'current-password';
+    passwordInput.minLength = creating ? 12 : 1;
     submitButton.textContent = creating ? 'Create account' : 'Sign in';
     form.reset();
     showMessage(creating
-      ? 'Create a private workspace with your name, work email, and password.'
+      ? 'Beta access requires approval. Use your approved email and a password of at least 12 characters; then verify your email.'
       : 'Enter your existing account details.');
   }
 
@@ -218,6 +219,7 @@
     if (!email || !password) return;
 
     if (authMode === 'create') {
+      if(password.length<12){showMessage('Use a password with at least 12 characters.','error');return;}
       const displayName = nameInput.value.trim();
       if (!displayName) return;
       if (password !== confirmPasswordInput.value) {
@@ -238,7 +240,7 @@
       submitButton.textContent = 'Create account';
 
       if (error) {
-        showMessage(error.message || 'Your account could not be created.', 'error');
+        showMessage(error.code==='unexpected_failure'?'Account creation could not finish. Confirm that this email has beta approval, then try again.':error.message || 'Your account could not be created.', 'error');
         return;
       }
 
@@ -279,8 +281,8 @@
     const button = document.getElementById('passwordSubmit');
     const status = document.getElementById('passwordMessage');
 
-    if (password.length < 8) {
-      status.textContent = 'Use at least 8 characters.';
+    if (password.length < 12) {
+      status.textContent = 'Use at least 12 characters.';
       return;
     }
     if (password !== confirmation) {

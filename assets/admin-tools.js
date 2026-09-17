@@ -1,6 +1,6 @@
 (function(global){
  'use strict';
- function create({host,load,download,authorize,getSettings,saveSettings,onDenied,toast,saveFile,supportLoad,supportReview}){
+ function create({host,load,download,authorize,getSettings,saveSettings,onDenied,toast,saveFile,supportLoad,supportReview,securityLoad,securityAccess,securityPause}){
   let allowed=false,version=0,loading=null;
   const files={downloadServer:'server',downloadSchema:'schema',downloadPrompt:'prompt',downloadPackage:'pkg',downloadEnv:'env'};
   function clear(){version++;loading=null;host.replaceChildren();}
@@ -21,6 +21,7 @@
      if(typeof payload?.html!=='string')throw Error('Admin tools are unavailable.');
      // This markup is a deployment-owned resource returned by an admin-checked RPC.
      host.innerHTML=payload.html;
+     if(securityLoad){const panel=document.createElement('section');panel.className='rf-card';panel.id='betaSecurityPanel';host.prepend(panel);void loadSecurity(request);}
      if(supportLoad){const panel=document.createElement('section');panel.className='rf-card';panel.innerHTML='<h3>Support Inbox</h3><p class="rf-sub">Private problem reports submitted from Settings.</p><button type="button" class="rf-btn" data-support-refresh>Refresh reports</button><div id="adminSupportInbox" aria-live="polite"></div>';host.append(panel);void loadSupport(request);}
      const settings=getSettings();host.querySelector('#patternFunctionUrl').value=settings.url;host.querySelector('#patternAnonKey').value=settings.anonKey;
     }catch(error){
@@ -30,6 +31,29 @@
     }finally{if(request===version)loading=null;}
    })();
    return loading;
+  }
+  async function loadSecurity(request=version){
+   const panel=host.querySelector('#betaSecurityPanel');if(!panel)return;
+   panel.textContent='Loading beta access and usage limits…';
+   try{
+    const snapshot=await securityLoad();if(!allowed||request!==version)return;panel.replaceChildren();
+    const h=document.createElement('h3');h.textContent='Beta access and security';panel.append(h);
+    const note=document.createElement('p');note.className='rf-sub';note.textContent='Approve an email before its owner creates an account. Approval sends no email. New accounts must verify their email. Revoking access blocks new data requests and AI processing.';panel.append(note);
+    const form=document.createElement('form');form.className='rf-form';const label=document.createElement('label');label.textContent='Beta tester email';
+    const input=document.createElement('input');input.type='email';input.required=true;input.maxLength=254;input.autocomplete='off';input.id='betaAccessEmail';label.htmlFor=input.id;
+    const submit=document.createElement('button');submit.type='submit';submit.className='rf-btn primary';submit.textContent='Approve beta access';
+    const status=document.createElement('p');status.setAttribute('role','status');
+    form.append(label,input,submit,status);form.addEventListener('submit',async event=>{event.preventDefault();submit.disabled=true;try{await securityAccess(input.value.trim(),true);if(allowed&&request===version)await loadSecurity(request);}catch(error){status.textContent=error.message||'Approval could not be saved.';}finally{submit.disabled=false;}});panel.append(form);
+    const list=document.createElement('ul');
+    for(const account of snapshot.accounts||[]){const row=document.createElement('li'),text=document.createElement('span'),button=document.createElement('button');
+     text.textContent=account.email+' · '+(account.approved?(account.registered?'Active account':'Approved to register'):'Access revoked')+' ';
+     button.type='button';button.className='rf-btn';button.textContent=account.approved?'Revoke access':'Restore access';
+     button.addEventListener('click',async()=>{button.disabled=true;try{await securityAccess(account.email,!account.approved);if(allowed&&request===version)await loadSecurity(request);}catch(error){status.textContent=error.message||'Access could not be updated.';}finally{button.disabled=false;}});row.append(text,button);list.append(row);}
+    panel.append(list);
+    const usage=document.createElement('p');usage.textContent=`AI calls today: ${snapshot.today?.calls||0} / ${snapshot.limits.global_day}. Per workspace: ${snapshot.limits.workspace_day} per day, ${snapshot.limits.workspace_minute} per minute. Retries count toward these limits.`;panel.append(usage);
+    const pause=document.createElement('button');pause.type='button';pause.className='rf-btn';pause.textContent=snapshot.limits.ai_paused?'Resume AI processing':'Pause AI processing';
+    pause.addEventListener('click',async()=>{pause.disabled=true;try{await securityPause(!snapshot.limits.ai_paused);if(allowed&&request===version)await loadSecurity(request);}catch(error){status.textContent=error.message||'Processing control could not be saved.';}finally{pause.disabled=false;}});panel.append(pause);
+   }catch(error){if(request!==version)return;if(error.code==='42501')deny();else panel.textContent='Security controls could not be loaded. Reopen Admin to retry.';}
   }
   async function loadSupport(request=version){
    const inbox=host.querySelector('#adminSupportInbox');if(!inbox)return;
