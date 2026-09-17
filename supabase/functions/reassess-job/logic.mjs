@@ -33,5 +33,5 @@ export function validate(result,prepared){
 export const schema={type:'object',additionalProperties:false,required:['jd_score','manager_score','confidence','summary','manager_reason','jd_reason','evidence_ids','evidence_support','questions'],properties:{
   jd_score:{type:'number',minimum:0,maximum:10},manager_score:{type:'number',minimum:0,maximum:10},confidence:{type:'string',enum:['low','medium','high']},
   evidence_support:{type:'array',minItems:1,maxItems:5,items:{type:'object',additionalProperties:false,required:['source_id','quote','claim'],properties:{source_id:{type:'string'},quote:{type:'string',minLength:12,maxLength:1000},claim:{type:'string',minLength:1,maxLength:800}}}},
-  summary:{type:'string'},manager_reason:{type:'string'},jd_reason:{type:'string'},evidence_ids:{type:'array',items:{type:'string'}},questions:{type:'array',items:{type:'string'},maxItems:3}
+  summary:{type:'string',maxLength:320},manager_reason:{type:'string',maxLength:320},jd_reason:{type:'string',maxLength:320},evidence_ids:{type:'array',items:{type:'string'}},questions:{type:'array',items:{type:'string',maxLength:220},maxItems:2}
 }};
