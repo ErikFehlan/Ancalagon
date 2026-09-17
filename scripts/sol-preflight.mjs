@@ -8,13 +8,20 @@ async function management(path,method='GET',body){
 }
 const keys=await management('/api-keys?reveal=true'),service=keys.find(k=>k.name==='service_role')?.api_key;
 assert.ok(service,'Deployment service credential missing');
+let workerSecret;
 async function request(path,method='GET',body){
- const r=await fetch(`https://${ref}.supabase.co${path}`,{method,headers:{apikey:service,Authorization:`Bearer ${service}`,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(125000)});
+ const credentials=path.startsWith('/functions/')?{'x-worker-secret':workerSecret}:{apikey:service,Authorization:`Bearer ${service}`};
+ const r=await fetch(`https://${ref}.supabase.co${path}`,{method,headers:{...credentials,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(125000)});
  const data=await r.json().catch(()=>null);
  if(!r.ok){console.error('Synthetic Sol check failed:',JSON.stringify({status:r.status,case:data?.case,result:data?.result?.error}));throw Error(`Sol validation request failed (${r.status}); production model rollout stopped.`);}
  return data;
 }
 const query=(query,parameters=[])=>management('/database/query','POST',{query,parameters});
+const transport=await query("select decrypted_secret from vault.decrypted_secrets where name='job_reassessment_secret'");
+workerSecret=transport?.[0]?.decrypted_secret;
+assert.ok(workerSecret,'Private worker transport is not configured');
+const anonymous=await fetch(`https://${ref}.supabase.co/functions/v1/sol-model-check`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(20000)});
+assert.equal(anonymous.status,401,'Private model validation accepted an unauthenticated caller');
 const email=`ancalagon-sol-test-${randomUUID()}@example.invalid`;let user,workspace;
 try{
  await query('insert into public.beta_access(email) values($1)',[email]);
