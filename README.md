@@ -1,4 +1,4 @@
-# Ancalagon
+# blumr
 
 Recruiting intelligence dashboard with job-scoped candidates, benchmarks, manager feedback,
 interview outcomes, deterministic calibration, and an optional external-model interpretation layer.
@@ -18,7 +18,7 @@ change weights automatically; each proposed change requires explicit approval in
    `supabase secrets set OPENAI_API_KEY=YOUR_KEY OPENAI_MODEL=gpt-4.1-mini`
 4. Deploy:
    `supabase functions deploy analyze-patterns-v2`
-5. In Ancalagon Settings, enter:
+5. In blumr Settings, enter:
    - `https://YOUR_PROJECT_REF.supabase.co/functions/v1/analyze-patterns-v2`
    - The project's public anon/publishable key
 

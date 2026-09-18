@@ -61,7 +61,7 @@ const dir=path.resolve(__dirname,'..');
   assert.equal(await evidence.evaluate(el=>el.open),true,'background refresh keeps evidence open');
   assert.equal(await approve.evaluate(el=>el===document.activeElement),true,'background refresh keeps keyboard focus');
   assert.doesNotMatch(await page.locator('#jobAssessmentUpdates').textContent(),/PRIVATE OTHER JOB/);
-  assert.match(await page.locator('#jobAssessmentUpdates').textContent(),/You can close Ancalagon/);
+  assert.match(await page.locator('#jobAssessmentUpdates').textContent(),/You can close blumr/);
   assert.equal(await page.evaluate(()=>window.testSaved.candidates[0].managerScore),7,'proposals must not apply themselves');
   await page.locator('#jobAssessmentUpdates [data-job-review="approve"]').click();
   await page.waitForFunction(()=>window.testSaved.candidates[0].managerScore===9);

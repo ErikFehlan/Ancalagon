@@ -105,7 +105,7 @@
     ${m.queueProblem?`<p class="rf-home-list-note" role="status">Assessment status is temporarily unavailable. ${action('Retry','reviews','','',false,true)}</p>`:''}
    </section>
    </div>
-   <div class="rf-home-footer"><span>Need a hand?</span><div>${closed?action('View last closed job','continue',last.job.id,'',false,true):''}${tutorial&&!tutorial.complete?action(tutorial.started?'Resume practice':'Try a practice search','practice','','',false,true):''}${action('Learn Ancalagon','learn','','',false,true)}</div></div>`;
+   <div class="rf-home-footer"><span>Need a hand?</span><div>${closed?action('View last closed job','continue',last.job.id,'',false,true):''}${tutorial&&!tutorial.complete?action(tutorial.started?'Resume practice':'Try a practice search','practice','','',false,true):''}${action('Learn blumr','learn','','',false,true)}</div></div>`;
  }
 
  return {create,model,location,render,pages};

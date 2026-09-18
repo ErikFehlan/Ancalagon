@@ -58,7 +58,7 @@
     stopButton.addEventListener('click',()=>{controller?.abort();status.textContent='Stopping…';stopButton.disabled=true;});
     exportButton.addEventListener('click',()=>{
       if(!report)return;
-      const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const link=element('a');link.href=url;link.download=`ancalagon-quality-${report.startedAt.replace(/[:.]/g,'-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const link=element('a');link.href=url;link.download=`blumr-quality-${report.startedAt.replace(/[:.]/g,'-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
     root.querySelector('#qualityBaseline').addEventListener('change',async event=>{
       const file=event.target.files?.[0];if(!file)return;

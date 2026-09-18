@@ -2,7 +2,7 @@
  'use strict';
  const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const workspacePages=new Set(['home','jobs','job-picker','learn','backend','admin-tools','admin-usage']);
- const labels={home:'Home',jobs:'Jobs','job-picker':'Jobs',dashboard:'Overview',candidates:'Candidates',pipeline:'Pipeline',feedback:'Manager feedback',outcomes:'Interview activity',criteria:'Evaluation criteria',rankings:'Rankings',compare:'Compare',benchmarks:'Benchmarks',insights:'Hiring insights',learn:'Learn Ancalagon',backend:'Settings','admin-tools':'Admin Tools','admin-usage':'Usage analytics'};
+ const labels={home:'Home',jobs:'Jobs','job-picker':'Jobs',dashboard:'Overview',candidates:'Candidates',pipeline:'Pipeline',feedback:'Manager feedback',outcomes:'Interview activity',criteria:'Evaluation criteria',rankings:'Rankings',compare:'Compare',benchmarks:'Benchmarks',insights:'Hiring insights',learn:'Learn blumr',backend:'Settings','admin-tools':'Admin Tools','admin-usage':'Usage analytics'};
  let editingDepth=0;
  // Keep a focused editor at the same place when the assessment above it changes.
  function preserveEditing(root,change){

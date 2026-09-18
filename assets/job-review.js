@@ -27,7 +27,7 @@
     const taskFor=c=>(jobs.get(c.jobId)||[]).find(t=>t.candidate_id===c.id);
     function body(task,c,inline=false){
       const prose=global.AncalagonPresentation,result=task.result||{},working=['queued','processing'].includes(task.status),disabled=busy.has(c.id)||api.job()?.status==='closed';
-      if(working)return '<p class="rf-sub">Updating assessment in the background. You can close Ancalagon and return later.</p>';
+      if(working)return '<p class="rf-sub">Updating assessment in the background. You can close blumr and return later.</p>';
       if(task.status==='failed')return `<p class="rf-sub">${task.error_code==='usage_limit'?'AI processing has reached a beta limit or is paused. Try later or contact the administrator.':'Assessment could not finish ('+escape(task.error_code||'processing_failed')+').'} Your current score is unchanged.</p><button type="button" class="rf-btn" data-job-review="retry" data-review-candidate="${escape(c.id)}" ${disabled?'disabled':''}>Try again</button>`;
       if(task.status!=='ready')return `<p class="rf-sub">${task.status==='approved'?'Assessment approved and saved.':task.status==='ignored'?'Current assessment kept.':'Assessment paused because this job is closed.'}</p>`;
       const recommendation=global.AncalagonScoring.recommendation(Number(result.manager_score));

@@ -1,0 +1,39 @@
+/* Use the supplied transparent wordmark unchanged. This viewport trims only
+   its transparent margins (artwork bounds: 151,96 to 1935,606 in 2048x682). */
+.blumr-logo {
+  display:block;
+  position:relative;
+  overflow:hidden;
+  width:220px;
+  max-width:100%;
+  aspect-ratio:1784 / 510;
+  flex:none;
+}
+.blumr-logo > img {
+  position:absolute;
+  display:block;
+  width:114.798206%;
+  max-width:none;
+  height:auto;
+  left:-8.464126%;
+  top:-18.823529%;
+  object-fit:initial;
+  mix-blend-mode:normal;
+}
+.an-brand .blumr-logo {width:196px;}
+.an-footer .blumr-logo {width:180px;}
+.an-access-brand {width:248px;margin-bottom:26px;}
+#rf-app .rf-brand {padding:8px 10px 22px;}
+#rf-app .rf-brand .blumr-logo {width:100%;margin:0;}
+/* Keep the original white lettering readable in all three light themes. */
+#rf-app:is([data-theme="light"],[data-theme="paper"],[data-theme="sage"]) .rf-brand {
+  background:#0b1725;
+  border:0;
+  border-radius:10px;
+  padding:15px 12px;
+}
+@media(max-width:650px) {
+  .an-header .blumr-logo {width:168px;}
+  .an-footer .blumr-logo {width:160px;}
+  .an-access-brand {width:220px;margin-bottom:22px;}
+}

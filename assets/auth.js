@@ -117,7 +117,7 @@
 
   function showWelcome(text, buttonText) {
     welcomeMessage.textContent = text;
-    document.getElementById('welcomeContinue').textContent = buttonText || 'Enter Ancalagon';
+    document.getElementById('welcomeContinue').textContent = buttonText || 'Enter blumr';
     welcomeModal.hidden = false;
   }
 
@@ -250,7 +250,7 @@
         showWelcome('Your account and private workspace have been created successfully.');
       } else {
         showMessage('Account created. Check your email once to confirm it, then sign in with your password.', 'success');
-        showWelcome('Your account was created. Confirm the email from Ancalagon once, then return here and sign in with your password.', 'Return to sign in');
+        showWelcome('Your account was created. Confirm your email once, then return here and sign in with your password.', 'Return to sign in');
         setAuthMode('signin');
       }
       return;
