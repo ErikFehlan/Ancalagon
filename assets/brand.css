@@ -23,14 +23,26 @@
 .an-brand .blumr-logo {width:196px;}
 .an-footer .blumr-logo {width:180px;}
 .an-access-brand {width:248px;margin-bottom:26px;}
-#rf-app .rf-brand {padding:8px 10px 22px;}
+#rf-app .rf-brand {padding:8px 10px 22px;background:transparent;border-radius:0;box-shadow:none;}
 #rf-app .rf-brand .blumr-logo {width:100%;margin:0;}
-/* Keep the original white lettering readable in all three light themes. */
-#rf-app:is([data-theme="light"],[data-theme="paper"],[data-theme="sage"]) .rf-brand {
-  background:#0b211a;
-  border:0;
-  border-radius:10px;
-  padding:15px 12px;
+/* The white wordmark ends before x=1597 (78%) in the original image.
+   Render those same letter shapes in the theme's text color on light sidebars;
+   the original green r and leaf stay visible to the right of that boundary. */
+#rf-app:is([data-theme="light"],[data-theme="paper"],[data-theme="sage"]) .rf-brand .blumr-logo > img {
+  clip-path:inset(0 0 0 78%);
+}
+#rf-app:is([data-theme="light"],[data-theme="paper"],[data-theme="sage"]) .rf-brand .blumr-logo::after {
+  content:"";
+  position:absolute;
+  width:114.798206%;
+  aspect-ratio:2048 / 682;
+  left:-8.464126%;
+  top:-18.823529%;
+  background:var(--ui-text);
+  -webkit-mask:url("blumr-logo.png?v=20260918-wordmark") center / 100% 100% no-repeat;
+  mask:url("blumr-logo.png?v=20260918-wordmark") center / 100% 100% no-repeat;
+  clip-path:inset(0 22% 0 0);
+  pointer-events:none;
 }
 @media(max-width:650px) {
   .an-header .blumr-logo {width:168px;}
