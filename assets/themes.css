@@ -1,9 +1,9 @@
 /* Green palettes also paint the miniature workspace previews.
    Keep stored theme IDs stable so existing preferences carry forward. */
 :is(#rf-app[data-theme="tech"], .rf-theme-preview[data-palette="tech"]) {
-  color-scheme:dark; --ui-bg:#0a1c17; --ui-panel:#122e25; --ui-rail:#0e241e;
-  --ui-soft:#204638; --ui-line:#426858; --ui-text:#edf9f2; --ui-muted:#adc9bc;
-  --ui-accent:#83e3b5; --ui-on-accent:#092d20;
+  color-scheme:dark; --ui-bg:#0d2120; --ui-panel:#193331; --ui-rail:#122927;
+  --ui-soft:#2a4744; --ui-line:#517975; --ui-text:#edf8f6; --ui-muted:#b0cbc8;
+  --ui-accent:#bce0df; --ui-on-accent:#173a36;
 }
 :is(#rf-app[data-theme="violet"], .rf-theme-preview[data-palette="violet"]) {
   color-scheme:dark; --ui-bg:#0d180e; --ui-panel:#1b301c; --ui-rail:#132415;
@@ -36,9 +36,9 @@
   --ui-accent:#a8d18b; --ui-on-accent:#203416;
 }
 :is(#rf-app[data-theme="light"], .rf-theme-preview[data-palette="light"]) {
-  color-scheme:light; --ui-bg:#effaf5; --ui-panel:#ffffff; --ui-rail:#e0f2e9;
-  --ui-soft:#d4edde; --ui-line:#a3c7b2; --ui-text:#173c2b; --ui-muted:#476c59;
-  --ui-accent:#176943; --ui-on-accent:#ffffff;
+  color-scheme:light; --ui-bg:#bce0df; --ui-panel:#f0f9f7; --ui-rail:#aed4d1;
+  --ui-soft:#acd3ce; --ui-line:#6f9e96; --ui-text:#183c36; --ui-muted:#355b53;
+  --ui-accent:#245e50; --ui-on-accent:#ffffff;
 }
 :is(#rf-app[data-theme="paper"], .rf-theme-preview[data-palette="paper"]) {
   color-scheme:light; --ui-bg:#f2f5e9; --ui-panel:#fdfef8; --ui-rail:#e7ecd5;
