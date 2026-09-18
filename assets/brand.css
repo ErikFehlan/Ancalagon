@@ -27,7 +27,7 @@
 #rf-app .rf-brand .blumr-logo {width:100%;margin:0;}
 /* Keep the original white lettering readable in all three light themes. */
 #rf-app:is([data-theme="light"],[data-theme="paper"],[data-theme="sage"]) .rf-brand {
-  background:#0b1725;
+  background:#0b211a;
   border:0;
   border-radius:10px;
   padding:15px 12px;

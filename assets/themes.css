@@ -1,48 +1,49 @@
-/* Shared palette tokens also paint the miniature workspace previews. */
+/* Green palettes also paint the miniature workspace previews.
+   Keep stored theme IDs stable so existing preferences carry forward. */
 :is(#rf-app[data-theme="tech"], .rf-theme-preview[data-palette="tech"]) {
-  color-scheme:dark; --ui-bg:#0c1625; --ui-panel:#152438; --ui-rail:#101d2e;
-  --ui-soft:#22364e; --ui-line:#344b66; --ui-text:#edf4ff; --ui-muted:#a5b6ce;
-  --ui-accent:#82caff; --ui-on-accent:#09213b;
+  color-scheme:dark; --ui-bg:#0a1c17; --ui-panel:#122e25; --ui-rail:#0e241e;
+  --ui-soft:#204638; --ui-line:#426858; --ui-text:#edf9f2; --ui-muted:#adc9bc;
+  --ui-accent:#83e3b5; --ui-on-accent:#092d20;
 }
 :is(#rf-app[data-theme="violet"], .rf-theme-preview[data-palette="violet"]) {
-  color-scheme:dark; --ui-bg:#110b20; --ui-panel:#211633; --ui-rail:#160e26;
-  --ui-soft:#34234e; --ui-line:#58436f; --ui-text:#f4efff; --ui-muted:#bcb0d1;
-  --ui-accent:#c4a5ff; --ui-on-accent:#231337;
+  color-scheme:dark; --ui-bg:#0d180e; --ui-panel:#1b301c; --ui-rail:#132415;
+  --ui-soft:#2c452b; --ui-line:#506e4d; --ui-text:#f0f8eb; --ui-muted:#b8cbae;
+  --ui-accent:#95cc80; --ui-on-accent:#152e10;
 }
 :is(#rf-app[data-theme="emerald"], .rf-theme-preview[data-palette="emerald"]) {
-  color-scheme:dark; --ui-bg:#071814; --ui-panel:#0d2921; --ui-rail:#091e18;
-  --ui-soft:#1b3d31; --ui-line:#3d6252; --ui-text:#e9fff4; --ui-muted:#a6c5b6;
-  --ui-accent:#72dfb5; --ui-on-accent:#08271c;
+  color-scheme:dark; --ui-bg:#041d13; --ui-panel:#0b3323; --ui-rail:#072719;
+  --ui-soft:#164c35; --ui-line:#397452; --ui-text:#e9fff2; --ui-muted:#a4cfb8;
+  --ui-accent:#50df99; --ui-on-accent:#042c18;
 }
 :is(#rf-app[data-theme="graphite"], .rf-theme-preview[data-palette="graphite"]) {
-  color-scheme:dark; --ui-bg:#1a1c1e; --ui-panel:#292c2f; --ui-rail:#202326;
-  --ui-soft:#32373c; --ui-line:#505961; --ui-text:#f0f2f4; --ui-muted:#b4bec7;
-  --ui-accent:#c6d3df; --ui-on-accent:#202a33;
+  color-scheme:dark; --ui-bg:#0c1512; --ui-panel:#19251f; --ui-rail:#111e18;
+  --ui-soft:#2a3a30; --ui-line:#536c5c; --ui-text:#edf4ee; --ui-muted:#b0c3b6;
+  --ui-accent:#a5c8b1; --ui-on-accent:#192d20;
 }
 :is(#rf-app[data-theme="ocean"], .rf-theme-preview[data-palette="ocean"]) {
-  color-scheme:dark; --ui-bg:#061b24; --ui-panel:#102d38; --ui-rail:#09232e;
-  --ui-soft:#1a404b; --ui-line:#3d626f; --ui-text:#e7faff; --ui-muted:#a0c1cb;
-  --ui-accent:#77dedb; --ui-on-accent:#072c31;
+  color-scheme:dark; --ui-bg:#06221b; --ui-panel:#103c30; --ui-rail:#0a2d24;
+  --ui-soft:#1d5040; --ui-line:#427a64; --ui-text:#e8fff3; --ui-muted:#a2cdb9;
+  --ui-accent:#69dca7; --ui-on-accent:#062f20;
 }
 :is(#rf-app[data-theme="ember"], .rf-theme-preview[data-palette="ember"]) {
-  color-scheme:dark; --ui-bg:#201612; --ui-panel:#30221c; --ui-rail:#281b16;
-  --ui-soft:#443025; --ui-line:#735440; --ui-text:#fff2e7; --ui-muted:#d1b5a2;
-  --ui-accent:#f8ba8a; --ui-on-accent:#3a2012;
+  color-scheme:dark; --ui-bg:#181d0c; --ui-panel:#2a3319; --ui-rail:#202811;
+  --ui-soft:#3c4726; --ui-line:#647448; --ui-text:#f5f8e9; --ui-muted:#c2cbab;
+  --ui-accent:#bdcf7d; --ui-on-accent:#252e0e;
 }
 :is(#rf-app[data-theme="rose"], .rf-theme-preview[data-palette="rose"]) {
-  color-scheme:dark; --ui-bg:#20151e; --ui-panel:#30212d; --ui-rail:#281b25;
-  --ui-soft:#452e3e; --ui-line:#705368; --ui-text:#fff0f7; --ui-muted:#d0afc3;
-  --ui-accent:#f2aeca; --ui-on-accent:#371628;
+  color-scheme:dark; --ui-bg:#162015; --ui-panel:#253622; --ui-rail:#1d2a1a;
+  --ui-soft:#394c30; --ui-line:#627953; --ui-text:#f1f7e9; --ui-muted:#bdceb0;
+  --ui-accent:#a8d18b; --ui-on-accent:#203416;
 }
 :is(#rf-app[data-theme="light"], .rf-theme-preview[data-palette="light"]) {
-  color-scheme:light; --ui-bg:#f1f4f7; --ui-panel:#ffffff; --ui-rail:#e9eef4;
-  --ui-soft:#e4edf8; --ui-line:#b8c9dc; --ui-text:#172a42; --ui-muted:#4e6179;
-  --ui-accent:#205dab; --ui-on-accent:#ffffff;
+  color-scheme:light; --ui-bg:#effaf5; --ui-panel:#ffffff; --ui-rail:#e0f2e9;
+  --ui-soft:#d4edde; --ui-line:#a3c7b2; --ui-text:#173c2b; --ui-muted:#476c59;
+  --ui-accent:#176943; --ui-on-accent:#ffffff;
 }
 :is(#rf-app[data-theme="paper"], .rf-theme-preview[data-palette="paper"]) {
-  color-scheme:light; --ui-bg:#f5f0e7; --ui-panel:#fffdf8; --ui-rail:#ede5d8;
-  --ui-soft:#ecded0; --ui-line:#cbb8a2; --ui-text:#34291f; --ui-muted:#6b5847;
-  --ui-accent:#944523; --ui-on-accent:#ffffff;
+  color-scheme:light; --ui-bg:#f2f5e9; --ui-panel:#fdfef8; --ui-rail:#e7ecd5;
+  --ui-soft:#dde6c8; --ui-line:#b6c39a; --ui-text:#303d20; --ui-muted:#556343;
+  --ui-accent:#536b2f; --ui-on-accent:#ffffff;
 }
 :is(#rf-app[data-theme="sage"], .rf-theme-preview[data-palette="sage"]) {
   color-scheme:light; --ui-bg:#eff4ef; --ui-panel:#fbfdf9; --ui-rail:#e2ebe1;
@@ -54,8 +55,8 @@
 #rf-app[data-theme] {
   --ui-panel-line:color-mix(in srgb,var(--ui-line) 55%,var(--ui-panel));
   --ui-control-line:color-mix(in srgb,var(--ui-muted) 70%,var(--ui-panel));
-  --ui-shadow:0 2px 8px light-dark(rgba(24,39,57,.04),rgba(0,0,0,.09));
-  --ui-floating-shadow:0 12px 32px light-dark(rgba(24,39,57,.12),rgba(0,0,0,.24));
+  --ui-shadow:0 2px 8px light-dark(rgba(20,43,31,.04),rgba(0,0,0,.09));
+  --ui-floating-shadow:0 12px 32px light-dark(rgba(20,43,31,.12),rgba(0,0,0,.24));
   --rf-blue:var(--ui-accent); --rf-muted:var(--ui-muted); --rf-border:var(--ui-line); --rf-line:var(--ui-line);
   --tech-blue:var(--ui-accent); --tech-cyan:var(--ui-accent); --tech-violet:var(--ui-accent);
   --rf-green:light-dark(#21634d,#8bd5b7); --rf-amber:light-dark(#845500,#ebc16f); --rf-red:light-dark(#a32a3a,#ffabb5);
@@ -63,12 +64,12 @@
   color:var(--ui-text); background:var(--ui-bg); accent-color:var(--ui-accent);
 }
 #rf-app[data-theme] :is(.rf-sidebar,.rf-globalbar) {background:var(--ui-rail); color:var(--ui-text); border-color:var(--ui-panel-line);}
-/* The pale dragon needs a dark backing on bright sidebars. */
+/* Legacy pale marks remain readable on bright sidebars. */
 #rf-app:is([data-theme="light"],[data-theme="paper"],[data-theme="sage"]) .rf-logo-crop {
-  background:#13243a;
+  background:#0b211a;
   border:1px solid var(--ui-line);
   filter:none;
-  box-shadow:0 2px 6px rgba(19,36,58,.12);
+  box-shadow:0 2px 6px rgba(11,33,26,.12);
 }
 #rf-app[data-theme] :is(.rf-card,.rf-modal,.rf-select-menu,.rf-cardmenu,.rf-job-menu-items,.rf-job-choice,.rf-stageitem,.rf-toast) {background:var(--ui-panel); color:var(--ui-text); border-color:var(--ui-panel-line); box-shadow:var(--ui-shadow);}
 /* Reading a panel should not make it look like a clickable control. */
@@ -89,13 +90,18 @@
 #rf-app[data-theme] .rf-btn:hover:not(:disabled) {background:var(--ui-soft); border-color:var(--ui-accent); transform:none;}
 #rf-app[data-theme] .rf-btn.primary {background:var(--ui-accent); color:var(--ui-on-accent); border-color:var(--ui-accent);}
 #rf-app[data-theme] .rf-btn.primary:hover:not(:disabled) {background:var(--ui-accent); filter:none; box-shadow:0 0 0 3px color-mix(in srgb,var(--ui-accent) 18%,transparent);}
-#rf-app[data-theme] :is(.rf-btn,.rf-select-button):active:not(:disabled) {box-shadow:inset 0 2px 4px light-dark(rgba(24,39,57,.16),rgba(0,0,0,.24));}
+#rf-app[data-theme] :is(.rf-btn,.rf-select-button):active:not(:disabled) {box-shadow:inset 0 2px 4px light-dark(rgba(20,43,31,.16),rgba(0,0,0,.24));}
 #rf-app[data-theme] :is(.rf-btn,.rf-select-button):disabled {transform:none; box-shadow:none;}
 #rf-app[data-theme] :is(.rf-btn.danger,.rf-cardmenu .danger) {background:var(--ui-error-bg); color:var(--rf-red); border-color:var(--rf-red);}
 #rf-app[data-theme] .rf-btn.danger:hover:not(:disabled) {background:var(--ui-error-bg); border-color:var(--rf-red);}
 #rf-app[data-theme] :is(.rf-form input,.rf-form select,.rf-form textarea,.rf-globaljob select,.rf-search) {background:var(--ui-panel); color:var(--ui-text); border-color:var(--ui-control-line); color-scheme:inherit; font-family:inherit;}
 #rf-app[data-theme] :is(input,textarea)::placeholder {color:var(--ui-muted); opacity:1;}
 #rf-app[data-theme] #globalJobSelect {color-scheme:inherit;}
+/* Carry the selected green through focus, hover, and selected controls. */
+#rf-app[data-theme] .rf-select-button:after {border-color:var(--ui-accent);}
+#rf-app[data-theme] .rf-select.open .rf-select-button {background:var(--ui-panel); border-color:var(--ui-accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--ui-accent) 18%,transparent);}
+#rf-app[data-theme] :is(.rf-home-job:hover,.rf-home-job:focus-visible,.rf-job-filters [aria-pressed=true]) {background:var(--ui-soft);}
+#rf-app[data-theme] :is(.rf-workspace-details>summary,.rf-supporting-details>summary) {color:var(--ui-muted);}
 /* Native option colors retain the existing Windows/Edge readability workaround. */
 #rf-app[data-theme] :is(.rf-select-option:hover,.rf-select-option.active,.rf-select-option.selected,.rf-cardmenu button:hover,.rf-row:hover,.rf-more:hover) {background:var(--ui-soft); color:var(--ui-text);}
 #rf-app[data-theme] .rf-select-option.selected {box-shadow:inset 3px 0 var(--ui-accent);}

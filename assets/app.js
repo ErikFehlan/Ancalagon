@@ -13,7 +13,7 @@
       const STATE_VERSION=3;
       const HYBRID_KEY='ancalagon-hybrid-v1';
       const THEME_KEY='ancalagon-theme-v1';
-      const THEMES={tech:'blumr Tech',violet:'Obsidian Violet',emerald:'Emerald Matrix',graphite:'Graphite',ocean:'Midnight Ocean',ember:'Ember',rose:'Rosewood',light:'Executive Light',paper:'Warm Paper',sage:'Soft Sage'};
+      const THEMES={tech:'blumr Mint',violet:'Forest',emerald:'Emerald',graphite:'Pine',ocean:'Jade',ember:'Olive',rose:'Moss',light:'Mint Light',paper:'Matcha',sage:'Soft Sage'};
       const LIGHT_THEMES=new Set(['light','paper','sage']);
       const DEFAULT_HYBRID_SETTINGS={url:'https://zqiqjzxcpznhzjengfff.supabase.co/functions/v1/analyze-patterns-beta',anonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxaXFqenhjcHpuaHpqZW5nZmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NjcwNDEsImV4cCI6MjEwMzM0MzA0MX0.Xbm_rHVt8Ku7GT7YY8PLUqbd8_6sXL4dZf0V6PGs7TA'};
       let hybridState={settings:{...DEFAULT_HYBRID_SETTINGS},analyses:{}};
