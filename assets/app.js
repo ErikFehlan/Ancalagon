@@ -862,7 +862,7 @@ function renderJobs(){
       searchFlow=window.AncalagonSearchFlow.mount({host:root.querySelector('#searchFlow'),state:()=>({
         job:activeJob(),candidates,selected:root.querySelector('#page-detail.active')?candidateForRef(root.querySelector('#reviewCandidateId').value):null,
         canReview:c=>jobReview.canReview(c)||candidateAutomation.canReview(c),uploads:batch.view(),
-        visible:dataReady&&!['backend','learn','admin-tools','admin-usage'].includes(root.querySelector('.rf-page.active')?.id.replace('page-',''))
+        visible:dataReady&&!['home','jobs','job-picker','backend','learn','admin-tools','admin-usage'].includes(root.querySelector('.rf-page.active')?.id.replace('page-',''))
       }),act:(action,next)=>{
         if(action==='start'){showPage('jobs');openJobForm();}
         if(action==='jobs')showPage('jobs');
