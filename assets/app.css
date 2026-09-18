@@ -250,6 +250,27 @@
 .rf-submission-tools label{display:block;margin-bottom:8px}
 .rf-submission-tools textarea{width:100%;max-width:100%;box-sizing:border-box;min-height:230px;line-height:1.55;font:inherit}
 .rf-submission-tools .rf-actions{margin-top:12px;flex-wrap:wrap}
+
+/* A document surface for the client pitch, using the active theme throughout. */
+#rf-app .rf-submission-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:6px 0 22px}
+#rf-app .rf-submission-heading h3{font-size:24px;letter-spacing:-.5px;margin:8px 0;color:var(--ui-text)}
+#rf-app .rf-submission-heading p{margin:0}
+.rf-submission-badge{color:var(--ui-accent);background:var(--ui-soft);padding:7px 11px;border-radius:100px;font-size:12px;white-space:nowrap}
+#rf-app .rf-submission-document{background:var(--ui-panel);border:1px solid var(--ui-line);border-radius:16px;box-shadow:var(--ui-shadow);overflow:hidden;transition:border-color .15s,box-shadow .15s}
+#rf-app .rf-submission-document:focus-within{border-color:var(--ui-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ui-accent) 15%,transparent)}
+.rf-submission-document-head,.rf-submission-document-foot{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px 28px;color:var(--ui-muted);font-size:12px}
+#rf-app .rf-submission-document-head label{margin:0;font-weight:600;color:var(--ui-text)}
+.rf-submission-document-head{border-bottom:1px solid var(--ui-panel-line)}
+#rf-app #submissionDraft{display:block;box-sizing:border-box;width:100%;max-width:100%;min-height:270px;margin:0;padding:28px;border:0;border-radius:0;background:transparent;color:var(--ui-text);font-family:inherit;font-size:16px;line-height:1.75;letter-spacing:normal;box-shadow:none;resize:none;overflow:hidden;outline:none}
+#rf-app #submissionDraft::placeholder{color:var(--ui-muted);opacity:1}
+.rf-submission-document-foot{border-top:1px solid var(--ui-panel-line);background:var(--ui-rail);flex-wrap:wrap}
+.rf-submission-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px}
+#rf-app .rf-submission-footer .rf-actions{margin:0;gap:10px}
+#rf-app .rf-submission-footer p{margin:0;font-size:12px}
+#rf-app .rf-evidence-excerpt{margin:8px 0 14px;padding:0 0 0 12px;border-left:2px solid var(--ui-accent);color:var(--ui-muted);font-size:13px;line-height:1.6;overflow-wrap:anywhere;white-space:normal}
+#detailStrengths{display:grid;gap:12px;padding-left:20px}
+#detailStrengths li{line-height:1.55}
+@media(max-width:600px){.rf-submission-heading{flex-wrap:wrap}.rf-submission-badge{display:none}.rf-submission-document-head,.rf-submission-document-foot{padding:13px 16px}#rf-app #submissionDraft{padding:20px 16px;font-size:15px}.rf-submission-footer{align-items:flex-start}.rf-submission-document-foot span:last-child{display:none}}
 .rf-workspace-overview{gap:18px;margin-bottom:16px}.rf-workspace-overview h3{font-size:18px;margin:6px 0}.rf-workspace-overview p{font-size:14px;line-height:1.5;margin:8px 0}
 .rf-brief-fit{font-size:14px;font-weight:700;margin-top:10px}
 .rf-intake-brief .rf-approve-next{margin-top:10px}

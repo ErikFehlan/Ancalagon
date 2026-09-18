@@ -42,6 +42,7 @@ jobs:
           node --check assets/landing.js
           node --check assets/data.js
           node --check assets/scoring.js
+          node --check assets/presentation.js
           node --check assets/evidence.js
           node --check assets/context.js
           node --check assets/feedback.js
@@ -63,6 +64,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Test recruiter browser journey
         run: |
+          CAPTURE_UI=test-results/presentation node tests/presentation-browser.cjs
           node tests/security-browser.cjs
           node tests/landing-browser.cjs
           node tests/settings-browser.cjs
@@ -83,6 +85,7 @@ jobs:
         with:
           name: ui-review
           path: |
+            test-results/presentation-*.png
             test-results/tutorial-*.png
             test-results/focus-*.png
             test-results/landing-*.png

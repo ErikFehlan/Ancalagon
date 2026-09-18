@@ -1,6 +1,7 @@
 (function(global){
   'use strict';
-  const drafts=new Map();let api,current=null,currentCandidate=null,quickNotes;
+  const prose=global.AncalagonPresentation||(typeof require==='function'?require('./presentation.js'):null);
+  const drafts=new Map();let api,current=null,currentCandidate=null,quickNotes,draftObserver;
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   // Presentation only: keep the stored candidate identity and exact source text intact.
   function displayName(candidate){
@@ -10,18 +11,24 @@
     return name.replace(/_/g,' ').replace(/\.(?:pdf|docx?)$/i,'').replace(/\s+(?:resume|cv)$/i,'').replace(/\s+/g,' ').trim()||name;
   }
   function evidenceFor(candidate){
-    const text=String(candidate.strengths?.[0]||candidate.signal||'No supporting evidence recorded yet.');
-    const marker=' — Resume: “',start=text.indexOf(marker);
-    if(start<0||!text.endsWith('”'))return {claim:text,quote:''};
-    return {claim:text.slice(0,start),quote:text.slice(start+marker.length,-1)};
+    return prose.evidence(candidate.strengths?.[0]||candidate.signal||'No supporting evidence recorded yet.');
   }
   function fitHTML(candidate){
     return [['JD Fit',candidate.jdScore],['Manager Fit',candidate.managerScore]].map(([label,value])=>
       `<div class="rf-brief-score"><span>${label}</span><strong>${Number.isFinite(value)?value.toFixed(1):'—'}<small> / 10</small></strong></div>`).join('');
   }
-  function summary(candidate,job,feedback){
-    const observations=feedback.filter(f=>f.jobId===job.id&&f.candidateId===candidate.id).slice(-3);
-    return `${candidate.short} — ${candidate.role||'Candidate'}\nSearch: ${job.title}\n\nProfile evidence to review:\n${(candidate.strengths||[]).slice(0,3).map(x=>'• '+x).join('\n')||'No supporting examples recorded.'}\n\nRecruiter / manager observations:\n${observations.map(f=>'• '+f.text).join('\n')||'No observations recorded.'}\n\nQuestions to resolve:\n${(candidate.concerns||[]).slice(0,3).map(x=>'• '+x).join('\n')||'Confirm the job requirements and personal contribution during screening.'}`;
+  function summary(candidate,job){
+    const points=prose.sellingPoints(candidate);if(!points.length)return '';
+    const name=displayName(candidate),role=candidate.role&&candidate.role!=='Role not stated'?' — '+candidate.role:'';
+    const compose=()=>`${name}${role}\n\nFor your ${job.title} opening, ${name} brings:\n\n${points.map(x=>'• '+x).join('\n\n')}`;
+    while(points.length>1&&prose.words(compose()).length>150)points.pop();
+    return compose();
+  }
+  function refreshDraft(){
+    const area=api?.root.querySelector('#submissionDraft');if(!area)return;
+    const count=prose.words(area.value).length,label=api.root.querySelector('#submissionWordCount');
+    if(label)label.textContent=count+' words'+(count>150?' · Aim for 150 or fewer':'');
+    if(area.getBoundingClientRect().width){area.style.height='auto';area.style.height=area.scrollHeight+'px';}
   }
   function pending(){return !!quickNotes?.pending()||drafts.size>0;}
   function noteStatus(candidate){
@@ -34,30 +41,33 @@
   function questionsFor(candidate){
     const proposed=api.reviewQuestions?.(candidate)||[],intake=candidate.resumeIntake?.phase==='ready'?candidate.resumeIntake.brief?.screening_questions:[];
     const questions=proposed.length?proposed:intake?.length?intake:candidate.screeningQuestions?.length?candidate.screeningQuestions:api.questions(candidate);
-    return [...new Set(questions?.length?questions:['Which parts of this work did you personally own?'])].slice(0,3);
+    return [...new Set(questions?.length?questions:['Which parts of this work did you personally own?'])].slice(0,2).map(q=>prose.brief(q,25,1));
   }
   function render(candidate){
     if(!candidate||!api)return;
     if(current===candidate.id&&api.root.querySelector('#candidateWorkspace').dataset.workspaceCandidate===candidate.id){currentCandidate=candidate;refreshFeedback();noteStatus(candidate);return;}
     if(current&&current!==candidate.id){const previous=currentCandidate;if(previous)void quickNotes.flush(previous);}
-    current=candidate.id;currentCandidate=candidate;const job=api.job(),all=api.feedback(),readiness=api.readiness(candidate);
+    current=candidate.id;currentCandidate=candidate;const job=api.job(),readiness=api.readiness(candidate);
     const questions=questionsFor(candidate);
     const wrap=api.root.querySelector('#candidateWorkspace'),note=quickNotes.entry(candidate);
     wrap.dataset.workspaceCandidate=candidate.id;
     wrap.innerHTML=`<div class="rf-assessment-region"><div id="workspaceIntake" class="rf-card rf-intake-brief" hidden></div><div id="workspaceEvaluation" class="rf-card" aria-live="polite" hidden></div>
       <section class="rf-card rf-workspace-overview" aria-labelledby="workspaceBriefTitle"><div class="rf-brief-heading"><div><span class="rf-kicker">Screening brief</span><h3 id="workspaceBriefTitle">${escape(readiness.label)}</h3><p class="rf-sub"></p></div><div id="workspaceFit" class="rf-brief-fit" aria-label="Assessment scores"></div></div><div class="rf-brief-evidence"><h4>Strongest evidence</h4><p id="workspaceEvidence"></p><details id="workspaceSource" class="rf-source-details" hidden><summary>View resume excerpt</summary><blockquote id="workspaceSourceQuote"></blockquote></details></div><div class="rf-brief-uncertainty"><h4>What to verify</h4><p id="workspaceUncertainty"></p><p class="rf-evidence-caution">Missing evidence is a question to verify, not proof of a missing skill.</p></div><details class="rf-review-explanation rf-brief-explanation"><summary>Why this assessment?</summary><div id="workspaceAssessmentReasons"></div></details></section></div>
       <div class="rf-card rf-screening-work"><div class="rf-workspace-columns"><form id="workspaceNoteForm" class="rf-form"><details class="rf-review-explanation"><summary>How do notes affect assessments?</summary><p>Your original words are saved first. Review the interpretation in Saved notes &amp; AI insights below. Accepting its wording leaves scores unchanged; assessment proposals have their own approval.</p></details><label for="workspaceNote">Screening notes</label><textarea id="workspaceNote" maxlength="10000" placeholder="What did you learn about their skills, ownership, or working style?">${escape(note.text)}</textarea><div class="rf-note-controls"><p id="workspaceNoteStatus" class="rf-sub" role="status"></p><button type="button" class="rf-linkbtn" id="newQuickNote">New note</button><button type="submit" class="rf-btn" id="retryQuickNote" hidden>Retry save</button></div></form><div class="rf-screen-questions"><h3>Ask in your screen</h3><ol id="workspaceQuestions">${questions.map(q=>`<li>${escape(q)}</li>`).join('')}</ol></div></div><details class="rf-feedback-history"><summary>Saved notes &amp; AI insights</summary><div id="workspaceFeedback" aria-live="polite"></div></details></div>
-      <details id="workspaceSubmission" class="rf-card rf-workspace-details rf-submission-tools"><summary>Prepare a submission</summary><p class="rf-sub">Edit the draft and check its claims against the evidence before sharing.</p><div id="submissionGuidance" class="rf-guidance-slot" data-guidance-tip="submission"></div><label for="submissionDraft">Submission summary</label><textarea id="submissionDraft" maxlength="12000">${escape(drafts.get(current)??candidate.submissionDraft?.text??summary(candidate,job,all))}</textarea><div class="rf-actions"><button type="button" class="rf-btn primary" id="saveSubmissionDraft">Save summary</button><button type="button" class="rf-btn" id="workspaceCopy">Copy summary</button><button type="button" class="rf-linkbtn" id="regenerateSubmission">Generate a fresh draft</button></div><p class="rf-sub" id="submissionDraftStatus">${drafts.has(current)?'Unsaved edits':candidate.submissionDraft?'Saved draft — review against the latest feedback.':'Generated draft — edit and save to keep it.'}</p></details>`;
+      <details id="workspaceSubmission" class="rf-card rf-workspace-details rf-submission-tools"><summary>Prepare a submittal</summary><div class="rf-submission-heading"><div><span class="rf-kicker">Candidate presentation</span><h3>Make the introduction.</h3><p class="rf-sub">Their strongest experience. Ready for your client.</p></div><span class="rf-submission-badge">Client submittal</span></div><div id="submissionGuidance" class="rf-guidance-slot" data-guidance-tip="submission"></div><div class="rf-submission-document"><div class="rf-submission-document-head"><label for="submissionDraft">Submittal draft</label><span id="submissionWordCount"></span></div><textarea id="submissionDraft" maxlength="12000" spellcheck="true" aria-describedby="submissionDraftHelp submissionWordCount" placeholder="Add a short introduction and 3–5 supported strengths for this role.">${escape(drafts.get(current)??candidate.submissionDraft?.text??summary(candidate,job))}</textarea><div class="rf-submission-document-foot"><span id="submissionDraftHelp">Click anywhere in the draft to make it yours.</span><span>Plain text · ready to paste</span></div></div><div class="rf-submission-footer"><div class="rf-actions"><button type="button" class="rf-btn primary" id="workspaceCopy">Copy submittal</button><button type="button" class="rf-btn" id="saveSubmissionDraft">Save</button><button type="button" class="rf-linkbtn" id="regenerateSubmission">Generate fresh draft</button></div><p class="rf-sub" id="submissionDraftStatus" role="status">${drafts.has(current)?'Unsaved edits':candidate.submissionDraft?'Saved draft':'Draft ready · review before sharing'}</p></div></details>`;
     const id=current,area=wrap.querySelector('#workspaceNote');
     area.addEventListener('input',e=>quickNotes.edit(candidate,e.target.value));
     area.addEventListener('blur',()=>void quickNotes.flush(candidate));
     wrap.querySelector('#workspaceNoteForm').addEventListener('submit',e=>{e.preventDefault();void quickNotes.flush(candidate);});
     wrap.querySelector('#newQuickNote').addEventListener('click',async()=>{if(await quickNotes.fresh(candidate)&&current===id){area.value='';area.focus();}});
-    wrap.querySelector('#submissionDraft').addEventListener('input',e=>{drafts.set(id,e.target.value);wrap.querySelector('#submissionDraftStatus').textContent='Unsaved edits';});
-    wrap.querySelector('#saveSubmissionDraft').addEventListener('click',()=>{const text=wrap.querySelector('#submissionDraft').value.trim();if(!text){api.toast('Add a summary before saving.','error');return;}candidate.submissionDraft={text,updatedAt:Date.now()};drafts.delete(id);api.save();wrap.querySelector('#submissionDraftStatus').textContent='Summary captured — check the save indicator.';});
+    wrap.querySelector('#submissionDraft').addEventListener('input',e=>{drafts.set(id,e.target.value);wrap.querySelector('#submissionDraftStatus').textContent='Unsaved edits';refreshDraft();});
+    wrap.querySelector('#saveSubmissionDraft').addEventListener('click',()=>{const text=wrap.querySelector('#submissionDraft').value.trim();if(!text){api.toast('Add a submittal before saving.','error');return;}candidate.submissionDraft={text,updatedAt:Date.now()};drafts.delete(id);api.save();wrap.querySelector('#submissionDraftStatus').textContent='Draft captured · check the save indicator';});
     wrap.querySelector('#workspaceCopy').addEventListener('click',copy);
-    wrap.querySelector('#regenerateSubmission').addEventListener('click',()=>{if(!global.confirm('Replace the summary text with a fresh draft from the current evidence?'))return;const text=summary(candidate,job,api.feedback());drafts.set(id,text);wrap.querySelector('#submissionDraft').value=text;wrap.querySelector('#submissionDraftStatus').textContent='Unsaved fresh draft';});
-    refreshFeedback();noteStatus(candidate);
+    wrap.querySelector('#regenerateSubmission').addEventListener('click',()=>{if(!global.confirm('Replace this draft with a fresh submittal from the candidate’s strengths?'))return;const text=summary(candidate,job);drafts.set(id,text);wrap.querySelector('#submissionDraft').value=text;wrap.querySelector('#submissionDraftStatus').textContent='Fresh draft · not saved';refreshDraft();});
+    draftObserver?.disconnect();
+    if(global.ResizeObserver){let width=0;draftObserver=new ResizeObserver(entries=>{const next=entries[0].contentRect.width;if(next!==width){width=next;refreshDraft();}});draftObserver.observe(wrap.querySelector('#submissionDraft'));}
+    wrap.querySelector('#workspaceSubmission').addEventListener('toggle',refreshDraft);
+    refreshFeedback();noteStatus(candidate);refreshDraft();
   }
   function preserve(change){
     const region=api?.root.querySelector('.rf-assessment-region');
@@ -84,7 +94,7 @@
     if(global.AncalagonFocus)global.AncalagonFocus.updatePanel(wrap,feedbackHTML,bind);else{wrap.innerHTML=feedbackHTML;bind();}
     const history=api.root.querySelector('#workspaceScoreHistory');
     const changes=candidate.aiReview?.history||[];
-    if(history)history.innerHTML=changes.length?changes.slice(-3).reverse().map(h=>`<div class="rf-workspace-note"><strong>${Number(h.previousScore).toFixed(1)} → ${Number(h.newScore).toFixed(1)} Manager Fit</strong><p>${escape((h.reasons||[]).join(' '))}</p><span class="rf-sub">Approved ${escape(api.formatDate?api.formatDate(h.appliedAt):new Date(h.appliedAt).toLocaleString())}</span></div>`).join(''):'<p class="rf-sub">No approved AI re-evaluation changes yet. Saving a quick note does not automatically change the score.</p>';
+    if(history)history.innerHTML=changes.length?changes.slice(-3).reverse().map(h=>`<div class="rf-workspace-note"><strong>${Number(h.previousScore).toFixed(1)} → ${Number(h.newScore).toFixed(1)} Manager Fit</strong><p>${escape(prose.brief((h.reasons||[]).join(' '),40))}</p><span class="rf-sub">Approved ${escape(api.formatDate?api.formatDate(h.appliedAt):new Date(h.appliedAt).toLocaleString())}</span></div>`).join(''):'<p class="rf-sub">No approved AI re-evaluation changes yet. Saving a quick note does not automatically change the score.</p>';
   }
   function renderEvaluation(candidate){
     const wrap=api.root.querySelector('#workspaceEvaluation');if(!wrap)return;
@@ -95,7 +105,7 @@
     if(['queued','running','saving'].includes(phase)){
       html=`<h3>${phase==='saving'?'Saving updated assessment…':'Updating assessment from your feedback…'}</h3><p class="rf-sub">You can keep working. The AI proposal will appear here for review.</p>`;
     }else if(phase==='pending'&&reviewable){
-      html=`<span class="rf-kicker">Ready for review</span><h3>Updated candidate assessment</h3><p><strong>Manager Fit: ${Number(p.currentScore).toFixed(1)} → ${Number(p.proposedScore).toFixed(1)} / 10</strong></p><p class="rf-sub">${escape(p.currentRecommendation)} → ${escape(p.proposedRecommendation)}</p><ul>${p.reasons.map(r=>`<li>${escape(r)}</li>`).join('')}</ul><p class="rf-evidence-caution">Missing evidence is a question to verify, not proof of a missing skill.</p><details class="rf-review-explanation"><summary>What happens when I approve?</summary><p>Saves the proposed Manager Fit score, recommendation, and assessment reasons for this candidate. JD Fit, their pipeline stage, and other candidates stay unchanged. Keep current assessment retains the existing assessment and your saved feedback.</p></details><div class="rf-actions"><button type="button" class="rf-btn primary" data-evaluation-action="apply-next">Approve &amp; next</button><button type="button" class="rf-btn" data-evaluation-action="apply">Approve assessment</button><button type="button" class="rf-btn" data-evaluation-action="ignore">Keep current assessment</button></div>`;
+      html=`<span class="rf-kicker">Ready for review</span><h3>Updated candidate assessment</h3><p><strong>Manager Fit: ${Number(p.currentScore).toFixed(1)} → ${Number(p.proposedScore).toFixed(1)} / 10</strong></p><p class="rf-sub">${escape(p.currentRecommendation)} → ${escape(p.proposedRecommendation)}</p><ul>${p.reasons.slice(0,3).map(r=>`<li>${escape(prose.brief(r,30))}</li>`).join('')}</ul><p class="rf-evidence-caution">Missing evidence is a question to verify, not proof of a missing skill.</p><details class="rf-review-explanation"><summary>What happens when I approve?</summary><p>Saves the proposed Manager Fit score, recommendation, and assessment reasons for this candidate. JD Fit, their pipeline stage, and other candidates stay unchanged. Keep current assessment retains the existing assessment and your saved feedback.</p></details><div class="rf-actions"><button type="button" class="rf-btn primary" data-evaluation-action="apply-next">Approve &amp; next</button><button type="button" class="rf-btn" data-evaluation-action="apply">Approve assessment</button><button type="button" class="rf-btn" data-evaluation-action="ignore">Keep current assessment</button></div>`;
     }else if(phase==='error'){
       html=`<h3>Assessment needs another try</h3><p class="rf-sub">${escape(state.error)} Your feedback is retained; no AI score change was applied.</p><button type="button" class="rf-btn" data-evaluation-action="retry">Try again</button>`;
     }else if(phase==='pending'){
@@ -109,14 +119,19 @@
     if(!api||!current)return;const c=api.candidate(current);if(!c)return;
     api.intakeBrief?.(c,api.root.querySelector('#workspaceIntake'));
     const list=api.root.querySelector('#workspaceQuestions');if(list)list.innerHTML=questionsFor(c).map(q=>'<li>'+escape(q)+'</li>').join('');
-    if(c.resumeIntake?.phase==='ready'&&!drafts.has(c.id)&&!c.submissionDraft){const draft=api.root.querySelector('#submissionDraft');if(draft)draft.value=summary(c,api.job(),api.feedback());}
-    const proof=evidenceFor(c),evidence=api.root.querySelector('#workspaceEvidence');if(evidence)evidence.textContent=proof.claim;
+    if(c.resumeIntake?.phase==='ready'&&!drafts.has(c.id)&&!c.submissionDraft){const draft=api.root.querySelector('#submissionDraft');if(draft){const text=summary(c,api.job());if(draft.value!==text){draft.value=text;refreshDraft();}}}
+    const proof=evidenceFor(c),evidence=api.root.querySelector('#workspaceEvidence');if(evidence)evidence.textContent=prose.brief(proof.claim,24);
     const source=api.root.querySelector('#workspaceSource'),quote=api.root.querySelector('#workspaceSourceQuote');
-    if(source)source.hidden=!proof.quote;if(quote)quote.textContent=proof.quote;
+    if(source)source.hidden=!proof.quote;if(quote)quote.textContent=prose.excerpt(proof.quote,proof.claim);
     const ready=global.AncalagonIntake?.pending(c)?c.resumeIntake.phase==='ready':(api.reviewReady?.(c)||api.canReview(c));api.guidance?.(c,ready?'approval':'assessment');
-    const reasons=api.root.querySelector('#workspaceAssessmentReasons');if(reasons)reasons.innerHTML='<p>JD Fit summarizes evidence against the job requirements. Manager Fit also considers approved manager priorities and recorded candidate feedback.</p>'+[c.resumeIntake?.brief?.jd_reason,c.resumeIntake?.brief?.manager_reason,c.aiReview?.notes].filter(Boolean).map(text=>'<p>'+escape(text)+'</p>').join('')+'<p>Review the source and any conflicting observations. Scores are screening estimates; unresolved questions still need a conversation.</p>';
+    const reasons=api.root.querySelector('#workspaceAssessmentReasons');
+    if(reasons){
+      const latest=c.aiReview?.notes,screen=c.screeningInsight?.assessment,brief=c.resumeIntake?.brief;
+      const items=latest?[['Latest review',latest]]:[['JD Fit',screen?.jd_reason||brief?.jd_reason],['Manager Fit',screen?.manager_reason||brief?.manager_reason]];
+      reasons.innerHTML=items.filter(([,text])=>text).map(([label,text])=>'<p><strong>'+label+':</strong> '+escape(prose.brief(text,35))+'</p>').join('')||'<p>Scores reflect recorded job evidence and approved manager priorities.</p>';
+    }
     const readiness=api.readiness(c),uncertainty=api.root.querySelector('#workspaceUncertainty');
-    if(uncertainty)uncertainty.textContent=readiness.knockouts[0]?.requirement||readiness.mustGaps[0]?.requirement||c.concerns?.[0]||'Confirm personal ownership and the job requirements.';
+    if(uncertainty)uncertainty.textContent=prose.brief(readiness.knockouts[0]?.requirement||readiness.mustGaps[0]?.requirement||c.concerns?.[0]||'Confirm personal ownership and the job requirements.',25);
     const overview=api.root.querySelector('.rf-workspace-overview > div');
     const fit=api.root.querySelector('#workspaceFit');if(fit)fit.innerHTML=global.AncalagonIntake?.pending(c)?'':fitHTML(c);
     const card=api.root.querySelector('.rf-workspace-overview');if(card)card.hidden=!api.root.querySelector('#workspaceIntake').hidden||!api.root.querySelector('#workspaceEvaluation').hidden;
@@ -128,7 +143,7 @@
     }
   }
   function refreshEvaluation(){if(!api||!current)return;return preserve(()=>{const candidate=api.candidate(current);if(candidate){renderEvaluation(candidate);refreshIntake();}});}
-  async function copy(){const area=api.root.querySelector('#submissionDraft');if(!area)return;try{await navigator.clipboard.writeText(area.value);api.toast('Edited submission summary copied.');api.completeGuidance?.('submission');}catch{area.focus();area.select();api.toast('Select and copy the summary using your browser.','error');}}
+  async function copy(){const area=api.root.querySelector('#submissionDraft');if(!area)return;if(!area.value.trim()){api.toast('Add a submittal before copying.','error');return;}try{await navigator.clipboard.writeText(area.value);api.toast('Submittal copied.');api.completeGuidance?.('submission');}catch{area.focus();area.select();api.toast('Select and copy the submittal using your browser.','error');}}
   async function beforeReview(candidate){
     if(!quickNotes?.pending(candidate.id))return true;
     const saved=await quickNotes.flush(candidate);
