@@ -26,11 +26,13 @@
 #rf-app .rf-brand {padding:8px 10px 22px;background:transparent;border-radius:0;box-shadow:none;}
 #rf-app .rf-brand .blumr-logo {width:100%;margin:0;}
 /* The white wordmark ends before x=1597 (78%) in the original image.
-   Render those same letter shapes in the theme's text color on light sidebars;
+   Render those same letter shapes in the theme's text color on light surfaces;
    the original green r and leaf stay visible to the right of that boundary. */
+#authGate.an-site .blumr-logo > img,
 #rf-app:is([data-theme="light"],[data-theme="paper"],[data-theme="sage"]) .rf-brand .blumr-logo > img {
   clip-path:inset(0 0 0 78%);
 }
+#authGate.an-site .blumr-logo::after,
 #rf-app:is([data-theme="light"],[data-theme="paper"],[data-theme="sage"]) .rf-brand .blumr-logo::after {
   content:"";
   position:absolute;
@@ -38,7 +40,7 @@
   aspect-ratio:2048 / 682;
   left:-8.464126%;
   top:-18.823529%;
-  background:var(--ui-text);
+  background:var(--ui-text,var(--an-ink));
   -webkit-mask:url("blumr-logo.png?v=20260918-wordmark") center / 100% 100% no-repeat;
   mask:url("blumr-logo.png?v=20260918-wordmark") center / 100% 100% no-repeat;
   clip-path:inset(0 22% 0 0);
