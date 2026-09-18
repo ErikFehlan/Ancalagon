@@ -74,16 +74,14 @@
   function dispose(){disposed=true;clearTimeout(timer);}
   return {load,remember,flush,refresh,view,dispose};
  }
- function render(host,m,{name='',error='',tutorial=null}={}){
+ function render(host,m,{name='',error='',tutorial=null,workflow='',featuredJobId=null}={}){
   if(!host)return;
   const action=(label,kind,job='',candidate='',primary=false,link=false)=>`<button type="button" class="${link?'rf-linkbtn':'rf-btn'}${primary?' primary':''}" data-home-action="${kind}" data-job="${esc(job)}" data-candidate="${esc(candidate)}">${label}</button>`;
   if(error){host.innerHTML=`<div class="rf-card rf-home-hero"><h1>Let’s reconnect your workspace</h1><p>${esc(error)}</p>${action('Try again','reload','','',true)}</div>`;return;}
   const first=m.firstVisit,title=first?'Get started here':'Pick up where you left off';
   const heading=m.loading&&!m.loaded?'Getting your starting point ready…':title;
   const last=m.last,closed=last?.job.status==='closed';
-  const labels={dashboard:'Open job overview',candidates:'Review candidates',detail:'Continue candidate review',pipeline:'Review pipeline',outcomes:'Review interview activity',rankings:'Review rankings',compare:'Compare candidates',benchmarks:'Review benchmarks',criteria:'Review evaluation criteria',feedback:'Review manager feedback',insights:'Review hiring insights'};
-  const continuation=last?`<section class="rf-home-continue" aria-label="Continue your last job"><div class="rf-home-continue-copy"><span class="rf-home-eyebrow">${closed?'Closed job':'Last opened'}</span><h2>${esc(last.job.title)}</h2><p>${closed?'View search history':esc(labels[last.page])}${last.candidate?' · '+esc(last.candidate.short||last.candidate.name):''}</p></div>${action(closed?'View history':'Continue →','continue',last.job.id,last.candidate?.id||'',!closed)}</section>`:'';
-  const otherJobs=m.recent.filter(j=>j.id!==last?.job.id);
+  const otherJobs=m.recent.filter(j=>j.id!==featuredJobId);
   const status=job=>{
    const count=list=>list.filter(c=>c.jobId===job.id).length;
    const attention=count(m.attention),ready=count(m.ready),working=count(m.working);
@@ -96,16 +94,16 @@
    const count=m.candidateCounts.get(j.id)||0,progress=status(j);
    return `<li><button type="button" class="rf-home-job" data-home-action="job" data-job="${esc(j.id)}"><span class="rf-home-job-copy"><strong>${esc(j.title)}</strong><small>${count} candidate${count===1?'':'s'}</small></span><span class="rf-home-job-status" data-tone="${progress.tone}">${progress.label}</span><span class="rf-home-job-arrow" aria-hidden="true">→</span></button></li>`;
   }).join('');
-  host.innerHTML=`<div class="rf-home-heading"><div><span class="rf-home-eyebrow">${name?'Welcome'+(first?'':' back')+', '+esc(name):'Your workspace'}</span><h1 tabindex="-1">${heading}</h1></div>${action('+ Create job','new','','',!last)}</div>
+  host.innerHTML=`<div class="rf-home-heading"><div><span class="rf-home-eyebrow">${name?'Welcome'+(first?'':' back')+', '+esc(name):'Your workspace'}</span><h1 tabindex="-1">${heading}</h1></div>${action('+ Create job','new','','',!workflow)}</div>
    ${m.problem?`<div class="rf-home-notice" role="status">${esc(m.problem)} ${action('Retry sync','retry')}</div>`:''}
-   ${continuation}
-   ${!last&&!m.recent.length?`<section class="rf-card rf-home-hero"><span class="rf-home-eyebrow">Your next search starts here</span><h2>${first?'Start with a job description.':'Ready for a new search?'}</h2><p>Create a job, add resumes, and review your candidates. We’ll guide you through each step.</p></section>`:''}
-   <section class="rf-home-jobs" aria-label="Active jobs"><div class="rf-home-list-heading"><h2>${last&&!closed?'Other active jobs':'Active jobs'}${otherJobs.length?` <span>${otherJobs.length}</span>`:''}</h2>${m.steps[0]?action('All jobs →','jobs','','',false,true):''}</div>
-    ${jobRows?`<ul class="rf-home-job-list">${jobRows}</ul>`:`<p class="rf-home-empty">${last&&!closed?'Your current job is above. Create a job when you’re ready for another search.':m.steps[0]?'No active jobs. You can find completed searches in All jobs.':'Your jobs will appear here.'}</p>`}
+   ${workflow?`<section id="homeSearchFlow" class="rf-search-flow" aria-label="Next step for your search">${workflow}</section>`:''}
+   ${!workflow&&!m.recent.length?`<section class="rf-card rf-home-hero"><span class="rf-home-eyebrow">Your next search starts here</span><h2>${first?'Start with a job description.':'Ready for a new search?'}</h2><p>Create a job, add resumes, and review your candidates. We’ll guide you through each step.</p></section>`:''}
+   <section class="rf-home-jobs" aria-label="Active jobs"><div class="rf-home-list-heading"><h2>${featuredJobId?'Other active jobs':'Active jobs'}${otherJobs.length?` <span>${otherJobs.length}</span>`:''}</h2>${m.steps[0]?action('All jobs →','jobs','','',false,true):''}</div>
+    ${jobRows?`<ul class="rf-home-job-list">${jobRows}</ul>`:`<p class="rf-home-empty">${featuredJobId?'Your current job is above. Create a job when you’re ready for another search.':m.steps[0]?'No active jobs. You can find completed searches in All jobs.':'Your jobs will appear here.'}</p>`}
     ${otherJobs.length>5?`<p class="rf-home-list-note">Showing 5 of ${otherJobs.length} active jobs.</p>`:''}
     ${m.queueProblem?`<p class="rf-home-list-note" role="status">Assessment status is temporarily unavailable. ${action('Retry','reviews','','',false,true)}</p>`:''}
    </section>
-   <div class="rf-home-footer"><span>Need a hand?</span><div>${tutorial&&!tutorial.complete?action(tutorial.started?'Resume practice':'Try a practice search','practice','','',false,true):''}${action('Learn Ancalagon','learn','','',false,true)}</div></div>`;
+   <div class="rf-home-footer"><span>Need a hand?</span><div>${closed?action('View last closed job','continue',last.job.id,'',false,true):''}${tutorial&&!tutorial.complete?action(tutorial.started?'Resume practice':'Try a practice search','practice','','',false,true):''}${action('Learn Ancalagon','learn','','',false,true)}</div></div>`;
  }
 
  return {create,model,location,render,pages};

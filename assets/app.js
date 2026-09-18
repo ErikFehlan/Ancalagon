@@ -739,7 +739,20 @@ function renderJobs(){
       function exportCSV(){const lines=[['Rank','Candidate','JD Fit','Manager Fit','Confidence','Recommendation','Primary Signal'],...ranked().map((c,i)=>[i+1,c.short,c.jdScore,c.managerScore,c.confidence,c.rec,c.signal])];const csv=lines.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');downloadBlob(csv,'resume-fit-rankings.csv','text/csv')}
       function exportReport(){const benchmarks=activeBenchmarks();const text=['Ancalagon Report','Active job: '+activeJob().title,'',...ranked().map((c,i)=>`${i+1}. ${c.short} — ${c.managerScore}/10 — ${c.rec}\n   ${c.signal}`),'',benchmarks.length?'Active benchmarks: '+benchmarks.map(c=>c.short).join(', '):'Active benchmarks: None'].join('\n');downloadBlob(text,'ancalagon-report.txt','text/plain')}
       function downloadBlob(content,name,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-      function renderHome(){if(!home)return;const host=root.querySelector('#workspaceHome'),focused=host.contains(document.activeElement)?{...document.activeElement.dataset}:null;window.AncalagonHome.render(host,home.view(),{name:(personalPreferences.display_name||window.ancalagonAuth?.session?.user?.user_metadata?.display_name||'').trim().split(/\s+/)[0],error:workspaceLoadError,tutorial:tutorial?.summary()});if(focused?.homeAction){const button=[...host.querySelectorAll('[data-home-action]')].find(b=>b.dataset.homeAction===focused.homeAction&&b.dataset.job===focused.job&&b.dataset.candidate===focused.candidate);button?.focus({preventScroll:true});}}
+      function homeSearchState(view=home.view()){
+        const last=view.last,job=last&&last.job.status!=='closed'?last.job:view.recent[0]||null;
+        return {job,candidates,selected:last?.candidate&&last.job.id===job?.id?last.candidate:null,
+          canReview:c=>view.ready.some(r=>r.id===c.id)||jobReview.canReview(c)||candidateAutomation.canReview(c),uploads:batch.view(),showStart:false};
+      }
+      function renderHome(){
+        if(!home)return;
+        const host=root.querySelector('#workspaceHome'),focused=host.contains(document.activeElement)?{...document.activeElement.dataset}:null;
+        const view=home.view(),search=homeSearchState(view);
+        window.AncalagonHome.render(host,view,{name:(personalPreferences.display_name||window.ancalagonAuth?.session?.user?.user_metadata?.display_name||'').trim().split(/\s+/)[0],error:workspaceLoadError,tutorial:tutorial?.summary(),
+          workflow:search.job?window.AncalagonSearchFlow.markup(search):'',featuredJobId:search.job?.id});
+        if(focused){const button=[...host.querySelectorAll('[data-home-action],[data-search-action]')].find(b=>b.dataset.homeAction===focused.homeAction&&b.dataset.searchAction===focused.searchAction&&b.dataset.job===focused.job&&b.dataset.candidate===focused.candidate);button?.focus({preventScroll:true});}
+      }
+
       function homeOpen(jobId,candidateId,page='dashboard'){
         const job=jobs.find(j=>j.id===jobId);if(!job){showPage('job-picker');return;}
         window.AncalagonWorkspace?.leave();activeJobId=job.id;loadActiveJobWeights();renderJobs();recalibrateAll();renderFeedback();renderOutcomes();
@@ -747,6 +760,12 @@ function renderJobs(){
         trackProductEvent('job_opened',job.id);
       }
       root.querySelector('#workspaceHome').addEventListener('click',event=>{
+        const nextButton=event.target.closest('[data-search-action]');
+        if(nextButton){
+          const search=homeSearchState();if(!search.job)return;
+          const next=window.AncalagonSearchFlow.next(search);
+          homeOpen(search.job.id,null,'dashboard');runSearchAction(next.action,next);return;
+        }
         const button=event.target.closest('[data-home-action]');if(!button)return;
         const {homeAction:action,job,candidate}=button.dataset;
         if(action==='reload'){button.disabled=true;void initializeWorkspace(window.ancalagonAuth);return;}
@@ -863,7 +882,8 @@ function renderJobs(){
         job:activeJob(),candidates,selected:root.querySelector('#page-detail.active')?candidateForRef(root.querySelector('#reviewCandidateId').value):null,
         canReview:c=>jobReview.canReview(c)||candidateAutomation.canReview(c),uploads:batch.view(),
         visible:dataReady&&!['home','jobs','job-picker','backend','learn','admin-tools','admin-usage'].includes(root.querySelector('.rf-page.active')?.id.replace('page-',''))
-      }),act:(action,next)=>{
+      }),act:runSearchAction});
+      function runSearchAction(action,next){
         if(action==='start'){showPage('jobs');openJobForm();}
         if(action==='jobs')showPage('jobs');
         if(action==='setup'){showPage('jobs');editJob(activeJobId);root.querySelector('#jobDescription').focus();}
@@ -874,7 +894,7 @@ function renderJobs(){
           const section=root.querySelector(action==='submittal'?'#workspaceSubmission':'#candidateWorkspace');
           if(section){section.open=true;section.scrollIntoView({block:'start'});if(action==='submittal')root.querySelector('#submissionDraft')?.focus({preventScroll:true});}
         }
-      }});
+      }
       jobReview.init();
       root.querySelector('#dismissLearnWelcome').addEventListener('click',()=>root.querySelector('#learnWelcome').classList.add('rf-hidden'));
       root.querySelectorAll('[data-learn-page]').forEach(button=>button.addEventListener('click',()=>{if(!jobs.length){showPage('jobs');showToast('Create a job first, then return to this walkthrough.');return}showPage(button.dataset.learnPage)}));

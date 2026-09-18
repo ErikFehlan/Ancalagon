@@ -36,7 +36,7 @@ const candidate=(id,jobId,name)=>({id,jobId,name,short:name,role:'QA Analyst',st
   }
   let {page,context}=await open('new');
   await page.getByRole('heading',{name:'Get started here',exact:true}).waitFor();
-  assert.equal(await page.locator('#searchFlow').isVisible(),false,'job workflow stays inside the job');
+  assert.equal(await page.locator('#searchFlow').isVisible(),false,'the separate job banner is hidden on Home');
   assert.equal(await page.locator('#workspaceHome [data-home-action="new"]').count(),1);
   await page.waitForTimeout(350);if(process.env.CAPTURE_UI)await page.screenshot({path:process.env.CAPTURE_UI+'-new-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(350);
@@ -51,38 +51,58 @@ const candidate=(id,jobId,name)=>({id,jobId,name,short:name,role:'QA Analyst',st
   await context.close();
   // Fresh browser context has no browser storage; returning experience comes from the account.
   ({page,context}=await open('new'));await page.getByRole('heading',{name:'Pick up where you left off',exact:true}).waitFor();
-  await page.locator('[data-home-action="continue"]').waitFor();assert.match(await page.locator('.rf-home-continue').textContent(),/My first search/);
+  await page.locator('#homeSearchFlow').waitFor();assert.match(await page.locator('#homeSearchFlow').textContent(),/My first search/);
+  assert.equal(await page.locator('#homeSearchFlow ol li').count(),4);
+  assert.match(await page.locator('#homeSearchFlow [data-search-action="next"]').textContent(),/Upload resumes/);
+  await page.locator('#workspaceHome [data-home-action="new"]').click();assert.equal(await page.evaluate(()=>document.activeElement.id),'jobTitle');assert.equal(accounts.new.state.jobs.length,1,'starting another job preserves the existing search');
   await context.close();
   ({page,context}=await open('returning'));await page.getByRole('heading',{name:'Pick up where you left off',exact:true}).waitFor();
   assert.equal(await page.locator('[data-home-action="continue"]').count(),0,'existing user gets useful jobs without an invented last visit');
   assert.doesNotMatch(await page.locator('#workspaceHome').textContent(),/My first search/,'accounts never share home content');
-  assert.match(await page.locator('[data-home-action="job"][data-job="job-a"]').textContent(),/1 candidate.*1 to review/);
-  await page.locator('[data-home-action="job"][data-job="job-a"]').click();await page.locator('.rf-nav [data-page="candidates"]').click();await page.locator('[data-candidate-id="a"]').first().click();await page.locator('#page-detail.active').waitFor();assert.equal(await page.locator('#detailName').textContent(),'Alex Example');await page.locator('.rf-nav [data-page="home"]').click();
+  assert.match(await page.locator('#homeSearchFlow').textContent(),/QA Analyst/);
+  await page.locator('#homeSearchFlow [data-search-action="next"]').click();await page.locator('#page-detail.active').waitFor();assert.equal(await page.locator('#detailName').textContent(),'Alex Example');await page.locator('.rf-nav [data-page="home"]').click();
   await page.locator('[data-home-action="job"][data-job="job-b"]').click();await page.locator('.rf-nav [data-page="candidates"]').click();await page.locator('[data-candidate-id="b"]').first().click();
   await page.locator('#page-detail.active').waitFor();await page.evaluate(()=>window.ancalagonFlush());
   assert.equal(accounts.returning.home.last_job_id,'job-b');assert.equal(accounts.returning.home.last_candidate_id,'b');
-  await page.locator('.rf-nav [data-page="home"]').click();await page.locator('[data-home-action="continue"]').waitFor();
-  assert.match(await page.locator('.rf-home-continue').textContent(),/Jamie Example/);
+  await page.locator('.rf-nav [data-page="home"]').click();await page.locator('#homeSearchFlow').waitFor();
+  assert.match(await page.locator('#homeSearchFlow').textContent(),/Application Security Engineer/);
+  assert.match(await page.locator('[data-home-action="job"][data-job="job-a"]').textContent(),/1 candidate.*1 to review/);
   assert.equal(await page.locator('[data-home-action="job"][data-job="job-b"]').count(),0,'last job is not duplicated in the list');
-  assert.equal(await page.locator('#workspaceHome .rf-btn.primary').count(),1,'Continue is the one primary action');
+  assert.equal(await page.locator('#workspaceHome .rf-btn.primary').count(),1,'the next workflow step is the one primary action');
   assert.equal(await page.locator('#searchFlow').isVisible(),false);
   await page.locator('[data-home-action="job"][data-job="job-a"]').focus();await page.keyboard.press('Enter');await page.locator('#page-dashboard.active').waitFor();
   assert.equal(await page.locator('#searchFlow').isVisible(),true,'guidance remains inside the job');
   await page.locator('.rf-nav [data-page="home"]').click();await page.locator('[data-home-action="job"][data-job="job-b"]').click();await page.locator('.rf-nav [data-page="candidates"]').click();await page.locator('[data-candidate-id="b"]').first().click();await page.locator('.rf-nav [data-page="home"]').click();await page.evaluate(()=>window.ancalagonFlush());
+  await context.close();
+  // Home follows the bookmark even when another job is active in the saved workspace.
+  accounts.returning.state.activeJobId='job-a';
+  ({page,context}=await open('returning'));
+  await page.locator('#homeSearchFlow [data-search-action="next"]').click();
+  await page.locator('#page-detail.active').waitFor();assert.equal(await page.locator('#detailName').textContent(),'Jamie Example');
+  await page.evaluate(()=>window.ancalagonFlush());await context.close();
+  accounts.returning.state.candidates.find(c=>c.id==='b').aiReview={verdict:'Accurate'};
+  ({page,context}=await open('returning'));await page.getByRole('button',{name:'Prepare submittal →',exact:true}).waitFor();
+  assert.equal(await page.locator('#homeSearchFlow li[aria-current="step"]').textContent(),'4Prepare submittal');
+  assert.equal(await page.locator('.rf-home-continue').count(),0,'workflow replaces the duplicate Continue card');
   await page.waitForTimeout(350);if(process.env.CAPTURE_UI)await page.screenshot({path:process.env.CAPTURE_UI+'-return-desktop.png',fullPage:true});
   await page.evaluate(()=>document.getElementById('rf-app').dataset.theme='light');
   if(process.env.CAPTURE_UI)await page.screenshot({path:process.env.CAPTURE_UI+'-return-light.png',fullPage:true});
   await page.evaluate(()=>document.getElementById('rf-app').dataset.theme='tech');
   for(const width of [390,320]){await page.setViewportSize({width,height:844});await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);}
   if(process.env.CAPTURE_UI)await page.screenshot({path:process.env.CAPTURE_UI+'-return-mobile.png',fullPage:true});
-  await context.close();({page,context}=await open('returning'));await page.locator('[data-home-action="continue"]').click();
+  await context.close();({page,context}=await open('returning'));await page.locator('#homeSearchFlow [data-search-action="next"]').click();
   await page.locator('#page-detail.active').waitFor();assert.equal(await page.locator('#detailName').textContent(),'Jamie Example');
+  await page.waitForFunction(()=>document.activeElement.id==='submissionDraft');
   await context.close();accounts.returning.state.candidates=accounts.returning.state.candidates.filter(c=>c.id!=='b');
-  ({page,context}=await open('returning'));await page.locator('[data-home-action="continue"]').click();await page.locator('#page-candidates.active').waitFor();await context.close();
+  ({page,context}=await open('returning'));await page.locator('#homeSearchFlow [data-search-action="next"]').click();await page.locator('#page-candidates.active').waitFor();await context.close();
   accounts.returning.state.jobs=accounts.returning.state.jobs.filter(j=>j.id!=='job-b');
-  ({page,context}=await open('returning'));await page.getByRole('heading',{name:'Pick up where you left off',exact:true}).waitFor();assert.equal(await page.locator('[data-home-action="continue"]').count(),0);await context.close();
-  failHome=true;({page,context}=await open('returning'));await page.locator('.rf-home-notice').waitFor();assert.equal(await page.locator('[data-home-action="job"]').count(),1,'bookmark failure does not block access');
+  ({page,context}=await open('returning'));await page.getByRole('heading',{name:'Pick up where you left off',exact:true}).waitFor();assert.match(await page.locator('#homeSearchFlow').textContent(),/QA Analyst/);await context.close();
+  failHome=true;({page,context}=await open('returning'));await page.locator('.rf-home-notice').waitFor();assert.equal(await page.locator('#homeSearchFlow [data-search-action="next"]').count(),1,'bookmark failure does not block access');
   failHome=false;await page.locator('[data-home-action="retry"]').click();await page.locator('.rf-home-notice').waitFor({state:'detached'});await context.close();
+  accounts.returning.state.jobs.push({...job('closed','Finished search'),status:'closed'});
+  accounts.returning.home={last_job_id:'closed',last_page:'dashboard'};
+  ({page,context}=await open('returning'));assert.match(await page.locator('#homeSearchFlow').textContent(),/QA Analyst/);
+  await page.locator('[data-home-action="continue"]').click();await page.locator('#page-dashboard.active').waitFor();await context.close();
   assert.deepEqual(errors,[]);console.log('Home journey passed: first visit, direct setup, cross-device resume, account separation, deleted records, sync recovery, desktop and mobile.');
  }finally{if(browser)await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
