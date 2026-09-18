@@ -107,6 +107,7 @@
         accept.onclick=()=>done(true);cancel.onclick=()=>done(false);modal.onclick=event=>{if(event.target===modal)done(false);};modal.addEventListener('keydown',keys);cancel.focus();
       });}
       function renderGlobalContext(){
+        renderSearchFlow();
         const select=root.querySelector('#globalJobSelect'),options=jobs.filter(j=>personalPreferences.show_closed||j.status!=='closed'||j.id===activeJobId).map(j=>`<option value="${escapeHTML(j.id)}">${escapeHTML(j.title)}${j.status==='closed'?' · Closed':''}${j.client?' · '+escapeHTML(j.client):''}</option>`).join('');
         if(lastJobOptions!==options){select.innerHTML=options;lastJobOptions=options;}if(select.value!==activeJobId)select.value=activeJobId||'';
         root.querySelectorAll('.rf-jobbadge').forEach(b=>b.remove());
@@ -123,7 +124,7 @@
       function stateSnapshot(){return{version:STATE_VERSION,jobs,candidates,feedback,interviewOutcomes,activeJobId}}
       let lastSuccessfulSave=null,lastSaveProblem='';
       function setSyncStatus(state,problem=''){if(state==='saved'){lastSuccessfulSave=new Date();lastSaveProblem=''}else if(problem)lastSaveProblem=problem;const status=root.querySelector('#syncStatus');if(!status)return;const labels={saved:'Saved',saving:'Saving…',offline:'Offline — changes pending',error:'Not saved'};status.dataset.state=state;status.querySelector('span').textContent=labels[state]||labels.saved;if(state==='saved')syncErrorShown=false;const details=root.querySelector('#saveDetails');if(details)details.textContent='Status: '+(labels[state]||state)+'. Last confirmed sync: '+(lastSuccessfulSave?personalDate(lastSuccessfulSave,{timeStyle:'medium'}):'not yet confirmed in this tab')+'. '+lastSaveProblem;}
-      function saveState(){if(!dataReady)return;if(!navigator.onLine){dataService?.markPending(stateSnapshot());setSyncStatus('offline');return}const state=stateSnapshot();dataService?.schedule(state,error=>{console.error('Workspace sync failed',error);setSyncStatus('error',error.message||'Save request failed');if(error.code==='SAVE_CONFLICT'){setSyncStatus('error');showToast(error.message,'error');return}if(!syncErrorShown){syncErrorShown=true;showToast('Changes are still on this screen but are not saved. Retry before closing Ancalagon.','error')}},setSyncStatus)}
+      function saveState(){if(!dataReady)return;queueMicrotask(renderSearchFlow);if(!navigator.onLine){dataService?.markPending(stateSnapshot());setSyncStatus('offline');return}const state=stateSnapshot();dataService?.schedule(state,error=>{console.error('Workspace sync failed',error);setSyncStatus('error',error.message||'Save request failed');if(error.code==='SAVE_CONFLICT'){setSyncStatus('error');showToast(error.message,'error');return}if(!syncErrorShown){syncErrorShown=true;showToast('Changes are still on this screen but are not saved. Retry before closing Ancalagon.','error')}},setSyncStatus)}
       async function retrySync(){if(!dataReady||!dataService)return;if(!navigator.onLine){setSyncStatus('offline');showToast('You are offline. Ancalagon will retry when the connection returns.','error');return}setSyncStatus('saving');try{await dataService.flush(stateSnapshot());setSyncStatus('saved');showToast('All changes saved.')}catch(error){console.error('Workspace retry failed',error);setSyncStatus('error',error.message||'Save request failed');showToast(error.code==='SAVE_CONFLICT'?error.message:'Still unable to save. Keep this page open and check your connection.','error')}}
       function hydrateState(saved){jobs.splice(0,jobs.length,...(saved.jobs||[]));candidates.splice(0,candidates.length,...(saved.candidates||[]));feedback.splice(0,feedback.length,...(saved.feedback||[]));interviewOutcomes.splice(0,interviewOutcomes.length,...(saved.interviewOutcomes||[]));activeJobId=saved.activeJobId||jobs[0]?.id||null;normalizeState()}
       function legacyStateForImport(raw){const saved=JSON.parse(raw),jobMap=new Map(),candidateMap=new Map();(saved.jobs||[]).forEach(job=>{const old=job.id||makeId();job.id=makeId();jobMap.set(old,job.id);job.createdAt=job.createdAt||Date.now();job.updatedAt=job.updatedAt||job.createdAt});(saved.candidates||[]).forEach(candidate=>{const old=candidate.id||candidate.name||makeId();candidate.id=makeId();candidate.jobId=jobMap.get(candidate.jobId||'igs-product-design')||saved.jobs?.[0]?.id;candidateMap.set(old,candidate.id);candidateMap.set(candidate.name,candidate.id);candidateMap.set(candidate.short,candidate.id)});(saved.feedback||[]).forEach(item=>{item.id=makeId();item.jobId=jobMap.get(item.jobId||'igs-product-design')||saved.jobs?.[0]?.id;item.candidateId=candidateMap.get(item.candidateId)||candidateMap.get(item.candidate)||null;item.createdAt=item.createdAt||Date.now();item.updatedAt=item.updatedAt||item.createdAt});(saved.interviewOutcomes||[]).forEach(item=>{item.id=makeId();item.jobId=jobMap.get(item.jobId||'igs-product-design')||saved.jobs?.[0]?.id;item.candidateId=candidateMap.get(item.candidateId)||candidateMap.get(item.candidate)||null;item.createdAt=item.createdAt||Date.now();item.updatedAt=item.updatedAt||item.createdAt});saved.activeJobId=jobMap.get(saved.activeJobId)||saved.jobs?.[0]?.id||null;return saved}
@@ -496,6 +497,7 @@
       const batch=window.AncalagonRecruiter.createBatch({job:activeJob,workspace:()=>window.ancalagonAuth?.workspace?.id,
         upload:(file,options)=>intake.upload(file,options),release:id=>intake.releaseFile(id),toast:showToast,changed:renderRecruiterQueue});
       function renderRecruiterQueue(){
+        renderSearchFlow();
         window.AncalagonRecruiter.renderBatch(root.querySelector('#resumeBatch'),batch.view(),activeJobId);
         const host=root.querySelector('#resumeIntakeStatus'),q=window.AncalagonRecruiter.queue(candidates,activeJob(),c=>jobReview.canReview(c)||candidateAutomation.canReview(c));
         host.hidden=!q.ready.length&&!q.working.length&&!q.attention.length;
@@ -723,7 +725,7 @@ function renderJobs(){
         root.querySelectorAll('.rf-page').forEach(p=>p.classList.toggle('active',p.id==='page-'+name));root.querySelector('.rf-sidebar').classList.remove('open');
         const candidate=name==='detail'?candidateForRef(root.querySelector('#reviewCandidateId').value):null;
         if(candidate){renderSubmissionReadiness(candidate);window.AncalagonWorkspace.render(candidate);}
-        guidance?.refresh();focusUI.show(name,activeJob(),candidate,navigation);home?.remember(name,activeJobId,candidate?.id||null);
+        renderSearchFlow();guidance?.refresh();focusUI.show(name,activeJob(),candidate,navigation);home?.remember(name,activeJobId,candidate?.id||null);
       }
       let screeningCandidateId=null;
       function openScreeningInsight(c){screeningCandidateId=c.id;root.querySelector('#screeningForm').reset();if(c.screeningInsight){root.querySelector('#screenAbility').value=c.screeningInsight.canDoJob||'';root.querySelector('#screenCulture').value=c.screeningInsight.cultureFit||'';root.querySelector('#screenNotes').value=c.screeningInsight.notes||''}root.querySelector('#screeningTitle').textContent='Screen '+c.short;root.querySelector('#screenCurrentJD').textContent=Number(c.jdScore).toFixed(1)+'/10';root.querySelector('#screenCurrentManager').textContent=Number(c.managerScore).toFixed(1)+'/10';root.querySelector('#screeningModal').classList.add('open');root.querySelector('#screenAbility').focus()}
@@ -855,6 +857,25 @@ function renderJobs(){
         noteId:()=>makeId('feedback'),validCandidate:c=>candidates.includes(c)&&jobs.some(j=>j.id===c.jobId),saveNote:saveQuickNote,
         editPreference:index=>{showPage('feedback');editFeedback(index);root.querySelector('#feedbackScope').value='job';root.querySelector('#feedbackSignal').value=feedback[index].signalLabel||proposedSignal(feedback[index].text);root.querySelector('#feedbackSignal').focus();},insights:()=>{showPage('insights');renderReevaluationResults();}
       });
+      let searchFlow=null;
+      function renderSearchFlow(){if(dataReady)searchFlow?.render();}
+      searchFlow=window.AncalagonSearchFlow.mount({host:root.querySelector('#searchFlow'),state:()=>({
+        job:activeJob(),candidates,selected:root.querySelector('#page-detail.active')?candidateForRef(root.querySelector('#reviewCandidateId').value):null,
+        canReview:c=>jobReview.canReview(c)||candidateAutomation.canReview(c),uploads:batch.view(),
+        visible:dataReady&&!['backend','learn','admin-tools','admin-usage'].includes(root.querySelector('.rf-page.active')?.id.replace('page-',''))
+      }),act:(action,next)=>{
+        if(action==='start'){showPage('jobs');openJobForm();}
+        if(action==='jobs')showPage('jobs');
+        if(action==='setup'){showPage('jobs');editJob(activeJobId);root.querySelector('#jobDescription').focus();}
+        if(action==='upload')openAddCandidate();
+        if(action==='uploads'||action==='progress'){showPage('candidates');const target=root.querySelector(action==='uploads'?'#resumeBatch':'#resumeIntakeStatus');if(action==='uploads')target.open=true;target.scrollIntoView({block:'center'});}
+        if(action==='review'||action==='submittal'){
+          openDetail(next.candidateId);
+          const section=root.querySelector(action==='submittal'?'#workspaceSubmission':'#candidateWorkspace');
+          if(section){section.open=true;section.scrollIntoView({block:'start'});if(action==='submittal')root.querySelector('#submissionDraft')?.focus({preventScroll:true});}
+        }
+      }});
+      root.querySelector('#jobForm').addEventListener('submit',()=>{if(!root.querySelector('#jobId').value&&root.querySelector('#jobTitle').value.trim()&&root.querySelector('#jobDescription').value.trim())setTimeout(()=>{showPage('candidates');root.querySelector('#resumeUpload').focus();},0);});
       jobReview.init();
       root.querySelector('#dismissLearnWelcome').addEventListener('click',()=>root.querySelector('#learnWelcome').classList.add('rf-hidden'));
       root.querySelectorAll('[data-learn-page]').forEach(button=>button.addEventListener('click',()=>{if(!jobs.length){showPage('jobs');showToast('Create a job first, then return to this walkthrough.');return}showPage(button.dataset.learnPage)}));

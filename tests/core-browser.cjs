@@ -27,7 +27,7 @@ const root=path.resolve(__dirname,'..');
    function assertBrowser(v){if(!v)throw Error('Wrong revision');}
    window.ancalagonAuth={session:{user:{id:'test'},access_token:'test'},workspace:{id:'workspace'}};
   });
-  await page.goto('http://127.0.0.1:'+server.address().port);await page.locator('#page-home.active').waitFor();await page.locator('.rf-nav [data-page="candidates"]').click();
+  await page.goto('http://127.0.0.1:'+server.address().port);await page.locator('#page-home.active').waitFor();assert.match(await page.locator('#searchFlow').textContent(),/Upload resumes/);await page.locator('.rf-nav [data-page="candidates"]').click();
   const text='Alex Carter\nQA Analyst\nOwned manual regression testing for billing systems and documented defects.';
   await page.locator('#resumeUpload').setInputFiles({name:'Synthetic.txt',mimeType:'text/plain',buffer:Buffer.from(text)});
   await page.locator('#page-detail.active').waitFor();await page.waitForFunction(()=>window.coreRequests>0);
@@ -49,7 +49,7 @@ const root=path.resolve(__dirname,'..');
   await page.evaluate(()=>window.coreFailApproval=true);await page.locator('#workspaceIntake [data-intake-approve]').click();
   await page.waitForFunction(()=>document.body.textContent.includes('Simulated stale revision'));assert.equal(await page.evaluate(()=>window.coreState.candidates[0].managerScore),0);
   await page.evaluate(()=>window.coreFailApproval=false);await page.locator('#workspaceIntake [data-intake-approve]').click();
-  await page.waitForFunction(()=>window.coreState.candidates[0].managerScore===8.5);assert.equal(await page.locator('#workspaceIntake').isVisible(),false);assert.deepEqual(errors,[]);
+  await page.waitForFunction(()=>window.coreState.candidates[0].managerScore===8.5);assert.equal(await page.locator('#workspaceIntake').isVisible(),false);await page.locator('#searchFlow [data-search-action="next"]').filter({hasText:'Prepare submittal'}).waitFor();await page.locator('#searchFlow [data-search-action="next"]').click();assert.equal(await page.locator('#workspaceSubmission').evaluate(e=>e.open),true);assert.deepEqual(errors,[]);
   console.log('PASS: durable intake adapter, saved-source restore, provisional scores, stale approval recovery and server approval.');
  }finally{if(browser)await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
