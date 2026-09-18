@@ -29,7 +29,9 @@
   const last=location(state,saved);
   const recent=active.slice().sort((a,b)=>(b.id===last?.job.id)-(a.id===last?.job.id)||(Number(b.updatedAt)||0)-(Number(a.updatedAt)||0));
   const reviewed=c=>c.resumeIntake?.reviewedAt||c.aiReview;
-  return {firstVisit,last,recent,ready,working,attention,setupJob:recent[0]||null,setupCandidate:ready[0]||candidates.find(c=>!reviewed(c))||candidates[0]||null,
+  const candidateCounts=new Map(active.map(j=>[j.id,0]));
+  for(const c of candidates)candidateCounts.set(c.jobId,candidateCounts.get(c.jobId)+1);
+  return {firstVisit,last,recent,ready,working,attention,candidateCounts,setupJob:recent[0]||null,setupCandidate:ready[0]||candidates.find(c=>!reviewed(c))||candidates[0]||null,
    steps:[state.jobs.length>0,state.candidates.length>0,state.candidates.some(reviewed),(state.feedback||[]).length>0||state.candidates.some(c=>c.screeningInsight?.notes)]};
  }
  function create(api,{delay=250,timeout=6000}={}){
@@ -72,29 +74,39 @@
   function dispose(){disposed=true;clearTimeout(timer);}
   return {load,remember,flush,refresh,view,dispose};
  }
- function render(host,m,{name='',error='',tutorial=null}={}){
+ function render(host,m,{name='',error='',tutorial=null,workflow='',featuredJobId=null}={}){
   if(!host)return;
-  const action=(label,kind,job='',candidate='',primary=false)=>`<button type="button" class="rf-btn${primary?' primary':''}" data-home-action="${kind}" data-job="${esc(job)}" data-candidate="${esc(candidate)}">${label}</button>`;
+  const action=(label,kind,job='',candidate='',primary=false,link=false)=>`<button type="button" class="${link?'rf-linkbtn':'rf-btn'}${primary?' primary':''}" data-home-action="${kind}" data-job="${esc(job)}" data-candidate="${esc(candidate)}">${label}</button>`;
   if(error){host.innerHTML=`<div class="rf-card rf-home-hero"><h1>Let’s reconnect your workspace</h1><p>${esc(error)}</p>${action('Try again','reload','','',true)}</div>`;return;}
   const first=m.firstVisit,title=first?'Get started here':'Pick up where you left off';
   const heading=m.loading&&!m.loaded?'Getting your starting point ready…':title;
-  const intro=first?'A job, a resume, and a little context. Ancalagon turns your inputs into an assessment you can review.':'Continue your last search or choose what needs your attention.';
-  const last=m.last;
-  const labels={dashboard:'Job dashboard',candidates:'Candidates',detail:'Candidate assessment',pipeline:'Pipeline',outcomes:'Interview activity',rankings:'Rankings',compare:'Compare',benchmarks:'Benchmarks',criteria:'Evaluation criteria',feedback:'Manager feedback',insights:'Hiring insights'};
-  const continuation=last?`<div class="rf-home-continue"><div><span class="rf-home-eyebrow">${last.job.status==='closed'?'Closed search · view history':'Last opened · '+esc(labels[last.page])}</span><h2>${esc(last.candidate?.short||last.candidate?.name||last.job.title)}</h2><p>${last.candidate?esc(last.job.title):esc(last.job.client||'Your search')}</p></div>${action(last.job.status==='closed'?'View history':'Continue →','continue',last.job.id,last.candidate?.id||'',true)}</div>`:'';
-  const setup=m.steps.some(done=>!done)&&(!m.steps[0]||m.recent.length>0),count=m.steps.filter(Boolean).length;
-  const stepActions=[m.steps[0]?action('View jobs','jobs'):action('Create job','new'),m.setupJob?action('Upload resumes','upload',m.setupJob.id):'',m.setupCandidate?action('Open candidate','candidate',m.setupCandidate.jobId,m.setupCandidate.id):'',m.setupCandidate?action('Add a short note','note',m.setupCandidate.jobId,m.setupCandidate.id):''];
-  const steps=['Create a job','Add your resumes','Review an assessment','Add what you learned'];
-  const tips=['Paste the job description and a few manager priorities. AI organizes them automatically.','Choose several files at once. Saved resumes keep processing after you leave.','Check the evidence and approve. Ancalagon opens the next ready assessment.','A few words from the screen or manager are enough. AI turns them into useful context.'];
-  const rows=(list,label)=>list.slice(0,3).map(c=>`<div class="rf-home-row"><div><strong>${esc(c.short||c.name)}</strong><small>${esc(m.recent.find(j=>j.id===c.jobId)?.title||'Candidate assessment')}</small></div>${action(label,'candidate',c.jobId,c.id)}</div>`).join('');
-  host.innerHTML=`<div class="rf-home-heading"><div><span class="rf-home-eyebrow">${name?'Welcome'+(first?'': ' back')+', '+esc(name):'Your workspace'}</span><h1 tabindex="-1">${heading}</h1><p>${intro}</p></div>${action('All jobs','jobs')}</div>
+  const last=m.last,closed=last?.job.status==='closed';
+  const otherJobs=m.recent.filter(j=>j.id!==featuredJobId);
+  const status=job=>{
+   const count=list=>list.filter(c=>c.jobId===job.id).length;
+   const attention=count(m.attention),ready=count(m.ready),working=count(m.working);
+   if(attention)return {label:`${attention} need${attention===1?'s':''} attention`,tone:'attention'};
+   if(ready)return {label:`${ready} to review`,tone:'ready'};
+   if(working)return {label:`${working} processing`,tone:'processing'};
+   return {label:'Active',tone:'active'};
+  };
+  const jobRows=otherJobs.slice(0,5).map(j=>{
+   const count=m.candidateCounts.get(j.id)||0,progress=status(j);
+   return `<li><button type="button" class="rf-home-job" data-home-action="job" data-job="${esc(j.id)}"><span class="rf-home-job-copy"><strong>${esc(j.title)}</strong><small>${count} candidate${count===1?'':'s'}</small></span><span class="rf-home-job-status" data-tone="${progress.tone}">${progress.label}</span><span class="rf-home-job-arrow" aria-hidden="true">→</span></button></li>`;
+  }).join('');
+  host.innerHTML=`<div class="rf-home-heading"><div><span class="rf-home-eyebrow">${name?'Welcome'+(first?'':' back')+', '+esc(name):'Your workspace'}</span><h1 tabindex="-1">${heading}</h1></div></div>
    ${m.problem?`<div class="rf-home-notice" role="status">${esc(m.problem)} ${action('Retry sync','retry')}</div>`:''}
-   ${continuation}
-   ${tutorial&&!tutorial.complete&&(setup||tutorial.started)?`<section class="rf-card rf-home-tutorial" aria-label="Guided practice"><div><span class="rf-home-eyebrow">${tutorial.started?'Practice · step '+tutorial.step+' of 5':'New to Ancalagon?'}</span><h2>Your first search, with a little guidance.</h2><p>Try the workflow with fictional candidates. Your progress saves to your account.</p></div>${action(tutorial.started?'Resume practice':'Start practice','practice','','',true)}</section>`:''}
-   ${setup?`<section class="rf-home-onboarding" aria-label="Getting started"><div class="rf-cardhead"><h2>Your first complete search</h2><span class="rf-pill rf-blue">${count} of 4 complete</span></div><ol class="rf-home-steps">${steps.map((s,i)=>`<li class="rf-card${m.steps[i]?' complete':''}"><span class="rf-home-step">${m.steps[i]?'✓':i+1}</span><h3>${s}</h3><p>${tips[i]}</p>${stepActions[i]||'<span class="rf-sub">'+(i===1?'Create a job to begin.':'Add a candidate to begin.')+'</span>'}</li>`).join('')}</ol></section>`:''}
-   <div class="rf-home-grid"><div class="rf-card"><div class="rf-cardhead"><h2>Ready to review</h2><span class="rf-pill rf-blue">${m.ready.length}</span></div>${m.queueProblem?`<p class="rf-sub" role="status">Some assessment updates could not be loaded. ${action('Retry','reviews')}</p>`:''}${m.ready.length?rows(m.ready,'Review'):'<div class="rf-home-empty"><strong>No assessments waiting in this view</strong><p>Upload resumes or add feedback. Your next assessments will appear here.</p></div>'}${m.ready.length>3?'<p class="rf-sub">Continue reviewing to work through the rest.</p>':''}${m.working.length?`<p class="rf-sub">${m.working.length} assessment${m.working.length===1?'':'s'} being prepared in the background.</p>`:''}${m.attention.length?`<h3>Needs attention · ${m.attention.length}</h3>${rows(m.attention,'Resolve')}`:''}</div>
-    <div class="rf-card"><div class="rf-cardhead"><h2>Active jobs</h2>${action('View all','jobs')}</div>${m.recent.length?m.recent.slice(0,3).map(j=>`<div class="rf-home-row"><div><strong>${esc(j.title)}</strong><small>${esc(j.client||'Independent search')}</small></div>${action('Open','job',j.id)}</div>`).join(''):'<p class="rf-sub">No active jobs. Start a new search or open a completed job from All jobs.</p>'}${action(m.steps[0]?'+ New job':'Create your first job','new','','',!m.steps[0])}</div></div>
-   <div class="rf-home-footer"><span>Short notes are enough. Add context as you go.</span>${action('Learn Ancalagon','learn')}</div>`;
+   ${workflow?`<section id="homeSearchFlow" class="rf-search-flow" aria-label="Next step for your search">${workflow}</section>`:''}
+   <div class="rf-home-panels">
+    <section class="rf-home-new" aria-labelledby="homeNewJobTitle"><div><span class="rf-home-new-icon" aria-hidden="true">+</span><h2 id="homeNewJobTitle">New job</h2><p>Add a job description to start a new search.</p></div>${action('Create job →','new','','',!workflow)}</section>
+   <section class="rf-home-jobs" aria-label="Active jobs"><div class="rf-home-list-heading"><h2>${featuredJobId?'Other active jobs':'Active jobs'}${otherJobs.length?` <span>${otherJobs.length}</span>`:''}</h2>${m.steps[0]?action('All jobs →','jobs','','',false,true):''}</div>
+    ${jobRows?`<ul class="rf-home-job-list">${jobRows}</ul>`:`<p class="rf-home-empty">${featuredJobId?'No other active jobs yet.':m.steps[0]?'No active jobs. Find completed searches in All jobs.':'Your jobs will appear here once you create a search.'}</p>`}
+    ${otherJobs.length>5?`<p class="rf-home-list-note">Showing 5 of ${otherJobs.length} active jobs.</p>`:''}
+    ${m.queueProblem?`<p class="rf-home-list-note" role="status">Assessment status is temporarily unavailable. ${action('Retry','reviews','','',false,true)}</p>`:''}
+   </section>
+   </div>
+   <div class="rf-home-footer"><span>Need a hand?</span><div>${closed?action('View last closed job','continue',last.job.id,'',false,true):''}${tutorial&&!tutorial.complete?action(tutorial.started?'Resume practice':'Try a practice search','practice','','',false,true):''}${action('Learn Ancalagon','learn','','',false,true)}</div></div>`;
  }
+
  return {create,model,location,render,pages};
 });
