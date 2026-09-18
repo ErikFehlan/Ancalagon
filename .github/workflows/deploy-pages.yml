@@ -29,6 +29,7 @@ jobs:
       - name: Validate JavaScript
         run: |
           node --check assets/app.js
+          node --check assets/search-flow.js
           node --check assets/guidance.js
           node --check assets/settings.js
           node --check assets/settings-ui.js

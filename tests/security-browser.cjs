@@ -15,8 +15,8 @@ const root=path.resolve(__dirname,'..');
   const probe='<img data-security-probe src=x onerror="window.injected=true">';
   await page.locator('.rf-nav [data-page="jobs"]').click();
   await page.locator('#jobTitle').fill('Synthetic '+probe);await page.locator('#jobDescription').fill('QA testing '+probe);
-  await page.locator('#jobForm button[type=submit]').click();await page.locator('#page-dashboard.active').waitFor();
-  await page.locator('#addCandidateBtn').click();await page.locator('#manualCandidateEntry > summary').click();
+  await page.locator('#jobForm button[type=submit]').click();await page.locator('#page-candidates.active').waitFor();
+  await page.locator('#manualCandidateEntry > summary').click();
   await page.locator('#candidateName').fill('Pat '+probe);await page.locator('#candidateRole').fill('QA');await page.locator('#candidateScore').fill('8');await page.locator('#candidateSignal').fill(probe);await page.locator('#candidateStrengths').fill(probe);
   await page.locator('#candidateForm button[type=submit]').click();await page.locator('#page-detail.active').waitFor();
   for(const screen of ['dashboard','candidates','pipeline']){

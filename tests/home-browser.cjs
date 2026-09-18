@@ -45,8 +45,8 @@ const candidate=(id,jobId,name)=>({id,jobId,name,short:name,role:'QA Analyst',st
   await page.locator('#workspaceHome [data-home-action="new"]').first().click();
   assert.equal(await page.evaluate(()=>document.activeElement.id),'jobTitle');
   await page.locator('#jobTitle').fill('My first search');await page.locator('#jobDescription').fill('Manual testing and release verification');await page.locator('#jobForm button[type=submit]').click();
-  await page.locator('#page-dashboard.active').waitFor();await page.evaluate(()=>window.ancalagonFlush());
-  assert.equal(accounts.new.state.jobs.length,1);assert.equal(accounts.new.home.last_page,'dashboard');
+  await page.locator('#page-candidates.active').waitFor();await page.evaluate(()=>window.ancalagonFlush());
+  assert.equal(await page.evaluate(()=>document.activeElement.id),'resumeUpload');assert.match(await page.locator('#searchFlow').textContent(),/Upload resumes/);assert.equal(accounts.new.state.jobs.length,1);assert.equal(accounts.new.home.last_page,'candidates');
   await context.close();
   // Fresh browser context has no browser storage; returning experience comes from the account.
   ({page,context}=await open('new'));await page.getByRole('heading',{name:'Pick up where you left off',exact:true}).waitFor();
